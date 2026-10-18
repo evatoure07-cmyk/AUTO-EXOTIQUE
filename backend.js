@@ -1,66 +1,108 @@
 (()=>{
 const db=window.supabase?.createClient('https://gkljzpwfmthzjgfzzeoy.supabase.co','sb_publishable_x6NB71lEqcvtxODHt-cdKQ_BMLVLA3o');
 if(!db)return;
-let user=null,profile=null;
 const el=id=>document.getElementById(id);
-const emailFromPhone=value=>{const n=value.replace(/\D/g,'');if(n.length<4||n.length>18)throw Error('Téléphone RP invalide');return n+'@client.auto-exotic.invalid'};
-const message=s=>{if(el('authFeedback'))el('authFeedback').textContent=s};
-async function loadOrders(){
- const container=el('ordersList');if(!container)return;
- if(!user){container.textContent='Connectez-vous pour retrouver vos commandes.';return;}
- const {data,error}=await db.from('ae_orders').select('id,quantity,unit_price,status,created_at').order('created_at',{ascending:false});
- if(error){container.textContent='Erreur de chargement : '+error.message;return;}
- container.replaceChildren();
- if(!data?.length){container.textContent='Aucune commande pour le moment.';return;}
- for(const o of data){const c=document.createElement('div');c.className='card';const title=document.createElement('h3');title.textContent='AE-'+String(o.id).padStart(4,'0');const detail=document.createElement('p');detail.textContent=o.quantity+' kit(s) moteur standard · '+(o.quantity*o.unit_price).toLocaleString('fr-FR')+' $ · '+o.status;const date=document.createElement('small');date.textContent=new Date(o.created_at).toLocaleString('fr-FR');c.append(title,detail,date);container.append(c);}
-}
+let token=localStorage.getItem('ae_session')||'';
+let account=null;
+
+async function rpc(name,args={}){const {data,error}=await db.rpc(name,args);if(error)throw error;return data}
+function feedback(msg){if(el('authFeedback'))el('authFeedback').textContent=msg}
+function saveSession(result){token=result?.token||'';account=result?.account||null;if(token)localStorage.setItem('ae_session',token);else localStorage.removeItem('ae_session')}
 async function refresh(){
- const {data:{user:u}}=await db.auth.getUser();user=u;profile=null;
- if(user){const {data}=await db.from('ae_profiles').select('*').eq('user_id',user.id).maybeSingle();profile=data;}
- if(el('submitOrder'))el('submitOrder').style.display=user?'inline-flex':'none';
- if(el('orderLogin'))el('orderLogin').parentElement.style.display=user?'none':'flex';
- if(el('signOut'))el('signOut').style.display=user?'inline-flex':'none';
- if(user)message('Connecté : '+(profile?profile.first_name+' '+profile.last_name:'compte client'));
- await loadOrders();
+  if(token){try{account=await rpc('ae_me',{p_token:token});if(!account){token='';localStorage.removeItem('ae_session')}}catch(_){token='';account=null;localStorage.removeItem('ae_session')}}
+  const connected=!!account;
+  if(el('submitOrder'))el('submitOrder').style.display=connected&&account.role==='client'?'inline-flex':'none';
+  if(el('orderLogin'))el('orderLogin').parentElement.style.display=connected?'none':'flex';
+  if(el('signOut'))el('signOut').style.display=connected?'inline-flex':'none';
+  if(connected)feedback('Connecté : '+account.first_name+' '+account.last_name+' — '+account.role.replaceAll('_',' '));
+  await loadOrders();
+  await managerRefresh();
+}
+async function loadOrders(){
+  const box=el('ordersList');if(!box)return;
+  if(!token||!account){box.textContent='Connectez-vous pour voir vos commandes.';return}
+  if(account.role!=='client'){box.textContent='Cet espace est réservé aux comptes clients.';return}
+  try{
+    const data=await rpc('ae_list_my_orders',{p_token:token});
+    box.replaceChildren();
+    if(!data?.length){box.textContent='Aucune commande pour le moment.';return}
+    for(const o of data){
+      const c=document.createElement('div');c.className='card';
+      const h=document.createElement('h3');h.textContent='Commande AE-'+String(o.id).padStart(4,'0');
+      const p=document.createElement('p');p.textContent=o.quantity+' kit(s) moteur standard · '+(o.quantity*o.unit_price).toLocaleString('fr-FR')+' $ · '+o.status;
+      c.append(h,p);
+      if(o.cancel_reason){const r=document.createElement('small');r.textContent='Motif : '+o.cancel_reason;c.append(r)}
+      const dt=document.createElement('small');dt.textContent=new Date(o.created_at).toLocaleString('fr-FR');c.append(dt);box.append(c);
+    }
+  }catch(err){box.textContent='Impossible de charger les commandes : '+err.message}
 }
 el('loginForm')?.addEventListener('submit',async e=>{
- e.preventDefault();const inputs=e.currentTarget.querySelectorAll('input');
- try{const {error}=await db.auth.signInWithPassword({email:emailFromPhone(inputs[0].value),password:inputs[1].value});if(error)throw error;await refresh();location.hash='#/commander';}catch(err){message('Connexion impossible : '+err.message);}
+  e.preventDefault();const i=e.currentTarget.querySelectorAll('input');
+  try{const result=await rpc('ae_login',{p_login:i[0].value,p_password:i[1].value});saveSession(result);feedback('Connexion réussie.');await refresh();location.hash=account?.role==='client'?'#/commander':'#/direction';}
+  catch(err){feedback('Connexion impossible : '+err.message)}
 });
 el('registerForm')?.addEventListener('submit',async e=>{
- e.preventDefault();const a=[...e.currentTarget.querySelectorAll('input')].map(x=>x.value.trim());
- try{
-  const {data,error}=await db.auth.signUp({email:emailFromPhone(a[2]),password:a[5]});if(error)throw error;
-  if(!data.session){message('Supabase demande une confirmation email. La confirmation doit être désactivée dans Authentication > Providers > Email pour utiliser des téléphones RP.');return;}
-  const {error:pe}=await db.from('ae_profiles').insert({user_id:data.user.id,first_name:a[0],last_name:a[1],phone:a[2],iban_rp:a[3],civil_id_rp:a[4]});if(pe)throw pe;
-  await refresh();message('Compte créé !');location.hash='#/commander';
- }catch(err){message('Inscription impossible : '+err.message);}
+  e.preventDefault();const a=[...e.currentTarget.querySelectorAll('input')].map(x=>x.value.trim());
+  try{
+    const result=await rpc('ae_register_client',{p_first_name:a[0],p_last_name:a[1],p_phone:a[2],p_iban_rp:a[3],p_civil_id_rp:a[4],p_password:a[5]});
+    saveSession(result);e.currentTarget.reset();feedback('Compte créé ! Vous êtes connecté.');await refresh();location.hash='#/commander';
+  }catch(err){feedback('Inscription impossible : '+err.message)}
 });
 el('submitOrder')?.addEventListener('click',async()=>{
- if(!user)return;
- if(!profile)return alert('Profil incomplet. Contactez la direction.');
- const quantity=Number(el('qty')?.textContent||1);
- if(!confirm('Confirmer '+quantity+' kit(s) moteur standard pour '+(quantity*750).toLocaleString('fr-FR')+' $ ?'))return;
- const {data,error}=await db.from('ae_orders').insert({user_id:user.id,quantity,unit_price:750}).select('id').single();
- if(error)return alert('Commande non enregistrée : '+error.message);
- alert('Commande AE-'+String(data.id).padStart(4,'0')+' enregistrée.');
- location.hash='#/commandes';await loadOrders();
+  if(!account||account.role!=='client')return;
+  const quantity=Math.max(1,Number(el('qty')?.textContent||1));
+  if(!confirm('Confirmer '+quantity+' kit(s) moteur standard pour '+(quantity*750).toLocaleString('fr-FR')+' $ ?'))return;
+  try{const result=await rpc('ae_create_order',{p_token:token,p_quantity:quantity});alert('Commande AE-'+String(result.id).padStart(4,'0')+' enregistrée !');location.hash='#/commandes';await loadOrders()}
+  catch(err){alert('Commande impossible : '+err.message)}
 });
-el('signOut')?.addEventListener('click',async()=>{await db.auth.signOut();message('Déconnecté.');await refresh();});
-db.auth.onAuthStateChange(()=>setTimeout(refresh,0));refresh();
+el('signOut')?.addEventListener('click',async()=>{try{if(token)await rpc('ae_logout',{p_token:token})}catch(_){}token='';account=null;localStorage.removeItem('ae_session');feedback('Déconnecté.');await refresh()});
 
-async function managerRefresh(){
- const panel=el('managerPanel');if(!panel)return;
- const manager=!!profile&&['rh','assistant_direction','copatron','patron'].includes(profile.role);
- panel.classList.toggle('hidden',!manager);if(!manager)return;
- const [{data:req,error:re},{data:orders,error:oe}]=await Promise.all([db.from('ae_requests').select('*').order('created_at',{ascending:false}),db.from('ae_orders').select('*').order('created_at',{ascending:false})]);
- const requestBox=el('managerRequests'),orderBox=el('managerOrders');requestBox.replaceChildren();orderBox.replaceChildren();
- if(re)requestBox.textContent=re.message;
- for(const item of req||[]){const box=document.createElement('div');box.className='manager-item';const title=document.createElement('strong');title.textContent=item.kind+' #'+item.id+' — '+item.status;const p=document.createElement('p');p.textContent=Object.entries(item.payload).map(([k,v])=>k+': '+v).join(' · ');box.append(title,p);for(const [label,status] of [['Accepter','acceptee'],['Refuser','refusee']]){const b=document.createElement('button');b.className='btn secondary';b.textContent=label;b.onclick=async()=>{const {error}=await db.from('ae_requests').update({status}).eq('id',item.id);if(error)alert(error.message);await managerRefresh()};box.append(b)}requestBox.append(box)}
- if(oe)orderBox.textContent=oe.message;
- for(const item of orders||[]){const box=document.createElement('div');box.className='manager-item';const title=document.createElement('strong');title.textContent='AE-'+String(item.id).padStart(4,'0')+' — '+item.status;const p=document.createElement('p');p.textContent=item.quantity+' kit(s) · '+item.quantity*item.unit_price+' ;box.append(title,p);for(const [label,status] of [['Livrée','Livrée'],['Annuler','Annulée']]){const b=document.createElement('button');b.className='btn secondary';b.textContent=label;b.onclick=async()=>{if(status==='Annulée'&&!prompt('Motif de l’annulation (obligatoire) :')?.trim())return;const {error}=await db.from('ae_orders').update({status}).eq('id',item.id);if(error)alert(error.message);await managerRefresh()};box.append(b)}orderBox.append(box)}
+const requestForms=[];
+if(el('recruit'))requestForms.push([el('recruit'),'recrutement']);
+document.querySelectorAll('form.simpleform').forEach((f,i)=>requestForms.push([f,i===0?'partenariat':'evenement']));
+for(const [form,kind] of requestForms){
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const payload={};
+    [...form.querySelectorAll('input,textarea')].forEach((input,i)=>{const key=input.placeholder||input.previousElementSibling?.textContent||('champ_'+(i+1));payload[key]=input.value.trim()});
+    const button=form.querySelector('[type=submit]');button.disabled=true;
+    try{const result=await rpc('ae_submit_request',{p_kind:kind,p_payload:payload});form.reset();alert('Demande envoyée ! Numéro #'+result.id)}
+    catch(err){alert('Envoi impossible : '+err.message)}
+    finally{button.disabled=false}
+  });
 }
-const requestForms=[['recruit','recrutement'],...Array.from(document.querySelectorAll('form.simpleform')).map((f,i)=>[f,i===0?'partenariat':'evenement'])];
-for(const [formRef,kind] of requestForms){const form=typeof formRef==='string'?el(formRef):formRef;if(!form)continue;form.addEventListener('submit',async e=>{e.preventDefault();const inputs=[...form.querySelectorAll('input,textarea')];const payload={};inputs.forEach((input,i)=>payload[input.placeholder||input.previousElementSibling?.textContent||'Champ '+(i+1)]=input.value.trim());const button=form.querySelector('[type=submit]');button.disabled=true;const {error}=await db.from('ae_requests').insert({kind,payload});button.disabled=false;if(error){alert('Envoi impossible : '+error.message);return;}form.reset();alert('Votre demande a bien été enregistrée !')})}
-db.auth.onAuthStateChange(()=>setTimeout(managerRefresh,1000));setTimeout(managerRefresh,1500);
+async function managerRefresh(){
+  const panel=el('managerPanel');if(!panel)return;
+  const manager=!!account&&['rh','assistant_direction','copatron','patron'].includes(account.role);
+  panel.classList.toggle('hidden',!manager);if(!manager)return;
+  const requestBox=el('managerRequests'),orderBox=el('managerOrders');
+  try{
+    const req=await rpc('ae_manager_list_requests',{p_token:token});requestBox.replaceChildren();
+    if(!req?.length)requestBox.textContent='Aucune demande.';
+    for(const item of req||[]){
+      const box=document.createElement('div');box.className='manager-item';
+      const title=document.createElement('strong');title.textContent=item.kind+' #'+item.id+' — '+item.status;
+      const p=document.createElement('p');p.textContent=Object.entries(item.payload||{}).map(([k,v])=>k+': '+v).join(' · ');
+      box.append(title,p);
+      for(const [label,status] of [['Accepter','acceptee'],['Refuser','refusee']]){
+        const b=document.createElement('button');b.className='btn secondary';b.textContent=label;b.onclick=async()=>{try{await rpc('ae_manager_update_request',{p_token:token,p_id:item.id,p_status:status});await managerRefresh()}catch(err){alert(err.message)}};box.append(b)
+      }
+      requestBox.append(box);
+    }
+  }catch(err){requestBox.textContent='Accès impossible : '+err.message}
+  try{
+    const orders=await rpc('ae_manager_list_orders',{p_token:token});orderBox.replaceChildren();
+    if(!orders?.length)orderBox.textContent='Aucune commande.';
+    for(const item of orders||[]){
+      const box=document.createElement('div');box.className='manager-item';
+      const title=document.createElement('strong');title.textContent='AE-'+String(item.id).padStart(4,'0')+' — '+item.status;
+      const p=document.createElement('p');p.textContent=item.customer+' · '+(item.phone||'sans téléphone')+' · '+item.quantity+' kit(s) · '+(item.quantity*item.unit_price).toLocaleString('fr-FR')+' $';
+      box.append(title,p);
+      const delivered=document.createElement('button');delivered.className='btn secondary';delivered.textContent='Livrée';delivered.onclick=async()=>{try{await rpc('ae_manager_update_order',{p_token:token,p_id:item.id,p_status:'Livrée',p_reason:null});await managerRefresh()}catch(err){alert(err.message)}};
+      const cancel=document.createElement('button');cancel.className='btn secondary';cancel.textContent='Annuler';cancel.onclick=async()=>{const reason=prompt('Motif de l’annulation (obligatoire) :')?.trim();if(!reason)return;try{await rpc('ae_manager_update_order',{p_token:token,p_id:item.id,p_status:'Annulée',p_reason:reason});await managerRefresh()}catch(err){alert(err.message)}};
+      box.append(delivered,cancel);orderBox.append(box);
+    }
+  }catch(err){orderBox.textContent='Accès impossible : '+err.message}
+}
+refresh();
 })();
