@@ -391,6 +391,16 @@ document.getElementById('orderRegister').onclick=()=>openAuth('register');
 document.getElementById('showLogin').onclick=()=>openAuth('client');
 document.getElementById('showRegister').onclick=()=>openAuth('register');
 document.getElementById('internalLogin').onclick=()=>openAuth('employee');
+document.getElementById('employeeLoginForm')?.addEventListener('submit',e=>{
+  e.preventDefault();
+  const employeeInputs=e.currentTarget.querySelectorAll('input');
+  const sharedForm=document.getElementById('loginForm');
+  const sharedInputs=sharedForm?.querySelectorAll('input');
+  if(!sharedForm||!sharedInputs||sharedInputs.length<2)return;
+  sharedInputs[0].value=employeeInputs[0].value.trim().toLowerCase();
+  sharedInputs[1].value=employeeInputs[1].value;
+  sharedForm.requestSubmit();
+});
 const collapseBtn=document.getElementById('sidebarCollapse');
 const applySidebar=(collapsed)=>{
   document.body.classList.toggle('sidebar-collapsed',collapsed);
