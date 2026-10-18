@@ -4,6 +4,8 @@ if(!db)return;
 const el=id=>document.getElementById(id);
 let token=localStorage.getItem('ae_session')||'';
 let account=null;
+let myProfile=null;
+let staffCache=[];
 const managerRoles=['rh','assistant_direction','copatron','patron'];
 const roleLabels={client:'Client',mecano_novice:'Mécano novice',mecano_intermediaire:'Mécano intermédiaire',mecano_experimente:'Mécano expérimenté',chef_equipe:"Chef d'équipe",rh:'RH',assistant_direction:'Assistant de direction',copatron:'Co-patron',patron:'Patron'};
 
@@ -21,13 +23,103 @@ async function refresh(){
     }catch(_){token='';account=null;localStorage.removeItem('ae_session')}
   }
   const connected=!!account;
+  if(connected){try{myProfile=await rpc('ae_my_profile',{p_token:token})}catch(_){myProfile=null}}else myProfile=null;
+  updateSidebarProfile();
   if(el('submitOrder'))el('submitOrder').style.display=connected&&account.role==='client'?'inline-flex':'none';
   if(el('orderLogin'))el('orderLogin').parentElement.style.display=connected?'none':'flex';
   if(el('signOut'))el('signOut').style.display=connected?'inline-flex':'none';
   if(connected)feedback('Connecté : '+account.first_name+' '+account.last_name+' — '+(roleLabels[account.role]||account.role));
-  await Promise.all([loadOrders(),loadNotifications(),loadStaff(),loadNews(),managerRefresh()]);
+  await Promise.all([loadOrders(),loadNotifications(),loadStaff(),loadNews(),loadMyProfile(),managerRefresh()]);
 }
 
+function initials(name){
+  return String(name||'AE').split(/\s+/).filter(Boolean).map(x=>x[0]).slice(0,2).join('').toUpperCase()||'AE';
+}
+function avatarNode(profile,className='profile-avatar-large'){
+  if(profile?.avatar_url){
+    const img=document.createElement('img');img.src=profile.avatar_url;img.alt='';img.className=className;return img;
+  }
+  const div=document.createElement('div');div.className=className;div.textContent=initials((profile?.first_name||'')+' '+(profile?.last_name||profile?.name||''));return div;
+}
+function updateSidebarProfile(){
+  const connected=!!account;
+  const quick=el('quickLogin'),user=el('sidebarUser');
+  if(quick)quick.classList.toggle('hidden',connected);
+  if(user)user.classList.toggle('hidden',!connected);
+  if(!connected)return;
+  const full=(myProfile?.first_name||account.first_name||'')+' '+(myProfile?.last_name||account.last_name||'');
+  if(el('sidebarUserName'))el('sidebarUserName').textContent=full.trim()||'Mon profil';
+  if(el('sidebarUserRole'))el('sidebarUserRole').textContent=roleLabels[account.role]||account.role;
+  const avatar=el('sidebarAvatar');
+  if(avatar){
+    avatar.replaceChildren();
+    if(myProfile?.avatar_url){const img=document.createElement('img');img.src=myProfile.avatar_url;img.alt='';avatar.append(img)}
+    else avatar.textContent=initials(full);
+  }
+}
+async function loadMyProfile(){
+  const box=el('profileContent');if(!box)return;
+  box.replaceChildren();
+  if(!account||!myProfile){
+    const card=document.createElement('div');card.className='card';card.innerHTML='<h3>Connexion requise</h3><p class="muted">Connectez-vous pour ouvrir votre profil Auto Exotic.</p><a class="btn" href="#/espace">Se connecter</a>';box.append(card);return;
+  }
+
+  const identity=document.createElement('article');identity.className='card profile-identity';
+  identity.append(avatarNode(myProfile));
+  const tag=document.createElement('span');tag.className='tag profile-role';tag.textContent=roleLabels[myProfile.role]||myProfile.role;
+  const name=document.createElement('h2');name.textContent=(myProfile.first_name||'')+' '+(myProfile.last_name||'');
+  identity.append(tag,name);
+  if(myProfile.role!=='client'){
+    const rating=document.createElement('div');rating.className='profile-rating';rating.textContent=(Number(myProfile.rating_avg||0)>0?Number(myProfile.rating_avg).toFixed(1):'—')+' ★';
+    const rmeta=document.createElement('p');rmeta.className='muted small';rmeta.textContent=Number(myProfile.rating_count||0)+' avis client(s)';
+    identity.append(rating,rmeta);
+  }
+
+  const details=document.createElement('div');details.className='card';
+  const title=document.createElement('h3');title.textContent=myProfile.role==='client'?'Informations du compte':'Profil employé';
+  details.append(title);
+  const grid=document.createElement('div');grid.className='profile-info-grid';
+  const info=(label,value)=>{const d=document.createElement('div');d.className='profile-info-item';const s=document.createElement('small');s.textContent=label;const st=document.createElement('strong');st.textContent=value||'—';d.append(s,st);grid.append(d)};
+  info('Identifiant',myProfile.login);
+  info('Rôle',roleLabels[myProfile.role]||myProfile.role);
+  if(myProfile.role==='client'){
+    info('Téléphone',myProfile.phone);
+    info('IBAN RP',myProfile.iban_rp);
+    info('ID RP',myProfile.civil_id_rp);
+  }else{
+    info('Dans l’équipe depuis',myProfile.joined_at?new Date(myProfile.joined_at+'T00:00:00').toLocaleDateString('fr-FR'):'—');
+    info('Interventions',String(myProfile.interventions_count||0));
+  }
+  details.append(grid);
+
+  if(myProfile.role!=='client'){
+    const form=document.createElement('form');form.className='form';form.style.marginTop='22px';
+    const sub=document.createElement('h3');sub.textContent='Personnaliser mon profil';
+    const avatar=document.createElement('input');avatar.placeholder='URL de votre photo de profil';avatar.value=myProfile.avatar_url||'';
+    const bio=document.createElement('textarea');bio.placeholder='Petite présentation';bio.value=myProfile.bio||'';
+    const dutyLabel=document.createElement('label');const duty=document.createElement('input');duty.type='checkbox';duty.checked=!!myProfile.on_duty;dutyLabel.append(duty,document.createTextNode(' En service'));
+    const save=document.createElement('button');save.type='submit';save.className='btn';save.textContent='Enregistrer mon profil';
+    form.append(sub,avatar,bio,dutyLabel,save);
+    form.onsubmit=async e=>{e.preventDefault();save.disabled=true;try{await rpc('ae_update_my_staff_profile',{p_token:token,p_avatar_url:avatar.value,p_bio:bio.value,p_on_duty:duty.checked});myProfile=await rpc('ae_my_profile',{p_token:token});updateSidebarProfile();await Promise.all([loadMyProfile(),loadStaff()]);alert('Profil mis à jour.')}catch(err){alert(err.message)}finally{save.disabled=false}};
+    details.append(form);
+  }
+  box.append(identity,details);
+}
+function showEmployeeProfile(s){
+  const modal=el('employeeProfileModal'),content=el('employeeProfileContent');if(!modal||!content)return;
+  content.replaceChildren();
+  const top=document.createElement('div');top.className='employee-profile-top';top.append(avatarNode({avatar_url:s.avatar_url,name:s.name}));
+  const copy=document.createElement('div');const role=document.createElement('span');role.className='tag';role.textContent=roleLabels[s.role]||s.role;const name=document.createElement('h2');name.textContent=s.name;const rating=document.createElement('p');rating.className='profile-rating';rating.textContent=(Number(s.rating_avg||0)>0?Number(s.rating_avg).toFixed(1):'—')+' ★ · '+Number(s.rating_count||0)+' avis';copy.append(role,name,rating);top.append(copy);content.append(top);
+  const grid=document.createElement('div');grid.className='profile-info-grid';
+  const add=(label,value)=>{const d=document.createElement('div');d.className='profile-info-item';const a=document.createElement('small');a.textContent=label;const b=document.createElement('strong');b.textContent=value;d.append(a,b);grid.append(d)};
+  add('Poste',roleLabels[s.role]||s.role);
+  add('Ancienneté',s.joined_at?'Depuis le '+new Date(s.joined_at+'T00:00:00').toLocaleDateString('fr-FR'):'Non renseignée');
+  add('Interventions',String(s.interventions_count||0));
+  add('Service',s.on_duty?'En service':'Hors service');
+  content.append(grid);
+  if(s.bio){const bio=document.createElement('p');bio.className='muted';bio.style.marginTop='20px';bio.textContent=s.bio;content.append(bio)}
+  modal.classList.remove('hidden');
+}
 async function loadOrders(){
   const box=el('ordersList');if(!box)return;
   box.replaceChildren();
@@ -98,6 +190,7 @@ async function loadStaff(){
   const box=el('staffList');if(!box)return;
   try{
     const staff=await rpc('ae_public_staff');
+    staffCache=staff||[];
     box.replaceChildren();
     const reviewSelect=el('reviewStaff');
     if(reviewSelect){
@@ -122,6 +215,7 @@ async function loadStaff(){
       const rating=document.createElement('p');rating.className='muted';rating.textContent=(Number(s.rating_avg||0)>0?Number(s.rating_avg).toFixed(1):'—')+' / 5 · '+Number(s.rating_count||0)+' avis';
       card.append(head,role,name,meta,rating);
       if(s.bio){const bio=document.createElement('p');bio.className='muted';bio.textContent=s.bio;card.append(bio)}
+      const open=document.createElement('button');open.type='button';open.className='btn secondary staff-profile-button';open.textContent='Voir le profil';open.onclick=()=>showEmployeeProfile(s);card.append(open);
       box.append(card);
     }
     revealNow();
@@ -175,7 +269,7 @@ el('submitOrder')?.addEventListener('click',async()=>{
   }catch(err){alert('Commande impossible : '+err.message)}
 });
 
-el('signOut')?.addEventListener('click',async()=>{try{if(token)await rpc('ae_logout',{p_token:token})}catch(_){}token='';account=null;localStorage.removeItem('ae_session');feedback('Déconnecté.');await refresh()});
+el('signOut')?.addEventListener('click',async()=>{try{if(token)await rpc('ae_logout',{p_token:token})}catch(_){}token='';account=null;myProfile=null;localStorage.removeItem('ae_session');feedback('Déconnecté.');await refresh()});
 
 const requestForms=[];
 if(el('recruit'))requestForms.push([el('recruit'),'recrutement']);
@@ -296,6 +390,8 @@ async function managerRefresh(){
   revealNow();
 }
 
+el('closeEmployeeProfile')?.addEventListener('click',()=>el('employeeProfileModal')?.classList.add('hidden'));
+el('employeeProfileModal')?.addEventListener('click',e=>{if(e.target===el('employeeProfileModal'))el('employeeProfileModal').classList.add('hidden')});
 el('notificationToggle')?.addEventListener('click',()=>el('notificationsPanel')?.classList.toggle('hidden'));
 el('closeNotifications')?.addEventListener('click',()=>el('notificationsPanel')?.classList.add('hidden'));
 el('markNotificationsRead')?.addEventListener('click',async()=>{if(!token)return;try{await rpc('ae_mark_notifications_read',{p_token:token});await loadNotifications()}catch(err){alert(err.message)}});
