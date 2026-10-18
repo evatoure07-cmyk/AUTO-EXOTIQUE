@@ -8,6 +8,7 @@ let myProfile=null;
 let staffCache=[];
 const managerRoles=['rh','assistant_direction','copatron','patron'];
 const roleLabels={client:'Client',mecano_novice:'Mécano novice',mecano_intermediaire:'Mécano intermédiaire',mecano_experimente:'Mécano expérimenté',chef_equipe:"Chef d'équipe",rh:'RH',assistant_direction:'Assistant de direction',copatron:'Co-patron',patron:'Patron'};
+const employeeRoles=['mecano_novice','mecano_intermediaire','mecano_experimente','chef_equipe','rh','assistant_direction','copatron','patron'];
 
 async function rpc(name,args={}){const {data,error}=await db.rpc(name,args);if(error)throw error;return data}
 function feedback(msg){if(el('authFeedback'))el('authFeedback').textContent=msg}
@@ -24,6 +25,9 @@ async function refresh(){
   }
   const connected=!!account;
   if(connected){try{myProfile=await rpc('ae_my_profile',{p_token:token})}catch(_){myProfile=null}}else myProfile=null;
+  const forcePassword=!!(connected&&account.role!=='client'&&account.must_change_password);
+  el('forcedPasswordCard')?.classList.toggle('hidden',!forcePassword);
+  if(forcePassword&&!location.hash.startsWith('#/profil'))location.hash='#/profil';
   updateSidebarProfile();
   if(el('submitOrder'))el('submitOrder').style.display=connected&&account.role==='client'?'inline-flex':'none';
   if(el('orderLogin'))el('orderLogin').parentElement.style.display=connected?'none':'flex';
@@ -246,8 +250,30 @@ async function loadNews(){
 
 el('loginForm')?.addEventListener('submit',async e=>{
   e.preventDefault();const i=e.currentTarget.querySelectorAll('input');
-  try{const result=await rpc('ae_login',{p_login:i[0].value,p_password:i[1].value});saveSession(result);feedback('Connexion réussie.');await refresh();location.hash=account?.role==='client'?'#/commander':'#/direction'}
+  try{const result=await rpc('ae_login',{p_login:i[0].value,p_password:i[1].value});saveSession(result);feedback('Connexion réussie.');await refresh();location.hash=account?.must_change_password?'#/profil':(account?.role==='client'?'#/commander':'#/direction')}
   catch(err){feedback('Connexion impossible : '+err.message)}
+});
+
+el('forcedPasswordForm')?.addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!account||!account.must_change_password)return;
+  const inputs=e.currentTarget.querySelectorAll('input');
+  const oldPassword=inputs[0].value;
+  const newPassword=inputs[1].value;
+  const confirmPassword=inputs[2].value;
+  if(newPassword!==confirmPassword){alert('Les deux nouveaux mots de passe ne correspondent pas.');return}
+  if(newPassword.length<8){alert('Le nouveau mot de passe doit contenir au moins 8 caractères.');return}
+  const button=e.currentTarget.querySelector('button');button.disabled=true;
+  try{
+    await rpc('ae_change_password',{p_token:token,p_old:oldPassword,p_new:newPassword});
+    account=await rpc('ae_me',{p_token:token});
+    e.currentTarget.reset();
+    el('forcedPasswordCard')?.classList.add('hidden');
+    alert('Votre mot de passe a été enregistré.');
+    await refresh();
+    location.hash=account?.role==='client'?'#/commander':'#/direction';
+  }catch(err){alert('Modification impossible : '+err.message)}
+  finally{button.disabled=false}
 });
 
 el('registerForm')?.addEventListener('submit',async e=>{
@@ -284,6 +310,38 @@ for(const [form,kind] of requestForms){
     finally{button.disabled=false}
   });
 }
+
+function showTemporaryCredential(login,password,label='Mot de passe temporaire'){
+  const box=el('temporaryCredential');if(!box)return;
+  box.classList.remove('hidden');box.replaceChildren();
+  const title=document.createElement('strong');title.textContent=label;
+  const note=document.createElement('p');note.className='muted small';note.textContent='Copiez-le maintenant : il ne sera plus affiché ensuite.';
+  const loginRow=document.createElement('div');loginRow.className='credential-row';
+  const loginValue=document.createElement('div');loginValue.className='credential-value';loginValue.textContent='Identifiant : '+login;
+  const passRow=document.createElement('div');passRow.className='credential-row';
+  const passValue=document.createElement('div');passValue.className='credential-value';passValue.textContent=password;
+  const copy=document.createElement('button');copy.type='button';copy.className='btn secondary';copy.textContent='Copier';copy.onclick=async()=>{try{await navigator.clipboard.writeText(password);copy.textContent='Copié ✓'}catch(_){alert('Copie impossible, sélectionnez le mot de passe manuellement.')}};
+  loginRow.append(loginValue);passRow.append(passValue,copy);box.append(title,note,loginRow,passRow);
+}
+el('employeeAccountForm')?.addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!account||!['assistant_direction','copatron','patron'].includes(account.role)){alert('Accès direction requis.');return}
+  const fields=e.currentTarget.querySelectorAll('input,select');
+  const button=e.currentTarget.querySelector('button');button.disabled=true;
+  try{
+    const result=await rpc('ae_manager_create_employee',{
+      p_token:token,
+      p_first_name:fields[0].value.trim(),
+      p_last_name:fields[1].value.trim(),
+      p_login:fields[2].value.trim().toLowerCase(),
+      p_role:fields[3].value
+    });
+    e.currentTarget.reset();
+    showTemporaryCredential(result.login,result.temporary_password);
+    await Promise.all([managerRefresh(),loadStaff()]);
+  }catch(err){alert('Création impossible : '+err.message)}
+  finally{button.disabled=false}
+});
 
 let selectedReviewRating=0;
 document.querySelectorAll('#reviewStars [data-rating]').forEach(button=>button.addEventListener('click',()=>{
@@ -378,13 +436,59 @@ async function managerRefresh(){
 
   try{
     const employees=await rpc('ae_manager_list_employees',{p_token:token});const box=el('managerEmployees');box.replaceChildren();
+    const canManageAccounts=['assistant_direction','copatron','patron'].includes(account.role);
+    document.querySelector('.account-management')?.classList.toggle('hidden',!canManageAccounts);
+    const roleSelect=el('employeeRoleSelect');
+    if(roleSelect){
+      [...roleSelect.options].forEach(opt=>{
+        opt.disabled=account.role==='assistant_direction'&&['assistant_direction','copatron','patron'].includes(opt.value);
+      });
+    }
     if(!employees?.length)box.textContent='Aucun compte employé configuré.';
     for(const emp of employees||[]){
-      const wrap=document.createElement('details');wrap.className='client-file';
-      const summary=document.createElement('summary');summary.textContent=emp.name+' · '+(roleLabels[emp.role]||emp.role);
-      const form=document.createElement('form');form.className='form';form.innerHTML='<input placeholder="URL avatar" value="'+esc(emp.avatar_url||'').replaceAll('"','&quot;')+'"><label>Date d’arrivée</label><input type="date" value="'+esc(emp.joined_at||'')+'"><input type="number" min="0" placeholder="Nombre d’interventions" value="'+Number(emp.interventions_count||0)+'"><label><input type="checkbox" '+(emp.on_duty?'checked':'')+'> En service</label><textarea placeholder="Petite présentation">'+esc(emp.bio||'')+'</textarea><button class="btn secondary" type="submit">Enregistrer la fiche</button>';
+      const wrap=document.createElement('div');wrap.className='employee-account-card';
+      const top=document.createElement('div');top.className='employee-account-top';
+      const title=document.createElement('div');
+      const strong=document.createElement('strong');strong.textContent=emp.name;
+      const login=document.createElement('p');login.className='small muted';login.textContent='Identifiant : '+emp.login;
+      title.append(strong,login);
+      const badge=document.createElement('span');badge.className='tag';badge.textContent=roleLabels[emp.role]||emp.role;
+      top.append(title,badge);
+      const meta=document.createElement('div');meta.className='employee-account-meta';
+      if(emp.must_change_password){const change=document.createElement('span');change.className='force-change-badge';change.textContent='Mot de passe temporaire';meta.append(change)}
+      const service=document.createElement('span');service.className='small muted';service.textContent=emp.on_duty?'En service':'Hors service';meta.append(service);
+      wrap.append(top,meta);
+
+      if(canManageAccounts){
+        const actions=document.createElement('div');actions.className='employee-role-actions';
+        const select=document.createElement('select');
+        for(const role of employeeRoles){const o=document.createElement('option');o.value=role;o.textContent=roleLabels[role];o.selected=role===emp.role;if(account.role==='assistant_direction'&&['assistant_direction','copatron','patron'].includes(role))o.disabled=true;select.append(o)}
+        const roleBtn=document.createElement('button');roleBtn.type='button';roleBtn.className='btn secondary';roleBtn.textContent='Modifier le grade';
+        roleBtn.disabled=emp.account_id===account.id;
+        roleBtn.onclick=async()=>{
+          if(select.value===emp.role)return;
+          const reason=prompt('Motif de la promotion / rétrogradation (facultatif) :')||'';
+          if(!confirm('Passer '+emp.name+' de '+(roleLabels[emp.role]||emp.role)+' à '+(roleLabels[select.value]||select.value)+' ?')){select.value=emp.role;return}
+          try{await rpc('ae_manager_update_employee_role',{p_token:token,p_account_id:emp.account_id,p_new_role:select.value,p_reason:reason});await Promise.all([managerRefresh(),loadStaff()])}catch(err){alert(err.message);select.value=emp.role}
+        };
+        const reset=document.createElement('button');reset.type='button';reset.className='btn secondary';reset.textContent='Nouveau MDP temporaire';reset.disabled=emp.account_id===account.id;
+        reset.onclick=async()=>{
+          if(!confirm('Réinitialiser le mot de passe de '+emp.name+' ?'))return;
+          try{const result=await rpc('ae_manager_reset_employee_password',{p_token:token,p_account_id:emp.account_id});showTemporaryCredential(emp.login,result.temporary_password,'Nouveau mot de passe temporaire');await managerRefresh()}catch(err){alert(err.message)}
+        };
+        actions.append(select,roleBtn,reset);wrap.append(actions);
+
+        const historyBtn=document.createElement('button');historyBtn.type='button';historyBtn.className='btn secondary';historyBtn.style.marginTop='10px';historyBtn.textContent='Historique des grades';
+        const history=document.createElement('div');history.className='role-history hidden';
+        historyBtn.onclick=async()=>{if(!history.classList.contains('hidden')){history.classList.add('hidden');return}try{const rows=await rpc('ae_manager_role_history',{p_token:token,p_account_id:emp.account_id});history.replaceChildren();if(!rows?.length)history.textContent='Aucun changement de grade.';for(const row of rows||[]){const p=document.createElement('div');p.className='role-history-item';p.textContent=(row.old_role?roleLabels[row.old_role]+' → ':'Création → ')+(roleLabels[row.new_role]||row.new_role)+' · '+new Date(row.created_at).toLocaleString('fr-FR')+' · '+row.changed_by+(row.reason?' · '+row.reason:'');history.append(p)}history.classList.remove('hidden')}catch(err){alert(err.message)}};
+        wrap.append(historyBtn,history);
+      }
+
+      const details=document.createElement('details');details.style.marginTop='12px';
+      const summary=document.createElement('summary');summary.textContent='Modifier la fiche publique';
+      const form=document.createElement('form');form.className='form';form.style.marginTop='12px';form.innerHTML='<input placeholder="URL avatar" value="'+esc(emp.avatar_url||'').replaceAll('"','&quot;')+'"><label>Date d’arrivée</label><input type="date" value="'+esc(emp.joined_at||'')+'"><input type="number" min="0" placeholder="Nombre d’interventions" value="'+Number(emp.interventions_count||0)+'"><label><input type="checkbox" '+(emp.on_duty?'checked':'')+'> En service</label><textarea placeholder="Petite présentation">'+esc(emp.bio||'')+'</textarea><button class="btn secondary" type="submit">Enregistrer la fiche</button>';
       form.onsubmit=async e=>{e.preventDefault();const f=form.querySelectorAll('input,textarea');try{await rpc('ae_manager_update_staff_profile',{p_token:token,p_account_id:emp.account_id,p_avatar_url:f[0].value,p_joined_at:f[1].value||null,p_interventions_count:Number(f[2].value||0),p_on_duty:f[3].checked,p_bio:f[4].value});alert('Fiche employé mise à jour.');await Promise.all([managerRefresh(),loadStaff()])}catch(err){alert(err.message)}};
-      wrap.append(summary,form);box.append(wrap);
+      details.append(summary,form);wrap.append(details);box.append(wrap);
     }
   }catch(err){el('managerEmployees').textContent='Fiches employés indisponibles : '+err.message}
   revealNow();
