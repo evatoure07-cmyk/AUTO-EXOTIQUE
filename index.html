@@ -93,6 +93,22 @@ body.light .review-form select{background:#fff;border-color:#d7e4e7;color:#17343
  .review-form{grid-template-columns:1fr}
  .review-stars{justify-content:center}
 }
+
+/* Keep appearance control near the top of the desktop sidebar, even on short screens. */
+@media(min-width:1100px){
+  .nav .bar{min-height:0;height:100%;overflow:hidden;padding-bottom:24px}
+  .nav .links{
+    height:auto;min-height:0;flex:1 1 auto;overflow-y:auto;overflow-x:hidden;
+    scrollbar-width:thin;scrollbar-color:var(--line) transparent;
+    padding:0 4px 12px 0;align-content:flex-start;
+  }
+  .nav .links #theme{
+    order:-1;position:sticky;top:0;z-index:2;
+    margin:0 0 14px 12px;align-self:flex-start;flex-shrink:0;
+    background:var(--panel);box-shadow:0 0 0 9px var(--bg);
+  }
+  body.light .nav .links #theme{background:#fff;box-shadow:0 0 0 9px #f9fcfd}
+}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
 <header class="nav"><div class="shell bar"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><div class="top-actions"><a href="#/espace" id="quickLogin" class="quick-login" data-page="espace"><span class="quick-icon">○</span><span><strong>Connexion</strong><small>Mon espace</small></span></a><button id="notificationToggle" class="notification-button notification-large" type="button" aria-label="Notifications"><span class="bell-mark">⌁</span><span class="notification-copy"><strong>Notifications</strong><small>Voir les alertes</small></span><span id="notificationBadge" class="notification-badge hidden">0</span></button></div><nav class="links"><a href="#/accueil" data-page="accueil" data-no="01">Accueil</a><a href="#/prestations" data-page="prestations" data-no="02">Prestations</a><a href="#/commander" data-page="commander" data-no="03">Boutique</a><a href="#/commandes" data-page="commandes" data-no="04">Mes commandes</a><a href="#/actualites" data-page="actualites" data-no="05">Actualités</a><a href="#/recrutement" data-page="recrutement" data-no="06">Recrutement</a><a href="#/partenaires" data-page="partenaires" data-no="07">Partenariats</a><a href="#/equipe" data-page="equipe" data-no="08">Équipe</a><a href="#/apropos" data-page="apropos" data-no="09">À propos</a><button id="theme" class="theme-toggle" type="button" aria-label="Passer en mode clair" aria-pressed="false"><span class="theme-icon sun">☀</span><span class="theme-track"><span class="theme-knob"></span></span><span class="theme-icon moon">◐</span></button></nav></div></header>
 <main><section class="hero page" id="accueil" data-view="accueil"><div class="shell"><div class="eyebrow">Los Santos • Automotive Division</div><h1>BUILT FOR<br><span class="accent">THE ROAD.</span></h1><div class="speed"></div><p>Auto Exotic réunit mécanique, entretien et performance dans une expérience pensée comme un vrai garage premium. Commandez, suivez vos demandes et restez connecté au garage depuis un seul espace.</p><div class="hero-actions"><a href="#/commander" class="btn">Commander maintenant</a><a href="#/prestations" class="btn secondary">Explorer les prestations</a></div><div class="performance-strip"><div><strong>750 $</strong><span>Kit moteur en ligne</span></div><div><strong>05</strong><span>Services disponibles</span></div><div><strong>24/7</strong><span>Suivi de commande</span></div></div></div></section>
