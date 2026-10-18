@@ -108,6 +108,30 @@ async function loadMyProfile(){
     form.onsubmit=async e=>{e.preventDefault();save.disabled=true;try{await rpc('ae_update_my_staff_profile',{p_token:token,p_avatar_url:avatar.value,p_bio:bio.value,p_on_duty:duty.checked});myProfile=await rpc('ae_my_profile',{p_token:token});updateSidebarProfile();await Promise.all([loadMyProfile(),loadStaff()]);alert('Profil mis à jour.')}catch(err){alert(err.message)}finally{save.disabled=false}};
     details.append(form);
   }
+
+  if(!account.must_change_password){
+    const security=document.createElement('form');security.className='form profile-password-form';security.style.marginTop='26px';
+    const divider=document.createElement('div');divider.className='profile-security-divider';
+    const securityTitle=document.createElement('h3');securityTitle.textContent='Modifier mon mot de passe';
+    const securityText=document.createElement('p');securityText.className='muted small';securityText.textContent='Entrez votre mot de passe actuel puis choisissez le nouveau.';
+    const oldPwd=document.createElement('input');oldPwd.type='password';oldPwd.autocomplete='current-password';oldPwd.required=true;oldPwd.placeholder='Ancien mot de passe';
+    const newPwd=document.createElement('input');newPwd.type='password';newPwd.autocomplete='new-password';newPwd.required=true;newPwd.minLength=8;newPwd.placeholder='Nouveau mot de passe';
+    const changePwd=document.createElement('button');changePwd.type='submit';changePwd.className='btn secondary';changePwd.textContent='Modifier mon mot de passe';
+    security.append(divider,securityTitle,securityText,oldPwd,newPwd,changePwd);
+    security.onsubmit=async e=>{
+      e.preventDefault();
+      if(newPwd.value.length<8){alert('Le nouveau mot de passe doit contenir au moins 8 caractères.');return}
+      changePwd.disabled=true;
+      try{
+        await rpc('ae_change_password',{p_token:token,p_old:oldPwd.value,p_new:newPwd.value});
+        security.reset();
+        alert('Mot de passe modifié.');
+      }catch(err){alert('Modification impossible : '+err.message)}
+      finally{changePwd.disabled=false}
+    };
+    details.append(security);
+  }
+
   box.append(identity,details);
 }
 function showEmployeeProfile(s){
