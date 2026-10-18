@@ -99,6 +99,16 @@ async function loadStaff(){
   try{
     const staff=await rpc('ae_public_staff');
     box.replaceChildren();
+    const reviewSelect=el('reviewStaff');
+    if(reviewSelect){
+      const current=reviewSelect.value;
+      reviewSelect.replaceChildren();
+      const first=document.createElement('option');first.value='';first.textContent='Choisir un employé';reviewSelect.append(first);
+      for(const person of staff||[]){const opt=document.createElement('option');opt.value=person.account_id;opt.textContent=person.name+' — '+(roleLabels[person.role]||person.role);reviewSelect.append(opt)}
+      if([...reviewSelect.options].some(o=>o.value===current))reviewSelect.value=current;
+    }
+    const hint=el('reviewHint');
+    if(hint)hint.textContent=account?.role==='client'?'Choisissez un employé et une note de 1 à 5 étoiles.':'Vous devez être connecté avec un compte client pour noter un employé.';
     if(!staff?.length){const c=document.createElement('div');c.className='card';c.innerHTML='<h3>Équipe en préparation</h3><p class="muted">Les fiches apparaîtront ici dès que les comptes employés seront configurés.</p>';box.append(c);return}
     for(const s of staff){
       const card=document.createElement('article');card.className='card staff-card reveal';
@@ -112,11 +122,6 @@ async function loadStaff(){
       const rating=document.createElement('p');rating.className='muted';rating.textContent=(Number(s.rating_avg||0)>0?Number(s.rating_avg).toFixed(1):'—')+' / 5 · '+Number(s.rating_count||0)+' avis';
       card.append(head,role,name,meta,rating);
       if(s.bio){const bio=document.createElement('p');bio.className='muted';bio.textContent=s.bio;card.append(bio)}
-      if(account?.role==='client'){
-        const stars=document.createElement('div');stars.className='stars';
-        for(let n=1;n<=5;n++){const b=document.createElement('button');b.type='button';b.className='star-btn';b.textContent='★';b.title='Noter '+n+'/5';b.onclick=async()=>{try{await rpc('ae_rate_staff',{p_token:token,p_staff_account_id:s.account_id,p_stars:n});await loadStaff()}catch(err){alert(err.message)}};stars.append(b)}
-        card.append(stars);
-      }
       box.append(card);
     }
     revealNow();
@@ -185,6 +190,27 @@ for(const [form,kind] of requestForms){
     finally{button.disabled=false}
   });
 }
+
+let selectedReviewRating=0;
+document.querySelectorAll('#reviewStars [data-rating]').forEach(button=>button.addEventListener('click',()=>{
+  selectedReviewRating=Number(button.dataset.rating);
+  if(el('reviewRating'))el('reviewRating').value=String(selectedReviewRating);
+  document.querySelectorAll('#reviewStars [data-rating]').forEach(star=>star.classList.toggle('active',Number(star.dataset.rating)<=selectedReviewRating));
+}));
+el('reviewForm')?.addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!account||account.role!=='client'){location.hash='#/espace';feedback('Connectez-vous avec un compte client pour laisser un avis.');return}
+  const staffId=el('reviewStaff')?.value;
+  if(!staffId||selectedReviewRating<1){alert('Choisissez un employé et une note de 1 à 5 étoiles.');return}
+  try{
+    await rpc('ae_rate_staff',{p_token:token,p_staff_account_id:staffId,p_stars:selectedReviewRating});
+    alert('Votre avis a bien été enregistré.');
+    selectedReviewRating=0;if(el('reviewRating'))el('reviewRating').value='0';
+    document.querySelectorAll('#reviewStars [data-rating]').forEach(star=>star.classList.remove('active'));
+    if(el('reviewStaff'))el('reviewStaff').value='';
+    await loadStaff();
+  }catch(err){alert('Avis impossible : '+err.message)}
+});
 
 el('newsForm')?.addEventListener('submit',async e=>{
   e.preventDefault();if(!account||!managerRoles.includes(account.role))return;
