@@ -62,6 +62,30 @@ function updateSidebarProfile(){
     else avatar.textContent=initials(full);
   }
 }
+async function profileImageToDataUrl(file){
+  if(!file||!String(file.type||'').startsWith('image/'))throw new Error('Choisissez une image valide.');
+  if(file.size>8*1024*1024)throw new Error('Image trop lourde : 8 Mo maximum.');
+  const dataUrl=await new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=()=>reject(new Error('Lecture de l’image impossible.'));
+    reader.readAsDataURL(file);
+  });
+  const img=await new Promise((resolve,reject)=>{
+    const image=new Image();
+    image.onload=()=>resolve(image);
+    image.onerror=()=>reject(new Error('Image illisible.'));
+    image.src=dataUrl;
+  });
+  const max=512;
+  const scale=Math.min(1,max/Math.max(img.width,img.height));
+  const width=Math.max(1,Math.round(img.width*scale));
+  const height=Math.max(1,Math.round(img.height*scale));
+  const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+  const ctx=canvas.getContext('2d');
+  ctx.drawImage(img,0,0,width,height);
+  return canvas.toDataURL('image/jpeg',0.84);
+}
 async function loadMyProfile(){
   const box=el('profileContent');if(!box)return;
   box.replaceChildren();
@@ -100,12 +124,44 @@ async function loadMyProfile(){
   if(myProfile.role!=='client'){
     const form=document.createElement('form');form.className='form';form.style.marginTop='22px';
     const sub=document.createElement('h3');sub.textContent='Personnaliser mon profil';
-    const avatar=document.createElement('input');avatar.placeholder='URL de votre photo de profil';avatar.value=myProfile.avatar_url||'';
+
+    let avatarValue=myProfile.avatar_url||'';
+    const photoPicker=document.createElement('div');photoPicker.className='profile-photo-picker';
+    const photoPreview=document.createElement('div');photoPreview.className='profile-photo-preview';
+    const drawPhotoPreview=()=>{
+      photoPreview.replaceChildren();
+      if(avatarValue){const img=document.createElement('img');img.src=avatarValue;img.alt='Photo de profil';photoPreview.append(img)}
+      else photoPreview.textContent=initials((myProfile.first_name||'')+' '+(myProfile.last_name||''));
+    };
+    drawPhotoPreview();
+
+    const photoActions=document.createElement('div');photoActions.className='profile-photo-actions';
+    const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept='image/*';
+    const chooseLabel=document.createElement('label');chooseLabel.className='btn secondary';chooseLabel.textContent='Choisir un fichier';chooseLabel.append(fileInput);
+    const removePhoto=document.createElement('button');removePhoto.type='button';removePhoto.className='btn secondary';removePhoto.textContent='Retirer la photo';
+    photoActions.append(chooseLabel,removePhoto);
+
+    const pasteZone=document.createElement('div');pasteZone.className='profile-photo-drop';pasteZone.tabIndex=0;pasteZone.textContent='Ou copiez une image puis collez-la ici avec Ctrl+V / Cmd+V';
+    const useImage=async file=>{
+      try{avatarValue=await profileImageToDataUrl(file);drawPhotoPreview()}
+      catch(err){alert(err.message)}
+    };
+    fileInput.addEventListener('change',()=>{const file=fileInput.files?.[0];if(file)useImage(file)});
+    pasteZone.addEventListener('paste',e=>{
+      const items=[...(e.clipboardData?.items||[])];
+      const imageItem=items.find(item=>item.type?.startsWith('image/'));
+      const file=imageItem?.getAsFile?.();
+      if(file){e.preventDefault();useImage(file)}
+      else alert('Aucune image trouvée dans le presse-papiers.');
+    });
+    removePhoto.onclick=()=>{avatarValue='';fileInput.value='';drawPhotoPreview()};
+    photoPicker.append(photoPreview,photoActions,pasteZone);
+
     const bio=document.createElement('textarea');bio.placeholder='Petite présentation';bio.value=myProfile.bio||'';
     const dutyLabel=document.createElement('label');const duty=document.createElement('input');duty.type='checkbox';duty.checked=!!myProfile.on_duty;dutyLabel.append(duty,document.createTextNode(' En service'));
     const save=document.createElement('button');save.type='submit';save.className='btn';save.textContent='Enregistrer mon profil';
-    form.append(sub,avatar,bio,dutyLabel,save);
-    form.onsubmit=async e=>{e.preventDefault();save.disabled=true;try{await rpc('ae_update_my_staff_profile',{p_token:token,p_avatar_url:avatar.value,p_bio:bio.value,p_on_duty:duty.checked});myProfile=await rpc('ae_my_profile',{p_token:token});updateSidebarProfile();await Promise.all([loadMyProfile(),loadStaff()]);alert('Profil mis à jour.')}catch(err){alert(err.message)}finally{save.disabled=false}};
+    form.append(sub,photoPicker,bio,dutyLabel,save);
+    form.onsubmit=async e=>{e.preventDefault();save.disabled=true;try{await rpc('ae_update_my_staff_profile',{p_token:token,p_avatar_url:avatarValue,p_bio:bio.value,p_on_duty:duty.checked});myProfile=await rpc('ae_my_profile',{p_token:token});updateSidebarProfile();await Promise.all([loadMyProfile(),loadStaff()]);alert('Profil mis à jour.')}catch(err){alert(err.message)}finally{save.disabled=false}};
     details.append(form);
   }
 
