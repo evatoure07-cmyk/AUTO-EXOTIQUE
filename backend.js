@@ -248,6 +248,26 @@ async function loadNews(){
   }catch(err){box.textContent='Journal indisponible : '+err.message}
 }
 
+el('activationForm')?.addEventListener('submit',async e=>{
+  e.preventDefault();
+  const login=el('activationLogin')?.value.trim();
+  const activationToken=el('activationToken')?.value.trim();
+  const password=el('activationPassword')?.value||'';
+  const confirmPassword=el('activationPasswordConfirm')?.value||'';
+  const feedbackBox=el('activationFeedback');
+  if(password!==confirmPassword){if(feedbackBox)feedbackBox.textContent='Les deux mots de passe ne correspondent pas.';return}
+  if(password.length<8){if(feedbackBox)feedbackBox.textContent='Le mot de passe doit contenir au moins 8 caractères.';return}
+  const button=e.currentTarget.querySelector('button');button.disabled=true;
+  try{
+    await rpc('ae_activate_employee',{p_login:login,p_token:activationToken,p_new_password:password});
+    if(feedbackBox)feedbackBox.textContent='Compte activé. Vous pouvez maintenant vous connecter avec votre identifiant et votre nouveau mot de passe.';
+    e.currentTarget.reset();
+    setTimeout(()=>{location.hash='#/espace';},350);
+  }catch(err){
+    if(feedbackBox)feedbackBox.textContent='Activation impossible : '+err.message;
+  }finally{button.disabled=false}
+});
+
 el('loginForm')?.addEventListener('submit',async e=>{
   e.preventDefault();const i=e.currentTarget.querySelectorAll('input');
   try{const result=await rpc('ae_login',{p_login:i[0].value,p_password:i[1].value});saveSession(result);feedback('Connexion réussie.');await refresh();location.hash=account?.must_change_password?'#/profil':(account?.role==='client'?'#/commander':'#/direction')}
