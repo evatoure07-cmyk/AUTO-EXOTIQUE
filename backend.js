@@ -250,6 +250,7 @@ async function loadNews(){
 
 el('activationForm')?.addEventListener('submit',async e=>{
   e.preventDefault();
+  const form=e.currentTarget;
   const login=el('activationLogin')?.value.trim();
   const activationToken=el('activationToken')?.value.trim();
   const password=el('activationPassword')?.value||'';
@@ -257,11 +258,11 @@ el('activationForm')?.addEventListener('submit',async e=>{
   const feedbackBox=el('activationFeedback');
   if(password!==confirmPassword){if(feedbackBox)feedbackBox.textContent='Les deux mots de passe ne correspondent pas.';return}
   if(password.length<8){if(feedbackBox)feedbackBox.textContent='Le mot de passe doit contenir au moins 8 caractères.';return}
-  const button=e.currentTarget.querySelector('button');button.disabled=true;
+  const button=form.querySelector('button');button.disabled=true;
   try{
     await rpc('ae_activate_employee',{p_login:login,p_token:activationToken,p_new_password:password});
     if(feedbackBox)feedbackBox.textContent='Compte activé. Vous pouvez maintenant vous connecter avec votre identifiant et votre nouveau mot de passe.';
-    e.currentTarget.reset();
+    form.reset();
     setTimeout(()=>{location.hash='#/espace';},350);
   }catch(err){
     if(feedbackBox)feedbackBox.textContent='Activation impossible : '+err.message;
@@ -276,18 +277,19 @@ el('loginForm')?.addEventListener('submit',async e=>{
 
 el('forcedPasswordForm')?.addEventListener('submit',async e=>{
   e.preventDefault();
+  const form=e.currentTarget;
   if(!account||!account.must_change_password)return;
-  const inputs=e.currentTarget.querySelectorAll('input');
+  const inputs=form.querySelectorAll('input');
   const oldPassword=inputs[0].value;
   const newPassword=inputs[1].value;
   const confirmPassword=inputs[2].value;
   if(newPassword!==confirmPassword){alert('Les deux nouveaux mots de passe ne correspondent pas.');return}
   if(newPassword.length<8){alert('Le nouveau mot de passe doit contenir au moins 8 caractères.');return}
-  const button=e.currentTarget.querySelector('button');button.disabled=true;
+  const button=form.querySelector('button');button.disabled=true;
   try{
     await rpc('ae_change_password',{p_token:token,p_old:oldPassword,p_new:newPassword});
     account=await rpc('ae_me',{p_token:token});
-    e.currentTarget.reset();
+    form.reset();
     el('forcedPasswordCard')?.classList.add('hidden');
     alert('Votre mot de passe a été enregistré.');
     await refresh();
@@ -297,10 +299,10 @@ el('forcedPasswordForm')?.addEventListener('submit',async e=>{
 });
 
 el('registerForm')?.addEventListener('submit',async e=>{
-  e.preventDefault();const a=[...e.currentTarget.querySelectorAll('input')].map(x=>x.value.trim());
+  e.preventDefault();const form=e.currentTarget;const a=[...form.querySelectorAll('input')].map(x=>x.value.trim());
   try{
     const result=await rpc('ae_register_client',{p_first_name:a[0],p_last_name:a[1],p_phone:a[2],p_iban_rp:a[3],p_civil_id_rp:a[4],p_password:a[5]});
-    saveSession(result);e.currentTarget.reset();feedback('Compte créé ! Vous êtes connecté.');await refresh();location.hash='#/commander';
+    saveSession(result);form.reset();feedback('Compte créé ! Vous êtes connecté.');await refresh();location.hash='#/commander';
   }catch(err){feedback('Inscription impossible : '+err.message)}
 });
 
@@ -345,9 +347,10 @@ function showTemporaryCredential(login,password,label='Mot de passe temporaire')
 }
 el('employeeAccountForm')?.addEventListener('submit',async e=>{
   e.preventDefault();
+  const form=e.currentTarget;
   if(!account||!['assistant_direction','copatron','patron'].includes(account.role)){alert('Accès direction requis.');return}
-  const fields=e.currentTarget.querySelectorAll('input,select');
-  const button=e.currentTarget.querySelector('button');button.disabled=true;
+  const fields=form.querySelectorAll('input,select');
+  const button=form.querySelector('button');button.disabled=true;
   try{
     const result=await rpc('ae_manager_create_employee',{
       p_token:token,
@@ -356,7 +359,7 @@ el('employeeAccountForm')?.addEventListener('submit',async e=>{
       p_login:fields[2].value.trim().toLowerCase(),
       p_role:fields[3].value
     });
-    e.currentTarget.reset();
+    form.reset();
     showTemporaryCredential(result.login,result.temporary_password);
     await Promise.all([managerRefresh(),loadStaff()]);
   }catch(err){alert('Création impossible : '+err.message)}
@@ -385,11 +388,11 @@ el('reviewForm')?.addEventListener('submit',async e=>{
 });
 
 el('newsForm')?.addEventListener('submit',async e=>{
-  e.preventDefault();if(!account||!managerRoles.includes(account.role))return;
-  const fields=e.currentTarget.querySelectorAll('input,select,textarea');
+  e.preventDefault();const form=e.currentTarget;if(!account||!managerRoles.includes(account.role))return;
+  const fields=form.querySelectorAll('input,select,textarea');
   try{
     await rpc('ae_manager_create_news',{p_token:token,p_title:fields[0].value,p_category:fields[1].value,p_cover_url:fields[2].value,p_body:fields[3].value});
-    e.currentTarget.reset();alert('Publication ajoutée au journal.');await loadNews();
+    form.reset();alert('Publication ajoutée au journal.');await loadNews();
   }catch(err){alert('Publication impossible : '+err.message)}
 });
 
