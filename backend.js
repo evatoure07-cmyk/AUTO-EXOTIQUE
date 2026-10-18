@@ -27,6 +27,7 @@ async function refresh(){
   if(connected){try{myProfile=await rpc('ae_my_profile',{p_token:token})}catch(_){myProfile=null}}else myProfile=null;
   const forcePassword=!!(connected&&account.role!=='client'&&account.must_change_password);
   el('forcedPasswordCard')?.classList.toggle('hidden',!forcePassword);
+  document.body.classList.toggle('password-required',forcePassword);
   if(forcePassword&&!location.hash.startsWith('#/profil'))location.hash='#/profil';
   updateSidebarProfile();
   if(el('submitOrder'))el('submitOrder').style.display=connected&&account.role==='client'?'inline-flex':'none';
@@ -280,20 +281,20 @@ el('forcedPasswordForm')?.addEventListener('submit',async e=>{
   const form=e.currentTarget;
   if(!account||!account.must_change_password)return;
   const inputs=form.querySelectorAll('input');
-  const oldPassword=inputs[0].value;
-  const newPassword=inputs[1].value;
-  const confirmPassword=inputs[2].value;
+  const newPassword=inputs[0].value;
+  const confirmPassword=inputs[1].value;
   if(newPassword!==confirmPassword){alert('Les deux nouveaux mots de passe ne correspondent pas.');return}
   if(newPassword.length<8){alert('Le nouveau mot de passe doit contenir au moins 8 caractères.');return}
   const button=form.querySelector('button');button.disabled=true;
   try{
-    await rpc('ae_change_password',{p_token:token,p_old:oldPassword,p_new:newPassword});
+    await rpc('ae_set_initial_password',{p_token:token,p_new:newPassword});
     account=await rpc('ae_me',{p_token:token});
     form.reset();
+    document.body.classList.remove('password-required');
     el('forcedPasswordCard')?.classList.add('hidden');
-    alert('Votre mot de passe a été enregistré.');
+    alert('Votre mot de passe est enregistré.');
     await refresh();
-    location.hash=account?.role==='client'?'#/commander':'#/direction';
+    location.hash='#/direction';
   }catch(err){alert('Modification impossible : '+err.message)}
   finally{button.disabled=false}
 });
