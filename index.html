@@ -168,8 +168,132 @@ body.light .profile-modal-card{background:#f8fbfc}
  .profile-info-grid{grid-template-columns:1fr}
  .employee-profile-top{align-items:flex-start}
 }
+
+/* Clean collapsed desktop sidebar */
+@media(min-width:1100px){
+  .links a:before{
+    content:attr(data-icon);
+    min-width:30px;width:30px;height:30px;
+    border-radius:10px;
+    font:700 17px/1 Inter,sans-serif;
+    background:transparent;
+    border:1px solid transparent;
+    color:var(--muted);
+    transition:.18s ease;
+  }
+  .links a:hover:before{color:var(--cyan);background:var(--soft);border-color:var(--line)}
+  .links a.active:before{background:var(--cyan);border-color:var(--cyan);color:#041216;box-shadow:0 0 18px rgba(40,217,229,.22)}
+  .links a{overflow:visible}
+
+  body.sidebar-collapsed .nav{width:72px}
+  body.sidebar-collapsed main,body.sidebar-collapsed .footer{margin-left:72px}
+  body.sidebar-collapsed .bar{padding:16px 10px 14px;overflow:visible}
+  body.sidebar-collapsed .brand-row{
+    flex-direction:column;justify-content:flex-start;gap:10px;
+    padding:0 0 14px;margin:0 0 12px;border-bottom:1px solid var(--line)
+  }
+  body.sidebar-collapsed .brand{height:30px;display:grid;place-items:center}
+  body.sidebar-collapsed .brand:before{
+    content:"AE";font:700 22px/1 Rajdhani,sans-serif;color:var(--cyan);letter-spacing:.08em
+  }
+  body.sidebar-collapsed .sidebar-collapse{
+    width:40px;height:40px;border-radius:12px;
+    background:transparent;border-color:var(--line);
+    font-size:20px
+  }
+  body.sidebar-collapsed .sidebar-collapse:hover{background:var(--soft);border-color:rgba(40,217,229,.32)}
+
+  body.sidebar-collapsed .top-actions{
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    margin:0 0 12px;padding:0 0 12px;border-bottom:1px solid var(--line)
+  }
+  body.sidebar-collapsed .quick-login,
+  body.sidebar-collapsed .notification-large{
+    width:42px;height:42px;min-height:42px;padding:0;border-radius:13px;
+    display:grid;place-items:center;background:transparent;border:1px solid var(--line)
+  }
+  body.sidebar-collapsed .quick-login:hover,
+  body.sidebar-collapsed .notification-large:hover{background:var(--soft);border-color:rgba(40,217,229,.35)}
+  body.sidebar-collapsed .quick-icon,
+  body.sidebar-collapsed .bell-mark{
+    width:auto;height:auto;background:transparent;border:0;color:var(--cyan);font-size:18px
+  }
+  body.sidebar-collapsed .notification-badge{
+    right:-4px;top:-5px;min-width:17px;height:17px;font-size:9px
+  }
+
+  body.sidebar-collapsed .links{
+    flex:1 1 auto;display:flex;flex-direction:column;align-items:center;
+    gap:4px;overflow:visible!important;padding:0;margin:0
+  }
+  body.sidebar-collapsed .links a{
+    width:44px;height:44px;padding:0!important;margin:0;
+    display:grid;place-items:center;border-radius:13px;font-size:0!important;
+    background:transparent
+  }
+  body.sidebar-collapsed .links a:before{
+    width:42px;height:42px;min-width:42px;
+    display:grid;place-items:center;border-radius:13px;
+    font-size:17px;background:transparent;border:1px solid transparent
+  }
+  body.sidebar-collapsed .links a:hover:before{background:var(--soft);border-color:var(--line)}
+  body.sidebar-collapsed .links a.active:before{background:var(--cyan);border-color:var(--cyan);color:#041216}
+  body.sidebar-collapsed .links a:after,
+  body.sidebar-collapsed .quick-login:after,
+  body.sidebar-collapsed .notification-large:after,
+  body.sidebar-collapsed .sidebar-collapse:after,
+  body.sidebar-collapsed .sidebar-user:after,
+  body.sidebar-collapsed #theme:after{
+    content:attr(data-label);
+    position:absolute;left:58px;top:50%;transform:translateY(-50%) translateX(-5px);
+    opacity:0;pointer-events:none;white-space:nowrap;
+    background:#0d1b22;color:#f5fbfc;border:1px solid rgba(120,205,220,.16);
+    border-radius:9px;padding:7px 10px;
+    font:700 10px/1 Inter,sans-serif;letter-spacing:.01em;
+    box-shadow:0 10px 30px rgba(0,0,0,.25);transition:.16s ease;z-index:200
+  }
+  body.light.sidebar-collapsed .links a:after,
+  body.light.sidebar-collapsed .quick-login:after,
+  body.light.sidebar-collapsed .notification-large:after,
+  body.light.sidebar-collapsed .sidebar-collapse:after,
+  body.light.sidebar-collapsed .sidebar-user:after,
+  body.light.sidebar-collapsed #theme:after{
+    background:#fff;color:#17343e;border-color:#d8e5e8
+  }
+  body.sidebar-collapsed .links a:hover:after,
+  body.sidebar-collapsed .quick-login:hover:after,
+  body.sidebar-collapsed .notification-large:hover:after,
+  body.sidebar-collapsed .sidebar-collapse:hover:after,
+  body.sidebar-collapsed .sidebar-user:hover:after,
+  body.sidebar-collapsed #theme:hover:after{opacity:1;transform:translateY(-50%) translateX(0)}
+  body.sidebar-collapsed .quick-login,
+  body.sidebar-collapsed .notification-large,
+  body.sidebar-collapsed .sidebar-collapse,
+  body.sidebar-collapsed .sidebar-user,
+  body.sidebar-collapsed #theme{position:relative}
+
+  body.sidebar-collapsed #theme{
+    order:initial;position:relative;top:auto;
+    width:42px;height:42px;min-height:42px;margin:8px auto 0!important;padding:0;
+    display:grid;place-items:center;border-radius:13px;
+    background:transparent!important;box-shadow:none!important;border:1px solid var(--line)
+  }
+  body.sidebar-collapsed #theme:hover{background:var(--soft)!important;border-color:rgba(40,217,229,.35)}
+  body.sidebar-collapsed #theme .theme-track{display:none}
+  body.sidebar-collapsed #theme .theme-icon{position:absolute;opacity:0!important;font-size:17px}
+  body.sidebar-collapsed #theme .moon{opacity:1!important;color:var(--cyan)}
+  body.light.sidebar-collapsed #theme .moon{opacity:0!important}
+  body.light.sidebar-collapsed #theme .sun{opacity:1!important;color:var(--cyan)}
+
+  body.sidebar-collapsed .sidebar-user{
+    width:44px;height:44px;min-height:44px;margin:10px auto 0;padding:0;
+    display:grid;place-items:center;border-radius:14px;background:transparent
+  }
+  body.sidebar-collapsed .sidebar-avatar{width:40px;height:40px;border-radius:12px}
+  body.sidebar-collapsed .sidebar-user:after{content:"Mon profil"}
+}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
-<header class="nav"><div class="shell bar"><div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre">‹</button></div><div class="top-actions"><a href="#/espace" id="quickLogin" class="quick-login" data-page="espace"><span class="quick-icon">○</span><span><strong>Connexion</strong><small>Mon espace</small></span></a><button id="notificationToggle" class="notification-button notification-large" type="button" aria-label="Notifications"><span class="bell-mark">⌁</span><span class="notification-copy"><strong>Notifications</strong><small>Voir les alertes</small></span><span id="notificationBadge" class="notification-badge hidden">0</span></button></div><nav class="links"><a href="#/accueil" data-page="accueil" data-no="01">Accueil</a><a href="#/prestations" data-page="prestations" data-no="02">Prestations</a><a href="#/commander" data-page="commander" data-no="03">Boutique</a><a href="#/commandes" data-page="commandes" data-no="04">Mes commandes</a><a href="#/actualites" data-page="actualites" data-no="05">Actualités</a><a href="#/recrutement" data-page="recrutement" data-no="06">Recrutement</a><a href="#/partenaires" data-page="partenaires" data-no="07">Partenariats</a><a href="#/equipe" data-page="equipe" data-no="08">Équipe</a><a href="#/apropos" data-page="apropos" data-no="09">À propos</a><button id="theme" class="theme-toggle" type="button" aria-label="Passer en mode clair" aria-pressed="false"><span class="theme-icon sun">☀</span><span class="theme-track"><span class="theme-knob"></span></span><span class="theme-icon moon">◐</span></button></nav><a href="#/profil" id="sidebarUser" class="sidebar-user hidden" data-page="profil"><span id="sidebarAvatar" class="sidebar-avatar">AE</span><span class="sidebar-user-copy"><strong id="sidebarUserName">Mon profil</strong><small id="sidebarUserRole">Compte Auto Exotic</small></span><span class="sidebar-chevron">›</span></a></div></header>
+<header class="nav"><div class="shell bar"><div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div><div class="top-actions"><a href="#/espace" id="quickLogin" class="quick-login" data-page="espace" data-label="Connexion"><span class="quick-icon">○</span><span><strong>Connexion</strong><small>Mon espace</small></span></a><button id="notificationToggle" class="notification-button notification-large" type="button" aria-label="Notifications" data-label="Notifications"><span class="bell-mark">⌁</span><span class="notification-copy"><strong>Notifications</strong><small>Voir les alertes</small></span><span id="notificationBadge" class="notification-badge hidden">0</span></button></div><nav class="links"><a href="#/accueil" data-page="accueil" data-icon="⌂" data-label="Accueil">Accueil</a><a href="#/prestations" data-page="prestations" data-icon="◇" data-label="Prestations">Prestations</a><a href="#/commander" data-page="commander" data-icon="＋" data-label="Boutique">Boutique</a><a href="#/commandes" data-page="commandes" data-icon="≡" data-label="Mes commandes">Mes commandes</a><a href="#/actualites" data-page="actualites" data-icon="▤" data-label="Actualités">Actualités</a><a href="#/recrutement" data-page="recrutement" data-icon="＋" data-label="Recrutement">Recrutement</a><a href="#/partenaires" data-page="partenaires" data-icon="∞" data-label="Partenariats">Partenariats</a><a href="#/equipe" data-page="equipe" data-icon="◉" data-label="Équipe">Équipe</a><a href="#/apropos" data-page="apropos" data-icon="i" data-label="À propos">À propos</a><button id="theme" class="theme-toggle" type="button" data-label="Changer de thème" aria-label="Passer en mode clair" aria-pressed="false"><span class="theme-icon sun">☀</span><span class="theme-track"><span class="theme-knob"></span></span><span class="theme-icon moon">◐</span></button></nav><a href="#/profil" id="sidebarUser" class="sidebar-user hidden" data-page="profil"><span id="sidebarAvatar" class="sidebar-avatar">AE</span><span class="sidebar-user-copy"><strong id="sidebarUserName">Mon profil</strong><small id="sidebarUserRole">Compte Auto Exotic</small></span><span class="sidebar-chevron">›</span></a></div></header>
 <main><section class="hero page" id="accueil" data-view="accueil"><div class="shell"><div class="eyebrow">Los Santos • Automotive Division</div><h1>BUILT FOR<br><span class="accent">THE ROAD.</span></h1><div class="speed"></div><p>Auto Exotic réunit mécanique, entretien et performance dans une expérience pensée comme un vrai garage premium. Commandez, suivez vos demandes et restez connecté au garage depuis un seul espace.</p><div class="hero-actions"><a href="#/commander" class="btn">Commander maintenant</a><a href="#/prestations" class="btn secondary">Explorer les prestations</a></div><div class="performance-strip"><div><strong>750 $</strong><span>Kit moteur en ligne</span></div><div><strong>05</strong><span>Services disponibles</span></div><div><strong>24/7</strong><span>Suivi de commande</span></div></div></div></section>
 <section class="section page home-section" data-view="accueil"><div class="shell"><div class="section-intro"><div class="eyebrow">Explore Auto Exotic</div><h2>Un garage pensé comme une <span class="accent">expérience.</span></h2><p class="muted">Réparation, entretien, boutique en ligne et actualités : découvrez nos services et accédez directement à la rubrique qui vous intéresse.</p></div><div class="category-strip"><a data-no="01" href="#/prestations"><strong>Réparation</strong><small>Mécanique générale & moteur</small></a><a data-no="02" href="#/prestations"><strong>Entretien</strong><small>Pneus & nettoyage</small></a><a data-no="03" href="#/commander"><strong>Boutique</strong><small>Kit moteur standard en ligne</small></a><a data-no="04" href="#/actualites"><strong>Journal</strong><small>Annonces, événements, nouveautés</small></a></div></div></section>
 <section class="section page home-section home-alt" data-view="accueil"><div class="shell"><div class="eyebrow">Signature services</div><h2>Les essentiels <span class="accent">Auto Exotic.</span></h2><div class="cards"><article class="card"><span class="tag">ATELIER</span><h3>Réparation complète</h3><p class="muted">Une prise en charge complète au garage.</p><div class="price">600 $</div></article><article class="card"><span class="tag">MOTEUR</span><h3>Réparation moteur</h3><p class="muted">Disponible au garage et en intervention extérieure.</p><div class="price">400 $</div></article><article class="card"><span class="tag">ONLINE</span><h3>Kit moteur standard</h3><p class="muted">Commandez directement depuis votre compte client.</p><div class="price">750 $</div><a class="btn" href="#/commander">Commander</a></article></div></div></section>
