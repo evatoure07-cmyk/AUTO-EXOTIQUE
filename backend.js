@@ -1282,26 +1282,27 @@ async function loadManagerPartners(){
      rpc('ae_manager_partner_declarations',{p_token:token,p_week_start:weekStart,p_limit:1000})
    ]);
 
-   const activePartners=(catalog||[]).filter(partner=>partner.active);
-   if(selectedAdminPartnerId&&!activePartners.some(partner=>Number(partner.id)===Number(selectedAdminPartnerId))){
+   const allPartners=catalog||[];
+   const activePartners=allPartners.filter(partner=>partner.active);
+   if(selectedAdminPartnerId&&!allPartners.some(partner=>Number(partner.id)===Number(selectedAdminPartnerId))){
      selectedAdminPartnerId=null;
    }
-   if(!selectedAdminPartnerId&&activePartners.length){
-     selectedAdminPartnerId=Number(activePartners[0].id);
+   if(!selectedAdminPartnerId&&allPartners.length){
+     selectedAdminPartnerId=Number((activePartners[0]||allPartners[0]).id);
    }
-   const selectedPartner=(catalog||[]).find(partner=>Number(partner.id)===Number(selectedAdminPartnerId))||null;
+   const selectedPartner=allPartners.find(partner=>Number(partner.id)===Number(selectedAdminPartnerId))||null;
 
    if(partnerList){
      partnerList.replaceChildren();
      if(!activePartners.length){
        const empty=document.createElement('p');empty.className='muted small';empty.textContent='Aucun partenaire. Créez-en un ci-dessous.';partnerList.append(empty);
      }
-     for(const partner of activePartners){
+     for(const partner of allPartners){
        const button=document.createElement('button');
        button.type='button';
-       button.className='partner-directory-item'+(Number(partner.id)===Number(selectedAdminPartnerId)?' active':'');
+       button.className='partner-directory-item'+(Number(partner.id)===Number(selectedAdminPartnerId)?' active':'')+(partner.active?'':' is-inactive');
        const name=document.createElement('span');name.textContent=partner.name;
-       const count=document.createElement('small');count.textContent=(partner.services||[]).filter(service=>service.active).length+' prestation(s)';
+       const count=document.createElement('small');count.textContent=(partner.active?'Actif':'Inactif')+' · '+(partner.services||[]).filter(service=>service.active).length+' prestation(s)';
        button.append(name,count);
        button.onclick=()=>{selectedAdminPartnerId=Number(partner.id);loadManagerPartners()};
        partnerList.append(button);
