@@ -371,6 +371,21 @@ body.light .password-gate-card{background:#fff}
 .connected-space-avatar img{width:100%;height:100%;object-fit:cover}
 .connected-space-actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end}
 @media(max-width:800px){.connected-space-card{align-items:flex-start;flex-direction:column}.connected-space-actions{justify-content:flex-start}.connected-space-main h3{font-size:25px}}
+
+.site-toast-stack{position:fixed;right:24px;bottom:24px;z-index:500;display:grid;gap:10px;width:min(390px,calc(100vw - 32px));pointer-events:none}
+.site-toast{pointer-events:auto;padding:14px 16px;border-radius:15px;background:rgba(8,21,28,.98);border:1px solid var(--line);box-shadow:0 18px 55px rgba(0,0,0,.35);display:flex;gap:11px;align-items:flex-start;animation:siteToastIn .2s ease}
+.site-toast.success{border-color:rgba(101,224,164,.4)}.site-toast.error{border-color:rgba(255,120,120,.42)}.site-toast.info{border-color:rgba(40,217,229,.34)}
+.site-toast-mark{width:10px;height:10px;border-radius:50%;background:var(--cyan);margin-top:5px;flex:none}.site-toast.success .site-toast-mark{background:#65e0a4}.site-toast.error .site-toast-mark{background:#ff7878}
+.site-toast-copy{min-width:0}.site-toast-copy strong{display:block;margin-bottom:3px}.site-toast-copy p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+@keyframes siteToastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.site-dialog{position:fixed;inset:0;z-index:520;display:grid;place-items:center;padding:22px}.site-dialog-backdrop{position:absolute;inset:0;background:rgba(1,7,10,.78);backdrop-filter:blur(12px)}
+.site-dialog-card{position:relative;z-index:1;width:min(520px,100%);padding:28px;border-radius:24px;background:linear-gradient(145deg,var(--panel),rgba(8,23,30,.99));border:1px solid var(--line);box-shadow:0 35px 110px rgba(0,0,0,.58)}
+.site-dialog-card h3{font-size:30px;margin:12px 0 8px}.site-dialog-card p{line-height:1.55}.site-dialog-close{position:absolute;right:14px;top:12px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--text);font-size:21px;cursor:pointer}
+.site-dialog-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}.site-dialog-field{display:grid;gap:8px;margin-top:16px}.site-dialog-field label{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.site-dialog-field textarea{width:100%;resize:vertical;min-height:100px;padding:13px;border-radius:13px;background:var(--bg);color:var(--text);border:1px solid var(--line);outline:none}.site-dialog-field textarea:focus{border-color:var(--cyan)}
+.dialog-error{color:#ff9a9a!important;margin:0}.site-dialog.hidden{display:none!important}
+body.light .site-dialog-card,.body.light .site-toast{background:#fff}
+@media(max-width:650px){.site-toast-stack{right:16px;bottom:90px}.site-dialog-card{padding:24px}.site-dialog-actions{flex-direction:column-reverse}.site-dialog-actions .btn{width:100%}}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
 <header class="nav"><div class="shell bar"><div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div><div class="top-actions"><a href="#/espace" id="quickLogin" class="quick-login" data-page="espace" data-label="Connexion"><span class="quick-icon">○</span><span><strong>Connexion</strong><small>Mon espace</small></span></a><button id="notificationToggle" class="notification-button notification-large" type="button" aria-label="Notifications" data-label="Notifications"><span class="bell-mark">⌁</span><span class="notification-copy"><strong>Notifications</strong><small>Voir les alertes</small></span><span id="notificationBadge" class="notification-badge hidden">0</span></button></div><nav class="links"><a href="#/accueil" data-page="accueil" data-icon="⌂" data-label="Accueil">Accueil</a><a href="#/prestations" data-page="prestations" data-icon="◇" data-label="Prestations">Prestations</a><a href="#/commander" data-page="commander" data-icon="＋" data-label="Boutique">Boutique</a><a href="#/commandes" data-page="commandes" data-icon="≡" data-label="Mes commandes">Mes commandes</a><a href="#/actualites" data-page="actualites" data-icon="▤" data-label="Actualités">Actualités</a><a href="#/partenaires" data-page="partenaires" data-icon="∞" data-label="Partenariats">Partenariats</a><a href="#/equipe" data-page="equipe" data-icon="◉" data-label="Équipe">Équipe</a><a href="#/avis" data-page="avis" data-icon="★" data-label="Avis">Avis</a><a href="#/apropos" data-page="apropos" data-icon="i" data-label="À propos">À propos</a><button id="theme" class="theme-toggle" type="button" data-label="Changer de thème" aria-label="Passer en mode clair" aria-pressed="false"><span class="theme-icon sun">☀</span><span class="theme-track"><span class="theme-knob"></span></span><span class="theme-icon moon">◐</span></button></nav><a href="#/profil" id="sidebarUser" class="sidebar-user hidden" data-page="profil"><span id="sidebarAvatar" class="sidebar-avatar">AE</span><span class="sidebar-user-copy"><strong id="sidebarUserName">Mon profil</strong><small id="sidebarUserRole">Compte Auto Exotic</small></span><span class="sidebar-chevron">›</span></a></div></header>
 <main><section class="hero page" id="accueil" data-view="accueil"><div class="shell"><div class="eyebrow">Los Santos • Automotive Division</div><h1>BUILT FOR<br><span class="accent">THE ROAD.</span></h1><div class="speed"></div><p>Auto Exotic réunit mécanique, entretien et performance dans une expérience pensée comme un vrai garage premium. Commandez, suivez vos demandes et restez connecté au garage depuis un seul espace.</p><div class="hero-actions"><a href="#/commander" class="btn">Commander maintenant</a><a href="#/prestations" class="btn secondary">Explorer les prestations</a></div><div class="performance-strip"><div><strong>750 $</strong><span>Kit moteur en ligne</span></div><div><strong>05</strong><span>Services disponibles</span></div><div><strong>24/7</strong><span>Suivi de commande</span></div></div></div></section>
@@ -577,4 +592,22 @@ collapseBtn?.addEventListener('click',()=>{
 
 window.addEventListener('hashchange',showPage);
 showPage();
-</script></body></html>
+</script><div id="siteToastStack" class="site-toast-stack" aria-live="polite"></div>
+<div id="siteDialog" class="site-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="siteDialogTitle">
+  <div class="site-dialog-backdrop"></div>
+  <div class="site-dialog-card">
+    <button id="siteDialogClose" class="site-dialog-close" type="button" aria-label="Fermer">×</button>
+    <span id="siteDialogTag" class="tag">AUTO EXOTIC</span>
+    <h3 id="siteDialogTitle">Confirmation</h3>
+    <p id="siteDialogMessage" class="muted"></p>
+    <div id="siteDialogFieldWrap" class="site-dialog-field hidden">
+      <label id="siteDialogFieldLabel" for="siteDialogField">Information</label>
+      <textarea id="siteDialogField" rows="4"></textarea>
+      <p id="siteDialogFieldError" class="small dialog-error hidden"></p>
+    </div>
+    <div class="site-dialog-actions">
+      <button id="siteDialogCancel" class="btn secondary" type="button">Annuler</button>
+      <button id="siteDialogConfirm" class="btn" type="button">Confirmer</button>
+    </div>
+  </div>
+</div></body></html>
