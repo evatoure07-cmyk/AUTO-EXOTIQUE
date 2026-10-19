@@ -1176,7 +1176,11 @@ function activateAdminTab(name){
  localStorage.setItem('ae_admin_tab',target);
 }
 document.querySelectorAll('[data-admin-tab]').forEach(btn=>btn.addEventListener('click',()=>activateAdminTab(btn.dataset.adminTab)));
-activateAdminTab(localStorage.getItem('ae_admin_tab')==='team'?'rh':(localStorage.getItem('ae_admin_tab')||'dashboard'));
+{
+ const savedAdminTab=localStorage.getItem('ae_admin_tab');
+ const migratedAdminTab=savedAdminTab==='team'?'rh':savedAdminTab==='requests'?'partners':(savedAdminTab||'dashboard');
+ activateAdminTab(migratedAdminTab);
+}
 
 function filterManagerClients(){
  const q=(el('managerCustomerSearch')?.value||'').trim().toLowerCase();
