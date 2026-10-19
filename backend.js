@@ -939,25 +939,20 @@ function populatePartnerServices(){
  renderPartnerBillingPreview();
 }
 
-const moRoleColumns=[
- ['mecano_novice','Novice'],
- ['mecano_intermediaire','Intermédiaire'],
- ['mecano_experimente','Expérimenté'],
- ['chef_equipe',"Chef d'équipe"],
- ['rh','RH'],
- ['drh','DRH'],
- ['assistant_direction','Assistante'],
- ['copatron','Co-patron'],
- ['patron','Patron']
+const moAudienceColumns=[
+ ['employee','Employés'],
+ ['direction','Direction']
 ];
 
-function moGroupsAllowRole(groups,role){
+function moGroupAllowsAudience(groups,audience){
  const set=new Set(groups||[]);
  if(set.has('all_staff'))return true;
- if(['mecano_novice','mecano_intermediaire','mecano_experimente'].includes(role))return set.has('mecanos');
- if(role==='chef_equipe')return set.has('chef_equipe');
- if(['rh','drh'].includes(role))return set.has('gestion');
- if(['assistant_direction','copatron','patron'].includes(role))return set.has('direction');
+ if(audience==='employee'){
+   return set.has('mecanos')||set.has('chef_equipe')||set.has('gestion');
+ }
+ if(audience==='direction'){
+   return set.has('direction');
+ }
  return false;
 }
 
@@ -970,7 +965,7 @@ function renderPartnerMemo(){
  const rows=(partnerMemoCatalog||[]).filter(partner=>!term||String(partner.name||'').toLocaleLowerCase('fr').includes(term));
  if(!rows.length){
    const tr=document.createElement('tr');
-   const td=document.createElement('td');td.colSpan=11;td.className='mo-empty';td.textContent=term?'Aucune entreprise trouvée.':'Aucun tarif MO partenaire configuré.';
+   const td=document.createElement('td');td.colSpan=4;td.className='mo-empty';td.textContent=term?'Aucune entreprise trouvée.':'Aucun tarif MO partenaire configuré.';
    tr.append(td);body.append(tr);return;
  }
 
@@ -991,9 +986,9 @@ function renderPartnerMemo(){
    }
    tr.append(customTd);
 
-   for(const [role] of moRoleColumns){
+   for(const [audience] of moAudienceColumns){
      const td=document.createElement('td');
-     const allowed=!!custom&&moGroupsAllowRole(custom.access_groups,role);
+     const allowed=!!custom&&moGroupAllowsAudience(custom.access_groups,audience);
      const mark=document.createElement('span');
      mark.className=allowed?'mo-yes':'mo-no';
      mark.textContent=allowed?'✓':'—';
