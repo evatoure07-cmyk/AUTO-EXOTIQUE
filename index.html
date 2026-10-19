@@ -488,6 +488,20 @@ body.light .global-notification-button{background:rgba(255,255,255,.92)!importan
 .production-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}.production-row:last-child{border-bottom:0}.production-row strong{display:block}.production-row small{display:block;color:var(--muted);margin-top:4px}.production-qty{font:800 24px Rajdhani,sans-serif;color:var(--cyan);white-space:nowrap}
 .production-admin-row{padding:15px 0;border-bottom:1px solid var(--line)}.production-admin-row:last-child{border-bottom:0}.production-admin-row.is-filtered{display:none}.production-admin-top{display:flex;justify-content:space-between;gap:15px;align-items:flex-start}.production-admin-meta{color:var(--muted);font-size:11px;margin-top:5px}
 @media(max-width:800px){.staff-production-grid{grid-template-columns:1fr}}
+
+/* Global cart */
+.global-cart-button{position:fixed!important;top:22px!important;right:80px!important;z-index:150!important;width:46px!important;height:46px!important;min-height:46px!important;padding:0!important;display:grid!important;place-items:center!important;border-radius:14px!important;background:rgba(7,16,22,.86)!important;border:1px solid var(--line)!important;backdrop-filter:blur(18px);box-shadow:0 14px 40px rgba(0,0,0,.26)}
+.global-cart-button:hover{background:var(--soft)!important;border-color:rgba(40,217,229,.45)!important}.cart-icon{width:20px;height:20px;fill:none;stroke:var(--text);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.global-cart-button:hover .cart-icon{stroke:var(--cyan)}body.light .global-cart-button{background:rgba(255,255,255,.92)!important}
+.cart-overlay{position:fixed;inset:0;z-index:510;display:grid;place-items:center;padding:20px}.cart-backdrop{position:absolute;inset:0;background:rgba(2,8,11,.62);backdrop-filter:blur(8px)}.cart-card{position:relative;width:min(560px,100%);max-height:min(780px,calc(100vh - 40px));overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:25px;box-shadow:0 35px 110px rgba(0,0,0,.46)}body.light .cart-card{background:#fff}.cart-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}.cart-head h3{font-size:31px;margin:8px 0 0}.cart-close{width:38px;height:38px;border:1px solid var(--line);border-radius:12px;background:var(--soft);color:var(--text);font-size:20px}.cart-empty{border:1px dashed var(--line);border-radius:18px;padding:42px 18px;text-align:center;color:var(--muted)}.cart-product{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px;border:1px solid var(--line);border-radius:17px;background:var(--soft)}.cart-product small{display:block;color:var(--muted);margin-top:4px}.cart-product-right{text-align:right}.cart-product-right span{display:block;color:var(--muted);font-size:11px}.cart-product-right strong{font-size:20px}.cart-total-row{display:flex;align-items:center;justify-content:space-between;padding:20px 4px 12px;font-size:15px}.cart-total-row strong{font:800 31px Rajdhani,sans-serif;color:var(--cyan)}.cart-actions{display:flex;gap:10px;justify-content:flex-end}.checkout-area{margin-top:20px}.checkout-divider{height:1px;background:var(--line);margin-bottom:20px}.checkout-area h4{font-size:22px;margin:8px 0}.checkout-payment-note{display:flex;gap:10px;align-items:flex-start;padding:13px;border-radius:13px;background:var(--soft);border-left:3px solid var(--cyan);font-size:11px}.checkout-payment-note strong{color:var(--cyan)}.checkout-payment-note span{color:var(--muted)}
+.shop-action-card{display:flex;flex-direction:column;align-items:flex-start;gap:10px}.shop-action-card .btn{min-width:190px}.payment-info{margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--soft)}.payment-info p{color:var(--muted);font-size:12px;margin:5px 0 0;line-height:1.5}
+
+/* Employee dashboard */
+.employee-dashboard{max-width:1120px;margin:0 auto;padding:12px;border:1px solid var(--line);border-radius:28px;background:linear-gradient(145deg,var(--panel),rgba(8,22,29,.54));box-shadow:0 26px 80px rgba(0,0,0,.18)}
+.employee-welcome-card{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:24px 26px;border-radius:21px;background:var(--panel);border:1px solid var(--line)}.employee-kicker{font-size:9px;font-weight:900;letter-spacing:.16em;color:var(--cyan)}.employee-welcome-card h2{font-size:39px;margin:9px 0 3px}.employee-profile-button{display:flex;align-items:center;gap:9px;color:var(--text);border:1px solid var(--line);background:var(--soft);border-radius:14px;padding:12px 15px}.employee-profile-button span{font-size:20px}
+.employee-quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin:13px 0}.employee-quick-card{min-height:108px;border:1px solid var(--line);border-radius:18px;background:var(--panel);color:var(--text);display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:17px;text-align:left}.employee-quick-card:hover{border-color:rgba(40,217,229,.38);transform:translateY(-1px)}.employee-quick-icon{font-size:22px;color:var(--cyan)}.employee-quick-card strong{font-size:11px}
+.employee-dashboard-card{padding:23px 25px;border:1px solid var(--line);border-radius:21px;background:var(--panel);margin-top:13px}.employee-card-title{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:17px}.employee-card-title h3{font-size:26px;margin:6px 0 0}.employee-card-icon{width:43px;height:43px;border-radius:13px;display:grid;place-items:center;background:var(--soft);border:1px solid var(--line);font-size:20px;color:var(--cyan)}.production-form{display:grid;grid-template-columns:1.2fr .55fr auto;align-items:end;gap:12px}.production-form label{font-size:9px;font-weight:900;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}.production-form label:nth-of-type(2){grid-column:2}.production-form select{grid-column:1}.production-form input{grid-column:2}.production-form button{grid-column:3;grid-row:1 / span 2;align-self:end}.production-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid var(--line)}.production-row:last-child{border-bottom:0}.production-row small{display:block;color:var(--muted);margin-top:4px}.production-qty{font:800 22px Rajdhani,sans-serif;color:var(--cyan)}.employee-announcements-card{margin-bottom:0}
+.sidebar-signout{width:100%;display:flex;align-items:center;gap:9px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:13px;padding:10px 12px;margin-top:8px;text-align:left}.sidebar-signout:hover{color:var(--text);background:var(--soft)}.sidebar-signout strong{font-size:10px}
+@media(max-width:800px){.global-cart-button{top:14px!important;right:64px!important;width:42px!important;height:42px!important;min-height:42px!important}.cart-card{padding:20px}.employee-dashboard{padding:8px;border-radius:22px}.employee-welcome-card{align-items:flex-start;flex-direction:column}.employee-quick-grid{grid-template-columns:repeat(2,1fr)}.production-form{grid-template-columns:1fr}.production-form label,.production-form select,.production-form input,.production-form button,.production-form label:nth-of-type(2){grid-column:1;grid-row:auto}.cart-actions{flex-direction:column-reverse}.cart-actions .btn{width:100%}}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
   <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
@@ -499,8 +513,8 @@ body.light .global-notification-button{background:rgba(255,255,255,.92)!importan
     <a href="#/espace-employe" data-page="espace-employe" data-icon="▦"><span>Espace employé</span></a>
     <a id="staffAdminLink" class="hidden" href="#/direction" data-page="direction" data-icon="⚙"><span>Administration</span></a>
   </div>
-  <a href="#/profil" id="sidebarUser" class="sidebar-user hidden" data-page="profil"><span id="sidebarAvatar" class="sidebar-avatar">AE</span><span class="sidebar-user-copy"><strong id="sidebarUserName">Mon profil</strong><small id="sidebarUserRole">Compte Auto Exotic</small></span><span class="sidebar-chevron">›</span></a>
-</div></header><button id="notificationToggle" class="notification-button global-notification-button" type="button" aria-label="Notifications" title="Notifications"><svg class="notification-bell" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span id="notificationBadge" class="notification-badge hidden">0</span></button>
+  <a href="#/profil" id="sidebarUser" class="sidebar-user hidden" data-page="profil"><span id="sidebarAvatar" class="sidebar-avatar">AE</span><span class="sidebar-user-copy"><strong id="sidebarUserName">Mon profil</strong><small id="sidebarUserRole">Compte Auto Exotic</small></span><span class="sidebar-chevron">›</span></a><button id="sidebarSignOut" class="sidebar-signout hidden" type="button"><span>↪</span><strong>Déconnexion</strong></button>
+</div></header><button id="cartToggle" class="notification-button global-cart-button" type="button" aria-label="Panier" title="Panier"><svg class="cart-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 9.2a2 2 0 0 0 2 1.5h7.7a2 2 0 0 0 1.9-1.4L20 8H7"/><circle cx="10" cy="19" r="1.3"/><circle cx="18" cy="19" r="1.3"/></svg><span id="cartBadge" class="notification-badge hidden">0</span></button><button id="notificationToggle" class="notification-button global-notification-button" type="button" aria-label="Notifications" title="Notifications"><svg class="notification-bell" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span id="notificationBadge" class="notification-badge hidden">0</span></button>
 <main><section class="hero page" id="accueil" data-view="accueil"><div class="shell"><div class="eyebrow">Los Santos • Automotive Division</div><h1>BUILT FOR<br><span class="accent">THE ROAD.</span></h1><div class="speed"></div><p>Auto Exotic réunit mécanique, entretien et performance dans une expérience pensée comme un vrai garage premium. Commandez, suivez vos demandes et restez connecté au garage depuis un seul espace.</p><div class="hero-actions"><a href="#/commander" class="btn">Commander maintenant</a><a href="#/prestations" class="btn secondary">Explorer les prestations</a></div><div class="performance-strip"><div><strong>750 $</strong><span>Kit moteur en ligne</span></div><div><strong>05</strong><span>Services disponibles</span></div><div><strong>24/7</strong><span>Suivi de commande</span></div></div></div></section>
 <section class="section page home-section" data-view="accueil"><div class="shell"><div class="section-intro"><div class="eyebrow">Explore Auto Exotic</div><h2>Un garage pensé comme une <span class="accent">expérience.</span></h2></div><div class="category-strip"><a data-no="01" href="#/prestations"><strong>Réparation</strong><small>Mécanique générale & moteur</small></a><a data-no="02" href="#/prestations"><strong>Entretien</strong><small>Pneus & nettoyage</small></a><a data-no="03" href="#/commander"><strong>Boutique</strong><small>Kit moteur standard en ligne</small></a><a data-no="04" href="#/actualites"><strong>Journal</strong><small>Annonces, événements, nouveautés</small></a></div></div></section>
 <section class="section page home-section home-alt" data-view="accueil"><div class="shell"><div class="eyebrow">Signature services</div><h2>Les essentiels <span class="accent">Auto Exotic.</span></h2><div class="cards"><article class="card"><span class="tag">ATELIER</span><h3>Réparation complète</h3><p class="muted">Une prise en charge complète au garage.</p><div class="price">600 $</div></article><article class="card"><span class="tag">MOTEUR</span><h3>Réparation moteur</h3><p class="muted">Disponible au garage et en intervention extérieure.</p><div class="price">400 $</div></article><article class="card"><span class="tag">ONLINE</span><h3>Kit moteur standard</h3><p class="muted">Commandez directement depuis votre compte client.</p><div class="price">750 $</div><a class="btn" href="#/commander">Commander</a></article></div></div></section>
@@ -512,7 +526,24 @@ body.light .global-notification-button{background:rgba(255,255,255,.92)!importan
 <article class="card" data-category="entretien"><span class="icon">✨</span><h3>Nettoyage</h3><p class="muted">Kit de nettoyage automobile.</p><div class="price">60 $</div><span class="tag">Au garage</span></article>
 <article class="card" data-category="moteur"><span class="icon">📦</span><h3>Kit moteur standard</h3><p class="muted">Disponible uniquement à la commande en ligne. Cette prestation ne se réalise pas au garage.</p><div class="price">750 $</div><span class="tag">Commande en ligne uniquement</span><p><a class="btn" href="#/commander">Commander</a></p></article>
 </div></div></section>
-<section class="section page" id="commander" data-view="commander"><div class="shell grid2"><div><div class="eyebrow">Boutique en ligne</div><h2>Kit moteur <span class="accent">standard</span></h2><p class="muted">750 $ par unité. Seul ce produit est disponible à la commande en ligne. Un compte client est obligatoire.</p><div class="counter"><button id="minus" type="button" aria-label="Diminuer">−</button><input id="qty" class="qty-input" type="number" inputmode="numeric" min="1" max="999" step="1" value="1" aria-label="Quantité"/><button id="plus" type="button" aria-label="Augmenter">+</button></div><div class="total" id="total">750 $</div><p class="pill">Statut initial : En attente de préparation</p></div><div class="card"><h3>Passer commande</h3><div class="demo">La commande sera enregistrée dans votre compte une fois connecté. La synchronisation Discord est encore en préparation.</div><button class="btn" id="submitOrder" type="button" style="display:none">Confirmer la commande</button><div class="auth-actions"><button class="btn" id="orderLogin" type="button">Se connecter</button><button class="btn secondary" id="orderRegister" type="button">Créer un compte</button></div><p class="small muted">Les commandes réelles auront un numéro, un historique et un suivi depuis votre compte.</p></div></div></section>
+<section class="section page" id="commander" data-view="commander"><div class="shell grid2">
+  <div>
+    <div class="eyebrow">Boutique en ligne</div>
+    <h2>Kit moteur <span class="accent">standard</span></h2>
+    <p class="muted">750 $ par unité. Choisissez la quantité puis ajoutez-la à votre panier.</p>
+    <div class="counter"><button id="minus" type="button" aria-label="Diminuer">−</button><input id="qty" class="qty-input" type="number" inputmode="numeric" min="1" max="999" step="1" value="1" aria-label="Quantité"/><button id="plus" type="button" aria-label="Augmenter">+</button></div>
+    <div class="total" id="total">750 $</div>
+    <p class="pill">Kit moteur standard · 750 $ / unité</p>
+  </div>
+  <div class="card shop-action-card">
+    <span class="tag">PANIER</span>
+    <h3>Ajouter à votre commande</h3>
+    <p class="muted">Votre quantité est conservée dans le panier jusqu’à la validation.</p>
+    <button class="btn" id="addToCart" type="button">Ajouter au panier</button>
+    <button class="btn secondary" id="openCartFromPage" type="button">Voir mon panier</button>
+    <div class="payment-info"><strong>Facturation</strong><p>Lors de la validation, vous renseignerez votre téléphone RP et votre IBAN RP. La préparation commencera après règlement de la facture reçue.</p></div>
+  </div>
+</div></section>
 <section class="section page" id="partenaires" data-view="partenaires"><div class="shell"><div class="eyebrow">Collaborons</div><h2>Partenariats & événements</h2><div class="grid2"><form class="card form simpleform"><h3>🤝 Devenir partenaire</h3><input required placeholder="Nom de l'entreprise"/><input required placeholder="Responsable"/><input required placeholder="Téléphone"/><textarea required placeholder="Votre proposition de partenariat"></textarea><button class="btn" type="submit">Envoyer la demande</button></form><form class="card form simpleform"><h3>🏆 Organiser un événement (en partenariat)</h3><input required placeholder="Nom de l'organisateur"/><input required placeholder="Téléphone"/><input required placeholder="Nom de l'événement"/><label>Date souhaitée</label><input type="date"/><textarea required placeholder="Décrivez votre événement"></textarea><button class="btn" type="submit">Envoyer la demande</button></form></div></div></section>
 <section class="section page" id="espace" data-view="espace"><div class="shell"><div class="eyebrow">Auto Exotic Connect</div><h2>Mon espace</h2>
 <div id="connectedSpaceCard" class="card connected-space-card hidden">
@@ -545,52 +576,46 @@ body.light .global-notification-button{background:rgba(255,255,255,.92)!importan
 <section class="section page" id="equipe" data-view="equipe"><div class="shell"><div class="section-intro"><div class="eyebrow">Notre équipe</div><h2>Les visages derrière <span class="accent">Auto Exotic.</span></h2></div><div id="staffPodium" class="staff-podium"></div><div id="staffList" class="staff-grid"><div class="card">Chargement de l'équipe...</div></div></div></section>
 <section class="section page" id="avis" data-view="avis"><div class="shell"><div class="section-intro"><div class="eyebrow">Avis clients</div><h2>Noter un membre de <span class="accent">l'équipe.</span></h2></div><div id="reviewStats" class="stats-grid review-stats"></div><div id="reviewTop" class="review-top"></div><div class="review-panel card"><div><span class="tag">AVIS</span><h3>Laisser un avis</h3><p class="muted">Une note par compte et par employé. Vous pouvez modifier votre note plus tard.</p></div><form id="reviewForm" class="review-form"><select id="reviewStaff" required><option value="">Choisir un employé</option></select><div class="review-stars" id="reviewStars" aria-label="Choisir une note"><button type="button" data-rating="1">★</button><button type="button" data-rating="2">★</button><button type="button" data-rating="3">★</button><button type="button" data-rating="4">★</button><button type="button" data-rating="5">★</button></div><input type="hidden" id="reviewRating" value="0"/><button class="btn" type="submit">Envoyer mon avis</button><p id="reviewHint" class="small muted">Connectez-vous avec votre compte pour noter un employé.</p></form></div></div></section><div id="employeeProfileModal" class="profile-modal hidden" role="dialog" aria-modal="true"><div class="profile-modal-card"><button id="closeEmployeeProfile" class="profile-modal-close" type="button" aria-label="Fermer">×</button><div id="employeeProfileContent"></div></div></div>
 <section class="section page" id="apropos" data-view="apropos"><div class="shell about-layout"><div><div class="eyebrow">À propos</div><h2>Plus qu'un garage.<br><span class="accent">Une identité.</span></h2><p class="muted">Auto Exotic est un garage orienté mécanique, performance et accompagnement client. L'objectif est simple : proposer une expérience claire, rapide et premium, aussi bien à l'atelier que depuis le site.</p></div><div class="about-stack"><article class="card"><span class="tag">01</span><h3>Performance</h3><p class="muted">Des services lisibles, des tarifs transparents et une organisation pensée pour aller à l'essentiel.</p></article><article class="card"><span class="tag">02</span><h3>Équipe</h3><p class="muted">Une structure avec des rôles définis, des fiches employés et une vraie gestion interne.</p></article><article class="card"><span class="tag">03</span><h3>Expérience</h3><p class="muted">Commandes, suivi, notifications, journal et espace client réunis au même endroit.</p></article></div></div></section><section class="section page" id="espace-employe" data-view="espace-employe"><div class="shell">
-    <div class="eyebrow">Interne</div><h2>Espace <span class="accent">employé.</span></h2>
-    <div id="staffSpaceGate" class="notice">Connectez-vous avec un compte employé pour accéder à cet espace.</div>
-    <div id="staffSpaceContent" class="hidden">
-      <div class="staff-space-header card">
-        <div>
-          <span class="tag">MON ESPACE</span>
-          <h3 id="staffSpaceName">Compte employé</h3>
-          <p id="staffSpaceRole" class="muted"></p>
-        </div>
-        <div class="staff-space-actions">
-          <a class="btn secondary" href="#/profil">Mon profil</a>
-          <a class="btn secondary" href="#/avis">Laisser un avis</a>
-          <a id="staffSpaceAdminLink" class="btn hidden" href="#/direction">Administration</a>
-        </div>
+  <div id="staffSpaceGate" class="notice">Connectez-vous avec un compte employé pour accéder à cet espace.</div>
+  <div id="staffSpaceContent" class="hidden employee-dashboard">
+    <div class="employee-welcome-card">
+      <div>
+        <span class="employee-kicker">ESPACE INTERNE</span>
+        <h2>Bonjour <span id="staffSpaceFirstName" class="accent">Employé</span></h2>
+        <p id="staffSpaceRole" class="muted"></p>
       </div>
-      <div class="staff-production-grid">
-        <div class="card production-declare-card">
-          <div class="panel-heading"><div><span class="tag">FABRICATION</span><h3>Ajouter une déclaration</h3></div></div>
-          <form id="productionDeclarationForm" class="form">
-            <select id="productionProduct" required><option value="">Choisir un objet fabriqué</option></select>
-            <input id="productionQuantity" required type="number" min="1" max="100000" step="1" inputmode="numeric" placeholder="Quantité fabriquée"/>
-            <button class="btn" type="submit">Enregistrer la fabrication</button>
-          </form>
-        </div>
-        <div class="card production-history-card">
-          <div class="panel-heading"><div><span class="tag">HISTORIQUE</span><h3>Mes déclarations</h3></div></div>
-          <div id="staffProductionHistory"><div class="news-loading">Chargement...</div></div>
-        </div>
-      </div>
-      <div class="staff-space-grid">
-        <div class="card">
-          <div class="panel-heading"><div><span class="tag">INTERNE</span><h3>Annonces employés</h3></div></div>
-          <div id="staffInternalAnnouncements"><div class="news-loading">Chargement...</div></div>
-        </div>
-        <div class="card staff-space-info">
-          <span class="tag">AUTO EXOTIC</span>
-          <h3>Infos utiles</h3>
-          <div class="staff-info-list">
-            <div><small>Poste</small><strong id="staffSpaceJob">—</strong></div>
-            <div><small>Profil</small><strong>Visible sur le site public</strong></div>
-            <div><small>Avis</small><strong>Clients & employés</strong></div>
-          </div>
-        </div>
-      </div>
+      <a class="employee-profile-button" href="#/profil"><span>♙</span><strong>Mon profil</strong></a>
     </div>
-  </div></section><section class="section page" id="direction" data-view="direction"><div class="shell">
+
+    <div class="employee-quick-grid">
+      <button id="quickDeclareProduction" class="employee-quick-card" type="button"><span class="employee-quick-icon">◇</span><strong>Déclarer ma fabrication</strong></button>
+      <button id="quickProductionHistory" class="employee-quick-card" type="button"><span class="employee-quick-icon">≡</span><strong>Mes fabrications</strong></button>
+      <button id="quickInternalNews" class="employee-quick-card" type="button"><span class="employee-quick-icon">⌁</span><strong>Annonces</strong></button>
+      <a id="staffSpaceAdminLink" class="employee-quick-card hidden" href="#/direction"><span class="employee-quick-icon">▦</span><strong>Administration</strong></a>
+    </div>
+
+    <div id="productionDeclareCard" class="employee-dashboard-card production-declare-card">
+      <div class="employee-card-title"><div><span class="employee-kicker">FABRICATION</span><h3>Déclarer ma fabrication</h3></div><span class="employee-card-icon">＋</span></div>
+      <form id="productionDeclarationForm" class="form production-form">
+        <label>Objet fabriqué</label>
+        <select id="productionProduct" required><option value="">Choisir un objet fabriqué</option></select>
+        <label>Quantité fabriquée</label>
+        <input id="productionQuantity" required type="number" min="1" max="100000" step="1" inputmode="numeric" placeholder="Ex. 50"/>
+        <button class="btn" type="submit">Valider ma fabrication</button>
+      </form>
+    </div>
+
+    <div id="productionHistoryCard" class="employee-dashboard-card">
+      <div class="employee-card-title"><div><span class="employee-kicker">HISTORIQUE</span><h3>Mes fabrications</h3></div><span class="employee-card-icon">↻</span></div>
+      <div id="staffProductionHistory"><div class="news-loading">Chargement...</div></div>
+    </div>
+
+    <div id="internalNewsCard" class="employee-dashboard-card employee-announcements-card">
+      <div class="employee-card-title"><div><span class="employee-kicker">ÉQUIPE</span><h3>Annonces internes</h3></div><span class="employee-card-icon">⌁</span></div>
+      <div id="staffInternalAnnouncements"><div class="news-loading">Chargement...</div></div>
+    </div>
+  </div>
+</div></section><section class="section page" id="direction" data-view="direction"><div class="shell">
 <div class="eyebrow">Administration</div><h2>Auto Exotic <span class="accent">Control.</span></h2>
 <div id="managerPanel" class="hidden">
   <div class="admin-tabs" role="tablist">
@@ -779,7 +804,33 @@ collapseBtn?.addEventListener('click',()=>{
 
 window.addEventListener('hashchange',showPage);
 showPage();
-</script><div id="siteToastStack" class="site-toast-stack" aria-live="polite"></div>
+</script><div id="cartPanel" class="cart-overlay hidden" aria-hidden="true">
+  <div class="cart-backdrop" data-close-cart></div>
+  <div class="cart-card">
+    <div class="cart-head"><div><span class="tag">BOUTIQUE</span><h3>Votre panier</h3></div><button id="cartClose" class="cart-close" type="button" aria-label="Fermer">×</button></div>
+    <div id="cartEmpty" class="cart-empty">Votre panier est vide.</div>
+    <div id="cartContent" class="hidden">
+      <div class="cart-product">
+        <div><strong>Kit moteur standard</strong><small>750 $ / unité</small></div>
+        <div class="cart-product-right"><span id="cartQuantityLabel">1 ×</span><strong id="cartLineTotal">750 $</strong></div>
+      </div>
+      <div class="cart-total-row"><span>Total</span><strong id="cartTotal">750 $</strong></div>
+      <div class="cart-actions"><button id="cartClear" class="btn secondary" type="button">Vider</button><button id="cartCheckout" class="btn" type="button">Valider mon panier</button></div>
+      <div id="checkoutArea" class="checkout-area hidden">
+        <div class="checkout-divider"></div>
+        <span class="tag">VALIDATION</span><h4>Informations de facturation</h4>
+        <p class="muted">La commande sera préparée uniquement après le règlement de la facture reçue grâce aux informations ci-dessous.</p>
+        <div id="checkoutLoginNotice" class="notice hidden">Connectez-vous avant de finaliser la commande.<br><a class="btn" href="#/espace" id="cartGoLogin">Se connecter</a></div>
+        <form id="checkoutForm" class="form">
+          <label>Téléphone RP</label><input id="checkoutPhone" required placeholder="444-4444"/>
+          <label>IBAN RP</label><input id="checkoutIban" required placeholder="Votre IBAN RP"/>
+          <div class="checkout-payment-note"><strong>Important</strong><span>La préparation débute après paiement de la facture envoyée pour cette commande.</span></div>
+          <button class="btn" type="submit">Confirmer la commande</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div><div id="siteToastStack" class="site-toast-stack" aria-live="polite"></div>
 <div id="siteDialog" class="site-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="siteDialogTitle">
   <div class="site-dialog-backdrop"></div>
   <div class="site-dialog-card">
