@@ -15,6 +15,59 @@ function feedback(msg){if(el('authFeedback'))el('authFeedback').textContent=msg}
 function saveSession(result){token=result?.token||'';account=result?.account||null;if(token)localStorage.setItem('ae_session',token);else localStorage.removeItem('ae_session')}
 function money(v){return Number(v||0).toLocaleString('fr-FR')+' $'}
 function esc(v){return String(v??'')}
+let siteDialogResolve=null;
+function closeSiteDialog(value){
+  const modal=el('siteDialog');if(!modal)return;
+  modal.classList.add('hidden');
+  document.body.classList.remove('dialog-open');
+  const resolve=siteDialogResolve;siteDialogResolve=null;
+  if(resolve)resolve(value);
+}
+function siteToast(message,type='info',title='Auto Exotic'){
+  const stack=el('siteToastStack');if(!stack)return;
+  const text=String(message??'');
+  if(type==='info'&&/(impossible|erreur|introuvable|invalide|obligatoire|refusé|aucune image)/i.test(text))type='error';
+  if(type==='info'&&/(enregistré|mise à jour|modifié|envoyée|créé|réussie|copié|synchronisé)/i.test(text))type='success';
+  const toast=document.createElement('div');toast.className='site-toast '+type;
+  const mark=document.createElement('span');mark.className='site-toast-mark';
+  const copy=document.createElement('div');copy.className='site-toast-copy';
+  const strong=document.createElement('strong');strong.textContent=title;
+  const p=document.createElement('p');p.textContent=text;
+  copy.append(strong,p);toast.append(mark,copy);stack.append(toast);
+  setTimeout(()=>{toast.style.opacity='0';toast.style.transform='translateY(8px)';setTimeout(()=>toast.remove(),180)},4200);
+}
+function openSiteDialog({title='Confirmation',message='',confirmText='Confirmer',cancelText='Annuler',field=false,fieldLabel='Information',fieldRequired=false,fieldValue='' }={}){
+  const modal=el('siteDialog');
+  if(!modal)return Promise.resolve(field?null:false);
+  if(siteDialogResolve)closeSiteDialog(field?null:false);
+  el('siteDialogTitle').textContent=title;
+  el('siteDialogMessage').textContent=message;
+  el('siteDialogConfirm').textContent=confirmText;
+  el('siteDialogCancel').textContent=cancelText;
+  const wrap=el('siteDialogFieldWrap'),input=el('siteDialogField'),label=el('siteDialogFieldLabel'),error=el('siteDialogFieldError');
+  wrap.classList.toggle('hidden',!field);
+  error.classList.add('hidden');error.textContent='';
+  input.value=fieldValue||'';label.textContent=fieldLabel;
+  modal.classList.remove('hidden');document.body.classList.add('dialog-open');
+  if(field)setTimeout(()=>input.focus(),40);
+  else setTimeout(()=>el('siteDialogConfirm')?.focus(),40);
+  return new Promise(resolve=>{
+    siteDialogResolve=resolve;
+    el('siteDialogConfirm').onclick=()=>{
+      if(field){
+        const value=input.value.trim();
+        if(fieldRequired&&!value){error.textContent='Ce champ est obligatoire.';error.classList.remove('hidden');input.focus();return}
+        closeSiteDialog(value);
+      }else closeSiteDialog(true);
+    };
+    el('siteDialogCancel').onclick=()=>closeSiteDialog(field?null:false);
+    el('siteDialogClose').onclick=()=>closeSiteDialog(field?null:false);
+    modal.querySelector('.site-dialog-backdrop').onclick=()=>closeSiteDialog(field?null:false);
+  });
+}
+function siteConfirm(message,options={}){return openSiteDialog({title:options.title||'Confirmation',message,confirmText:options.confirmText||'Confirmer',cancelText:options.cancelText||'Annuler'});}
+function sitePrompt(message,options={}){return openSiteDialog({title:options.title||'Information requise',message,confirmText:options.confirmText||'Valider',cancelText:options.cancelText||'Annuler',field:true,fieldLabel:options.label||'Information',fieldRequired:!!options.required,fieldValue:options.value||''});}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!el('siteDialog')?.classList.contains('hidden'))closeSiteDialog(null)});
 
 function updateConnectedSpace(){
   const connected=!!account;
@@ -168,7 +221,7 @@ async function loadMyProfile(){
     const pasteZone=document.createElement('div');pasteZone.className='profile-photo-drop';pasteZone.tabIndex=0;pasteZone.textContent='Ou copiez une image puis collez-la ici avec Ctrl+V / Cmd+V';
     const useImage=async file=>{
       try{avatarValue=await profileImageToDataUrl(file);drawPhotoPreview()}
-      catch(err){alert(err.message)}
+      catch(err){siteToast(err.message)}
     };
     fileInput.addEventListener('change',()=>{const file=fileInput.files?.[0];if(file)useImage(file)});
     pasteZone.addEventListener('paste',e=>{
@@ -176,7 +229,7 @@ async function loadMyProfile(){
       const imageItem=items.find(item=>item.type?.startsWith('image/'));
       const file=imageItem?.getAsFile?.();
       if(file){e.preventDefault();useImage(file)}
-      else alert('Aucune image trouvée dans le presse-papiers.');
+      else siteToast('Aucune image trouvée dans le presse-papiers.');
     });
     removePhoto.onclick=()=>{avatarValue='';fileInput.value='';drawPhotoPreview()};
     photoPicker.append(photoPreview,photoActions,pasteZone);
@@ -185,7 +238,7 @@ async function loadMyProfile(){
     const dutyLabel=document.createElement('label');const duty=document.createElement('input');duty.type='checkbox';duty.checked=!!myProfile.on_duty;dutyLabel.append(duty,document.createTextNode(' En service'));
     const save=document.createElement('button');save.type='submit';save.className='btn';save.textContent='Enregistrer mon profil';
     form.append(sub,photoPicker,bio,dutyLabel,save);
-    form.onsubmit=async e=>{e.preventDefault();save.disabled=true;try{await rpc('ae_update_my_staff_profile',{p_token:token,p_avatar_url:avatarValue,p_bio:bio.value,p_on_duty:duty.checked});myProfile=await rpc('ae_my_profile',{p_token:token});updateSidebarProfile();await Promise.all([loadMyProfile(),loadStaff()]);alert('Profil mis à jour.')}catch(err){alert(err.message)}finally{save.disabled=false}};
+    form.onsubmit=async e=>{e.preventDefault();save.disabled=true;try{await rpc('ae_update_my_staff_profile',{p_token:token,p_avatar_url:avatarValue,p_bio:bio.value,p_on_duty:duty.checked});myProfile=await rpc('ae_my_profile',{p_token:token});updateSidebarProfile();await Promise.all([loadMyProfile(),loadStaff()]);siteToast('Profil mis à jour.')}catch(err){siteToast(err.message)}finally{save.disabled=false}};
     details.append(form);
   }
 
@@ -200,13 +253,13 @@ async function loadMyProfile(){
     security.append(divider,securityTitle,securityText,oldPwd,newPwd,changePwd);
     security.onsubmit=async e=>{
       e.preventDefault();
-      if(newPwd.value.length<8){alert('Le nouveau mot de passe doit contenir au moins 8 caractères.');return}
+      if(newPwd.value.length<8){siteToast('Le nouveau mot de passe doit contenir au moins 8 caractères.');return}
       changePwd.disabled=true;
       try{
         await rpc('ae_change_password',{p_token:token,p_old:oldPwd.value,p_new:newPwd.value});
         security.reset();
-        alert('Mot de passe modifié.');
-      }catch(err){alert('Modification impossible : '+err.message)}
+        siteToast('Mot de passe modifié.');
+      }catch(err){siteToast('Modification impossible : '+err.message)}
       finally{changePwd.disabled=false}
     };
     details.append(security);
@@ -408,7 +461,7 @@ async function loadNews(){
       const date=document.createElement('small');date.className='muted';date.textContent=new Date(n.created_at).toLocaleDateString('fr-FR');
       card.append(tag,title,body,date);
       if(account&&managerRoles.includes(account.role)){
-        const del=document.createElement('button');del.type='button';del.className='btn secondary';del.textContent='Supprimer';del.onclick=async()=>{if(!confirm('Supprimer cette publication ?'))return;try{await rpc('ae_manager_delete_news',{p_token:token,p_id:n.id});await loadNews()}catch(err){alert(err.message)}};card.append(del);
+        const del=document.createElement('button');del.type='button';del.className='btn secondary';del.textContent='Supprimer';del.onclick=async()=>{if(!await siteConfirm('Supprimer cette publication ?',{title:'Supprimer la publication',confirmText:'Supprimer'}))return;try{await rpc('ae_manager_delete_news',{p_token:token,p_id:n.id});siteToast('Publication supprimée.','success');await loadNews()}catch(err){siteToast(err.message,'error')}};card.append(del);
       }
       box.append(card);
     }
@@ -429,8 +482,8 @@ el('forcedPasswordForm')?.addEventListener('submit',async e=>{
   const inputs=form.querySelectorAll('input');
   const newPassword=inputs[0].value;
   const confirmPassword=inputs[1].value;
-  if(newPassword!==confirmPassword){alert('Les deux nouveaux mots de passe ne correspondent pas.');return}
-  if(newPassword.length<8){alert('Le nouveau mot de passe doit contenir au moins 8 caractères.');return}
+  if(newPassword!==confirmPassword){siteToast('Les deux nouveaux mots de passe ne correspondent pas.');return}
+  if(newPassword.length<8){siteToast('Le nouveau mot de passe doit contenir au moins 8 caractères.');return}
   const button=form.querySelector('button');button.disabled=true;
   try{
     await rpc('ae_set_initial_password',{p_token:token,p_new:newPassword});
@@ -438,10 +491,10 @@ el('forcedPasswordForm')?.addEventListener('submit',async e=>{
     form.reset();
     document.body.classList.remove('password-required');
     el('forcedPasswordCard')?.classList.add('hidden');
-    alert('Votre mot de passe est enregistré.');
+    siteToast('Votre mot de passe est enregistré.');
     await refresh();
     location.hash='#/direction';
-  }catch(err){alert('Modification impossible : '+err.message)}
+  }catch(err){siteToast('Modification impossible : '+err.message)}
   finally{button.disabled=false}
 });
 
@@ -456,12 +509,12 @@ el('registerForm')?.addEventListener('submit',async e=>{
 el('submitOrder')?.addEventListener('click',async()=>{
   if(!account||account.role!=='client')return;
   const quantity=Math.max(1,Number(el('qty')?.textContent||1));
-  if(!confirm('Confirmer '+quantity+' kit(s) moteur standard pour '+money(quantity*750)+' ?'))return;
+  if(!await siteConfirm('Confirmer '+quantity+' kit(s) moteur standard pour '+money(quantity*750)+' ?',{title:'Confirmer la commande',confirmText:'Commander'}))return;
   try{
     const result=await rpc('ae_create_order',{p_token:token,p_quantity:quantity});
-    alert('Commande AE-'+String(result.id).padStart(4,'0')+' enregistrée !');
+    siteToast('Commande AE-'+String(result.id).padStart(4,'0')+' enregistrée !');
     triggerDiscordSync(false).catch(()=>{});location.hash='#/commandes';await Promise.all([loadOrders(),loadNotifications()]);
-  }catch(err){alert('Commande impossible : '+err.message)}
+  }catch(err){siteToast('Commande impossible : '+err.message)}
 });
 
 el('signOut')?.addEventListener('click',async()=>{try{if(token)await rpc('ae_logout',{p_token:token})}catch(_){}token='';account=null;myProfile=null;localStorage.removeItem('ae_session');feedback('Déconnecté.');await refresh()});
@@ -474,8 +527,8 @@ for(const [form,kind] of requestForms){
     e.preventDefault();const payload={};
     [...form.querySelectorAll('input,textarea')].forEach((input,i)=>{const key=input.placeholder||input.previousElementSibling?.textContent||('champ_'+(i+1));payload[key]=input.value.trim()});
     const button=form.querySelector('[type=submit]');button.disabled=true;
-    try{const result=await rpc('ae_submit_request',{p_kind:kind,p_payload:payload});form.reset();alert('Demande envoyée ! Numéro #'+result.id)}
-    catch(err){alert('Envoi impossible : '+err.message)}
+    try{const result=await rpc('ae_submit_request',{p_kind:kind,p_payload:payload});form.reset();siteToast('Demande envoyée ! Numéro #'+result.id)}
+    catch(err){siteToast('Envoi impossible : '+err.message)}
     finally{button.disabled=false}
   });
 }
@@ -493,7 +546,7 @@ function showTemporaryCredential(login,password,label='Mot de passe temporaire')
   copyAll.onclick=async()=>{
     const value='Identifiant : '+login+'\nMot de passe temporaire : '+password;
     try{await navigator.clipboard.writeText(value);copyAll.textContent='Accès copiés ✓'}
-    catch(_){alert(value)}
+    catch(_){siteToast(value)}
   };
   loginRow.append(loginValue);passRow.append(passValue);box.append(title,note,loginRow,passRow,copyAll);
 }
@@ -509,7 +562,7 @@ function canAssignRoleUI(role){
 el('employeeAccountForm')?.addEventListener('submit',async e=>{
   e.preventDefault();
   const form=e.currentTarget;
-  if(!account||!managerRoles.includes(account.role)){alert('Accès administration requis.');return}
+  if(!account||!managerRoles.includes(account.role)){siteToast('Accès administration requis.');return}
   const fields=form.querySelectorAll('input,select');
   const button=form.querySelector('button');button.disabled=true;
   try{
@@ -523,7 +576,7 @@ el('employeeAccountForm')?.addEventListener('submit',async e=>{
     form.reset();
     showTemporaryCredential(result.login,result.temporary_password);
     await Promise.all([managerRefresh(),loadStaff(),loadNotifications()]);
-  }catch(err){alert('Création impossible : '+err.message)}
+  }catch(err){siteToast('Création impossible : '+err.message)}
   finally{button.disabled=false}
 });
 
@@ -537,15 +590,15 @@ el('reviewForm')?.addEventListener('submit',async e=>{
   e.preventDefault();
   if(!account){location.hash='#/espace';feedback('Connectez-vous pour laisser un avis.');return}
   const staffId=el('reviewStaff')?.value;
-  if(!staffId||selectedReviewRating<1){alert('Choisissez un employé et une note de 1 à 5 étoiles.');return}
+  if(!staffId||selectedReviewRating<1){siteToast('Choisissez un employé et une note de 1 à 5 étoiles.');return}
   try{
     await rpc('ae_rate_staff',{p_token:token,p_staff_account_id:staffId,p_stars:selectedReviewRating});
-    alert('Votre avis a bien été enregistré.');
+    siteToast('Votre avis a bien été enregistré.');
     selectedReviewRating=0;if(el('reviewRating'))el('reviewRating').value='0';
     document.querySelectorAll('#reviewStars [data-rating]').forEach(star=>star.classList.remove('active'));
     if(el('reviewStaff'))el('reviewStaff').value='';
     await loadStaff();
-  }catch(err){alert('Avis impossible : '+err.message)}
+  }catch(err){siteToast('Avis impossible : '+err.message)}
 });
 
 el('newsForm')?.addEventListener('submit',async e=>{
@@ -553,8 +606,8 @@ el('newsForm')?.addEventListener('submit',async e=>{
   const fields=form.querySelectorAll('input,select,textarea');
   try{
     await rpc('ae_manager_create_news',{p_token:token,p_title:fields[0].value,p_category:fields[1].value,p_cover_url:fields[2].value,p_body:fields[3].value});
-    form.reset();alert('Publication ajoutée au journal.');await loadNews();
-  }catch(err){alert('Publication impossible : '+err.message)}
+    form.reset();siteToast('Publication ajoutée au journal.');await loadNews();
+  }catch(err){siteToast('Publication impossible : '+err.message)}
 });
 
 
@@ -622,9 +675,9 @@ el('discordSyncButton')?.addEventListener('click',async e=>{
   const button=e.currentTarget;button.disabled=true;
   try{
     const result=await triggerDiscordSync(true);
-    alert((result?.sent||0)+' événement(s) Discord synchronisé(s).');
+    siteToast((result?.sent||0)+' événement(s) Discord synchronisé(s).');
     await refreshDiscordAdmin();
-  }catch(err){alert(err.message)}
+  }catch(err){siteToast(err.message)}
   finally{button.disabled=false}
 });
 
@@ -678,7 +731,7 @@ async function managerRefresh(){
       box.append(title,p);
       for(const [label,status] of [['Accepter','acceptee'],['Refuser','refusee']]){
         const b=document.createElement('button');b.className='btn secondary';b.textContent=label;
-        b.onclick=async()=>{try{await rpc('ae_manager_update_request',{p_token:token,p_id:item.id,p_status:status});await managerRefresh()}catch(err){alert(err.message)}};
+        b.onclick=async()=>{try{await rpc('ae_manager_update_request',{p_token:token,p_id:item.id,p_status:status});await managerRefresh()}catch(err){siteToast(err.message)}};
         box.append(b);
       }
       requestBox.append(box);
@@ -695,9 +748,9 @@ async function managerRefresh(){
       box.append(title,p);
       if(item.status==='En attente de préparation'){
         const delivered=document.createElement('button');delivered.className='btn secondary';delivered.textContent='Livrée';
-        delivered.onclick=async()=>{try{await rpc('ae_manager_update_order',{p_token:token,p_id:item.id,p_status:'Livrée',p_reason:null});triggerDiscordSync(false).catch(()=>{});await Promise.all([managerRefresh(),loadNotifications()])}catch(err){alert(err.message)}};
+        delivered.onclick=async()=>{try{await rpc('ae_manager_update_order',{p_token:token,p_id:item.id,p_status:'Livrée',p_reason:null});triggerDiscordSync(false).catch(()=>{});await Promise.all([managerRefresh(),loadNotifications()])}catch(err){siteToast(err.message)}};
         const cancel=document.createElement('button');cancel.className='btn secondary';cancel.textContent='Annuler';
-        cancel.onclick=async()=>{const reason=prompt('Motif de l’annulation (obligatoire) :')?.trim();if(!reason)return;try{await rpc('ae_manager_update_order',{p_token:token,p_id:item.id,p_status:'Annulée',p_reason:reason});triggerDiscordSync(false).catch(()=>{});await Promise.all([managerRefresh(),loadNotifications()])}catch(err){alert(err.message)}};
+        cancel.onclick=async()=>{const reason=await sitePrompt('Indiquez pourquoi cette commande est annulée.',{title:'Annuler AE-'+String(item.id).padStart(4,'0'),label:'Motif d’annulation',required:true,confirmText:'Annuler la commande'});if(!reason)return;try{await rpc('ae_manager_update_order',{p_token:token,p_id:item.id,p_status:'Annulée',p_reason:reason});siteToast('Commande annulée.','success');triggerDiscordSync(false).catch(()=>{});await Promise.all([managerRefresh(),loadNotifications()])}catch(err){siteToast(err.message,'error')}};
         box.append(delivered,cancel);
       }
       orderBox.append(box);
@@ -763,18 +816,21 @@ async function managerRefresh(){
         const roleBtn=document.createElement('button');roleBtn.type='button';roleBtn.className='btn secondary';roleBtn.textContent='Modifier le grade';
         roleBtn.onclick=async()=>{
           if(select.value===emp.role)return;
-          const reason=prompt('Motif de la promotion / rétrogradation (facultatif) :')||'';
-          if(!confirm('Passer '+emp.name+' de '+(roleLabels[emp.role]||emp.role)+' à '+(roleLabels[select.value]||select.value)+' ?')){select.value=emp.role;return}
-          try{await rpc('ae_manager_update_employee_role',{p_token:token,p_account_id:emp.account_id,p_new_role:select.value,p_reason:reason});await Promise.all([managerRefresh(),loadStaff(),loadNotifications()])}catch(err){alert(err.message);select.value=emp.role}
+          const reason=await sitePrompt('Vous pouvez ajouter un motif pour ce changement de grade.',{title:'Changer le grade de '+emp.name,label:'Motif (facultatif)',confirmText:'Continuer'});
+          if(reason===null){select.value=emp.role;return}
+          const ok=await siteConfirm('Passer '+emp.name+' de '+(roleLabels[emp.role]||emp.role)+' à '+(roleLabels[select.value]||select.value)+' ?',{title:'Confirmer le changement de grade',confirmText:'Modifier le grade'});
+          if(!ok){select.value=emp.role;return}
+          try{await rpc('ae_manager_update_employee_role',{p_token:token,p_account_id:emp.account_id,p_new_role:select.value,p_reason:reason});siteToast('Grade de '+emp.name+' modifié.','success');await Promise.all([managerRefresh(),loadStaff(),loadNotifications()])}catch(err){siteToast(err.message,'error');select.value=emp.role}
         };
         const reset=document.createElement('button');reset.type='button';reset.className='btn secondary';reset.textContent='Nouveau MDP temporaire';
         reset.onclick=async()=>{
-          if(!confirm('Réinitialiser le mot de passe de '+emp.name+' ?'))return;
+          if(!await siteConfirm('Réinitialiser le mot de passe de '+emp.name+' ?',{title:'Nouveau mot de passe temporaire',confirmText:'Réinitialiser'}))return;
           try{
             const result=await rpc('ae_manager_reset_employee_password',{p_token:token,p_account_id:emp.account_id});
             showTemporaryCredential(emp.login,result.temporary_password,'Nouveau mot de passe temporaire');
+            siteToast('Nouveau mot de passe temporaire créé.','success');
             await Promise.all([managerRefresh(),loadNotifications()]);
-          }catch(err){alert(err.message)}
+          }catch(err){siteToast(err.message,'error')}
         };
         actions.append(select,roleBtn,reset);wrap.append(actions);
 
@@ -791,7 +847,7 @@ async function managerRefresh(){
               history.append(p);
             }
             history.classList.remove('hidden');
-          }catch(err){alert(err.message)}
+          }catch(err){siteToast(err.message)}
         };
         wrap.append(historyBtn,history);
       }else if(emp.account_id!==account.id){
@@ -808,9 +864,9 @@ async function managerRefresh(){
           e.preventDefault();const f=form.querySelectorAll('input,textarea');
           try{
             await rpc('ae_manager_update_staff_profile',{p_token:token,p_account_id:emp.account_id,p_avatar_url:f[0].value,p_joined_at:f[1].value||null,p_interventions_count:Number(f[2].value||0),p_on_duty:f[3].checked,p_bio:f[4].value});
-            alert('Fiche employé mise à jour.');
+            siteToast('Fiche employé mise à jour.');
             await Promise.all([managerRefresh(),loadStaff(),loadNotifications()]);
-          }catch(err){alert(err.message)}
+          }catch(err){siteToast(err.message)}
         };
         details.append(summary,form);wrap.append(details);
       }
@@ -849,7 +905,7 @@ el('closeEmployeeProfile')?.addEventListener('click',()=>el('employeeProfileModa
 el('employeeProfileModal')?.addEventListener('click',e=>{if(e.target===el('employeeProfileModal'))el('employeeProfileModal').classList.add('hidden')});
 el('notificationToggle')?.addEventListener('click',()=>el('notificationsPanel')?.classList.toggle('hidden'));
 el('closeNotifications')?.addEventListener('click',()=>el('notificationsPanel')?.classList.add('hidden'));
-el('markNotificationsRead')?.addEventListener('click',async()=>{if(!token)return;try{await rpc('ae_mark_notifications_read',{p_token:token});await loadNotifications()}catch(err){alert(err.message)}});
+el('markNotificationsRead')?.addEventListener('click',async()=>{if(!token)return;try{await rpc('ae_mark_notifications_read',{p_token:token});await loadNotifications()}catch(err){siteToast(err.message)}});
 
 function revealNow(){
   document.querySelectorAll('.section .card,.order-card,.stat-card,.staff-card,.news-card').forEach(node=>{
