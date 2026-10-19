@@ -860,9 +860,9 @@ const partnerServiceTypeLabels={totale:'Totale',moteur:'Moteur',custom:'Custom'}
 function calcCustomPartnerPrice(factoryPrice,discountPercent){
  const factory=Math.max(0,Math.trunc(Number(factoryPrice)||0));
  const discount=Math.min(100,Math.max(0,Math.trunc(Number(discountPercent)||0)));
- const discounted=Math.round(factory*((100-discount)/100));
- const margin=Math.min(Math.round(discounted*2.5),10000);
- return {factory,discount,discounted,margin,final:discounted+margin};
+ const baseMargin=Math.min(Math.round(factory*2.5),10000);
+ const discountedMargin=Math.round(baseMargin*((100-discount)/100));
+ return {factory,discount,baseMargin,discountedMargin,final:factory+discountedMargin};
 }
 
 function selectedPartnerService(){
@@ -879,9 +879,9 @@ function renderPartnerBillingPreview(){
  if(!box)return;
  const chosen=selectedPartnerService();
  const qty=Math.max(1,Math.trunc(Number(el('partnerDeclarationQuantity')?.value||1)));
- const custom=chosen?.service?.service_type==='custom';
- factoryWrap?.classList.toggle('hidden',!custom);
- if(factoryInput)factoryInput.required=!!custom;
+ const custom=false;
+ factoryWrap?.classList.add('hidden');
+ if(factoryInput)factoryInput.required=false;
 
  box.replaceChildren();
  if(!chosen){
@@ -890,28 +890,9 @@ function renderPartnerBillingPreview(){
 
  const {service}=chosen;
  if(service.service_type==='custom'){
-   const factory=Math.max(0,Math.trunc(Number(factoryInput?.value||0)));
-   const intro=document.createElement('strong');intro.textContent='Calculateur Custom — réduction '+Number(service.discount_percent||0)+' %';
-   box.append(intro);
-   if(factory<=0){
-     const hint=document.createElement('small');hint.textContent='Entrez le prix d’usine pour calculer automatiquement le tarif partenaire.';box.append(hint);return;
-   }
-   const calc=calcCustomPartnerPrice(factory,service.discount_percent);
-   const grid=document.createElement('div');grid.className='partner-calc-grid';
-   const cell=(label,value,cls='')=>{
-     const div=document.createElement('div');div.className='partner-calc-cell '+cls;
-     const small=document.createElement('small');small.textContent=label;
-     const strong=document.createElement('strong');strong.textContent=value;
-     div.append(small,strong);return div;
-   };
-   grid.append(
-     cell('Prix d’usine',money(calc.factory)),
-     cell('Après réduction',money(calc.discounted)),
-     cell('Marge × 2,5',money(calc.margin)+(calc.margin>=10000?' · MAX':'')),
-     cell('Prix final / unité',money(calc.final)),
-     cell('Total à facturer',money(calc.final*qty),'partner-calc-total')
-   );
-   box.append(grid);
+   const note=document.createElement('strong');
+   note.textContent='Customisation : paiement immédiat obligatoire.';
+   box.append(note);
  }else{
    const total=Number(service.partner_price||0)*qty;
    const title=document.createElement('strong');title.textContent='À ajouter à la facture de fin de semaine : '+money(total);
@@ -983,7 +964,7 @@ function appendMoRepairRates(td,services){
 
 function appendMoCustomRates(td,services){
  if(!services.length){appendMoEmpty(td);return}
- const values=[...new Set(services.map(service=>'−'+Number(service.discount_percent||0)+' %'))];
+ const values=[...new Set(services.map(service=>'−'+Number(service.discount_percent||0)+' % marge'))];
  const stack=document.createElement('div');stack.className='mo-rate-stack';
  for(const valueText of values){
    const badge=document.createElement('span');badge.className='mo-discount';badge.textContent=valueText;
@@ -1186,23 +1167,33 @@ function updatePartnerServiceTypeUI(){
  const type=selectedPartnerServiceType();
  const custom=type==='custom';
  const mode=el('partnerServiceBillingMode');
- const personal=mode?.value==='direct_discount';
+
+ if(custom&&mode){
+   mode.value='direct_discount';
+   mode.disabled=true;
+ }else if(mode){
+   mode.disabled=false;
+ }
+
+ const personal=custom||mode?.value==='direct_discount';
 
  el('partnerCompanyFixedPrice')?.classList.toggle('hidden',custom||personal);
  el('partnerPersonalFixedPrices')?.classList.toggle('hidden',custom||!personal);
  el('partnerCustomConfig')?.classList.toggle('hidden',!custom);
- el('partnerCustomGenericRate')?.classList.toggle('hidden',!custom||personal);
- el('partnerPersonalCustomRates')?.classList.toggle('hidden',!custom||!personal);
+ el('partnerCustomGenericRate')?.classList.add('hidden');
+ el('partnerPersonalCustomRates')?.classList.toggle('hidden',!custom);
 
  if(el('partnerServicePartnerPrice'))el('partnerServicePartnerPrice').required=!custom&&!personal;
  if(el('partnerServiceEmployeePrice'))el('partnerServiceEmployeePrice').required=false;
  if(el('partnerServiceDirectionPrice'))el('partnerServiceDirectionPrice').required=false;
- if(el('partnerServiceDiscountPercent'))el('partnerServiceDiscountPercent').required=custom&&!personal;
+ if(el('partnerServiceDiscountPercent'))el('partnerServiceDiscountPercent').required=false;
 
  const help=el('partnerServiceModeHelp');
- if(help)help.textContent=personal
-   ?'Véhicule personnel : indiquez séparément le tarif Employés et le tarif Direction. Ces prix apparaissent dans Tarifs MO.'
-   :'Véhicule entreprise : la prestation est déclarée puis réglée en fin de semaine.';
+ if(help)help.textContent=custom
+   ?'Customisation : paiement immédiat obligatoire. La réduction s’applique uniquement sur la marge (prix usine × 2,5, marge plafonnée à 10 000 $).'
+   :personal
+     ?'Véhicule personnel : indiquez séparément le tarif Employés et le tarif Direction. Ces prix apparaissent dans Tarifs MO.'
+     :'Véhicule entreprise : la réparation est déclarée puis réglée en fin de semaine.';
 
  renderPartnerAdminCustomExample();
 }
@@ -1555,7 +1546,7 @@ el('partnerServiceForm')?.addEventListener('submit',async e=>{
  if(!selectedAdminPartnerId){siteToast('Sélectionnez un partenaire dans la liste à gauche.','error');return}
 
  const type=selectedPartnerServiceType();
- const billingMode=el('partnerServiceBillingMode')?.value||'weekly_invoice';
+ const billingMode=type==='custom'?'direct_discount':(el('partnerServiceBillingMode')?.value||'weekly_invoice');
  const personal=billingMode==='direct_discount';
  const button=form.querySelector('[type=submit]');
  if(button)button.disabled=true;
