@@ -952,17 +952,44 @@ function moGroupAllowsAudience(groups,audience){
  return false;
 }
 
-function moServiceLabel(serviceType){
- if(serviceType==='custom')return 'Customisation perso';
- if(serviceType==='totale')return 'Réparation totale perso';
- if(serviceType==='moteur')return 'Réparation moteur perso';
- return 'Prestation perso';
+function moRepairLabel(type){
+ if(type==='totale')return 'Totale';
+ if(type==='moteur')return 'Moteur';
+ return 'Réparation';
 }
 
-function moServiceValue(service){
- return service.service_type==='custom'
-   ?'−'+Number(service.discount_percent||0)+' %'
-   :money(service.partner_price);
+function appendMoEmpty(td){
+ const dash=document.createElement('span');
+ dash.className='mo-no';
+ dash.textContent='—';
+ td.append(dash);
+}
+
+function appendMoRepairRates(td,services){
+ if(!services.length){appendMoEmpty(td);return}
+ const stack=document.createElement('div');stack.className='mo-rate-stack';
+ const sorted=[...services].sort((a,b)=>{
+   const rank={totale:1,moteur:2};
+   return (rank[a.service_type]||9)-(rank[b.service_type]||9);
+ });
+ for(const service of sorted){
+   const line=document.createElement('div');line.className='mo-rate-line';
+   const label=document.createElement('small');label.textContent=moRepairLabel(service.service_type);
+   const value=document.createElement('strong');value.textContent=money(service.partner_price);
+   line.append(label,value);stack.append(line);
+ }
+ td.append(stack);
+}
+
+function appendMoCustomRates(td,services){
+ if(!services.length){appendMoEmpty(td);return}
+ const values=[...new Set(services.map(service=>'−'+Number(service.discount_percent||0)+' %'))];
+ const stack=document.createElement('div');stack.className='mo-rate-stack';
+ for(const valueText of values){
+   const badge=document.createElement('span');badge.className='mo-discount';badge.textContent=valueText;
+   stack.append(badge);
+ }
+ td.append(stack);
 }
 
 function renderPartnerMemo(){
@@ -972,52 +999,34 @@ function renderPartnerMemo(){
  body.replaceChildren();
 
  const partners=(partnerMemoCatalog||[]).filter(partner=>!term||String(partner.name||'').toLocaleLowerCase('fr').includes(term));
- let rendered=0;
-
- for(const partner of partners){
-   const grouped=new Map();
-   for(const service of partner.services||[]){
-     const key=service.service_type||service.name||String(service.id);
-     if(!grouped.has(key))grouped.set(key,[]);
-     grouped.get(key).push(service);
-   }
-
-   for(const [serviceType,services] of grouped){
-     const employee=services.filter(service=>moGroupAllowsAudience(service.access_groups,'employee'));
-     const direction=services.filter(service=>moGroupAllowsAudience(service.access_groups,'direction'));
-     if(!employee.length&&!direction.length)continue;
-
-     const uniqueValues=list=>[...new Set(list.map(moServiceValue))];
-     const tr=document.createElement('tr');
-
-     const company=document.createElement('td');
-     const name=document.createElement('span');name.className='mo-company';name.textContent=partner.name;
-     company.append(name);tr.append(company);
-
-     const serviceTd=document.createElement('td');
-     serviceTd.textContent=moServiceLabel(serviceType);
-     tr.append(serviceTd);
-
-     for(const list of [employee,direction]){
-       const td=document.createElement('td');
-       const values=uniqueValues(list);
-       if(values.length){
-         const badge=document.createElement('span');badge.className='mo-discount';badge.textContent=values.join(' / ');
-         td.append(badge);
-       }else{
-         const dash=document.createElement('span');dash.className='mo-no';dash.textContent='—';td.append(dash);
-       }
-       tr.append(td);
-     }
-
-     body.append(tr);rendered++;
-   }
+ if(!partners.length){
+   const tr=document.createElement('tr');
+   const td=document.createElement('td');td.colSpan=5;td.className='mo-empty';td.textContent=term?'Aucune entreprise trouvée.':'Aucun tarif MO personnel configuré.';
+   tr.append(td);body.append(tr);return;
  }
 
- if(!rendered){
+ for(const partner of partners){
+   const services=partner.services||[];
+   const repairs=services.filter(service=>service.service_type!=='custom');
+   const customs=services.filter(service=>service.service_type==='custom');
+
+   const repairEmployee=repairs.filter(service=>moGroupAllowsAudience(service.access_groups,'employee'));
+   const repairDirection=repairs.filter(service=>moGroupAllowsAudience(service.access_groups,'direction'));
+   const customEmployee=customs.filter(service=>moGroupAllowsAudience(service.access_groups,'employee'));
+   const customDirection=customs.filter(service=>moGroupAllowsAudience(service.access_groups,'direction'));
+
    const tr=document.createElement('tr');
-   const td=document.createElement('td');td.colSpan=4;td.className='mo-empty';td.textContent=term?'Aucune entreprise trouvée.':'Aucun tarif MO personnel configuré.';
-   tr.append(td);body.append(tr);
+
+   const company=document.createElement('td');
+   const name=document.createElement('span');name.className='mo-company';name.textContent=partner.name;
+   company.append(name);tr.append(company);
+
+   const employeeRepairTd=document.createElement('td');appendMoRepairRates(employeeRepairTd,repairEmployee);tr.append(employeeRepairTd);
+   const directionRepairTd=document.createElement('td');appendMoRepairRates(directionRepairTd,repairDirection);tr.append(directionRepairTd);
+   const employeeCustomTd=document.createElement('td');appendMoCustomRates(employeeCustomTd,customEmployee);tr.append(employeeCustomTd);
+   const directionCustomTd=document.createElement('td');appendMoCustomRates(directionCustomTd,customDirection);tr.append(directionCustomTd);
+
+   body.append(tr);
  }
 }
 
