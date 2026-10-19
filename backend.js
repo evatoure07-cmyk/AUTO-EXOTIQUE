@@ -580,7 +580,7 @@ el('registerForm')?.addEventListener('submit',async e=>{
 
 el('submitOrder')?.addEventListener('click',async()=>{
   if(!account||account.role!=='client')return;
-  const quantity=Math.max(1,Number(el('qty')?.textContent||1));
+  const quantity=Math.max(1,Math.min(999,Math.floor(Number(el('qty')?.value||1))));
   if(!await siteConfirm('Confirmer '+quantity+' kit(s) moteur standard pour '+money(quantity*750)+' ?',{title:'Confirmer la commande',confirmText:'Commander'}))return;
   try{
     const result=await rpc('ae_create_order',{p_token:token,p_quantity:quantity});
