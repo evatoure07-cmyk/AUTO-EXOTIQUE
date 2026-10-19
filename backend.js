@@ -1177,20 +1177,22 @@ function updatePartnerServiceTypeUI(){
  const type=selectedPartnerServiceType();
  const custom=type==='custom';
  const mode=el('partnerServiceBillingMode');
- const immediate=mode?.value==='direct_discount';
+ const personal=mode?.value==='direct_discount';
 
- el('partnerFixedPriceFields')?.classList.toggle('hidden',custom);
+ el('partnerCompanyFixedPrice')?.classList.toggle('hidden',custom||personal);
+ el('partnerPersonalFixedPrices')?.classList.toggle('hidden',custom||!personal);
  el('partnerCustomConfig')?.classList.toggle('hidden',!custom);
- el('partnerCustomGenericRate')?.classList.toggle('hidden',!custom||immediate);
- el('partnerPersonalCustomRates')?.classList.toggle('hidden',!custom||!immediate);
- el('partnerAccessWrap')?.classList.toggle('hidden',custom&&immediate);
+ el('partnerCustomGenericRate')?.classList.toggle('hidden',!custom||personal);
+ el('partnerPersonalCustomRates')?.classList.toggle('hidden',!custom||!personal);
 
- if(el('partnerServicePartnerPrice'))el('partnerServicePartnerPrice').required=!custom;
- if(el('partnerServiceDiscountPercent'))el('partnerServiceDiscountPercent').required=custom&&!immediate;
+ if(el('partnerServicePartnerPrice'))el('partnerServicePartnerPrice').required=!custom&&!personal;
+ if(el('partnerServiceEmployeePrice'))el('partnerServiceEmployeePrice').required=false;
+ if(el('partnerServiceDirectionPrice'))el('partnerServiceDirectionPrice').required=false;
+ if(el('partnerServiceDiscountPercent'))el('partnerServiceDiscountPercent').required=custom&&!personal;
 
  const help=el('partnerServiceModeHelp');
- if(help)help.textContent=immediate
-   ?'Véhicule personnel : paiement immédiat au garage. Le tarif apparaît dans Tarifs MO.'
+ if(help)help.textContent=personal
+   ?'Véhicule personnel : indiquez séparément le tarif Employés et le tarif Direction. Ces prix apparaissent dans Tarifs MO.'
    :'Véhicule entreprise : la prestation est déclarée puis réglée en fin de semaine.';
 
  renderPartnerAdminCustomExample();
@@ -1418,7 +1420,7 @@ async function loadManagerPartners(){
        const copy=document.createElement('div');
        const strong=document.createElement('strong');strong.textContent=partnerServiceTypeLabels[service.service_type]||service.name;
        const small=document.createElement('small');
-       small.textContent=(service.billing_mode==='weekly_invoice'?'À déclarer · règlement fin de semaine':'Tarif MO · payé directement')+(service.active?'':' · inactive');
+       small.textContent=(service.billing_mode==='weekly_invoice'?'Réparation entreprise · déclaration fin de semaine':'Réparation perso · tarif direct')+(service.active?'':' · inactive');
        const audience=document.createElement('div');audience.className='partner-service-audience';
        for(const group of service.access_groups||[]){
          const chip=document.createElement('span');chip.textContent=partnerGroupLabels[group]||group;audience.append(chip);
@@ -1427,7 +1429,7 @@ async function loadManagerPartners(){
 
        const price=document.createElement('div');price.className='partner-service-price';
        price.textContent=service.service_type==='custom'?'−'+Number(service.discount_percent||0)+' %':money(service.partner_price);
-       const mode=document.createElement('span');mode.className='partner-service-mode';mode.textContent=service.billing_mode==='weekly_invoice'?'Fin de semaine':'Payé maintenant';
+       const mode=document.createElement('span');mode.className='partner-service-mode';mode.textContent=service.billing_mode==='weekly_invoice'?'Entreprise':'Personnel';
        row.append(copy,price,mode);
 
        if(canConfigurePartners()){
@@ -1545,50 +1547,65 @@ el('partnerServiceForm')?.addEventListener('submit',async e=>{
 
  const type=selectedPartnerServiceType();
  const billingMode=el('partnerServiceBillingMode')?.value||'weekly_invoice';
+ const personal=billingMode==='direct_discount';
  const button=form.querySelector('[type=submit]');
  if(button)button.disabled=true;
 
  try{
-   if(type==='custom'&&billingMode==='direct_discount'){
-     const employeeRaw=String(el('partnerServiceEmployeeDiscountPercent')?.value||'').trim();
-     const directionRaw=String(el('partnerServiceDirectionDiscountPercent')?.value||'').trim();
-
-     if(!employeeRaw&&!directionRaw){
-       throw new Error('Indiquez au moins un pourcentage Employés ou Direction.');
-     }
-
+   if(personal){
      const payloads=[];
-     if(employeeRaw){
-       const value=Math.trunc(Number(employeeRaw));
-       if(!Number.isFinite(value)||value<0||value>100)throw new Error('La réduction Employés doit être comprise entre 0 et 100 %.');
-       payloads.push({discount:value,groups:['mecanos','chef_equipe','gestion']});
-     }
-     if(directionRaw){
-       const value=Math.trunc(Number(directionRaw));
-       if(!Number.isFinite(value)||value<0||value>100)throw new Error('La réduction Direction doit être comprise entre 0 et 100 %.');
-       payloads.push({discount:value,groups:['direction']});
+
+     if(type==='custom'){
+       const employeeRaw=String(el('partnerServiceEmployeeDiscountPercent')?.value||'').trim();
+       const directionRaw=String(el('partnerServiceDirectionDiscountPercent')?.value||'').trim();
+
+       if(!employeeRaw&&!directionRaw)throw new Error('Indiquez au moins un pourcentage Employés ou Direction.');
+
+       if(employeeRaw){
+         const value=Math.trunc(Number(employeeRaw));
+         if(!Number.isFinite(value)||value<0||value>100)throw new Error('La réduction Employés doit être comprise entre 0 et 100 %.');
+         payloads.push({price:0,discount:value,groups:['mecanos','chef_equipe','gestion']});
+       }
+       if(directionRaw){
+         const value=Math.trunc(Number(directionRaw));
+         if(!Number.isFinite(value)||value<0||value>100)throw new Error('La réduction Direction doit être comprise entre 0 et 100 %.');
+         payloads.push({price:0,discount:value,groups:['direction']});
+       }
+     }else{
+       const employeeRaw=String(el('partnerServiceEmployeePrice')?.value||'').trim();
+       const directionRaw=String(el('partnerServiceDirectionPrice')?.value||'').trim();
+
+       if(!employeeRaw&&!directionRaw)throw new Error('Indiquez au moins un tarif Employés ou Direction.');
+
+       if(employeeRaw){
+         const value=Math.trunc(Number(employeeRaw));
+         if(!Number.isFinite(value)||value<0)throw new Error('Le tarif Employés est invalide.');
+         payloads.push({price:value,discount:0,groups:['mecanos','chef_equipe','gestion']});
+       }
+       if(directionRaw){
+         const value=Math.trunc(Number(directionRaw));
+         if(!Number.isFinite(value)||value<0)throw new Error('Le tarif Direction est invalide.');
+         payloads.push({price:value,discount:0,groups:['direction']});
+       }
      }
 
      for(const payload of payloads){
        await rpc('ae_manager_add_partner_service',{
          p_token:token,
          p_partner_id:Number(selectedAdminPartnerId),
-         p_service_type:'custom',
-         p_partner_price:0,
+         p_service_type:type,
+         p_partner_price:payload.price,
          p_discount_percent:payload.discount,
          p_billing_mode:'direct_discount',
          p_access_groups:payload.groups
        });
      }
    }else{
-     const groups=selectedPartnerAccessGroups();
-     if(!groups.length)throw new Error('Choisissez au moins un groupe concerné.');
-
      const partnerPrice=type==='custom'?0:Math.trunc(Number(el('partnerServicePartnerPrice')?.value));
      const discount=type==='custom'?Math.trunc(Number(el('partnerServiceDiscountPercent')?.value)):0;
 
-     if(type!=='custom'&&(!Number.isFinite(partnerPrice)||partnerPrice<0))throw new Error('Indiquez un prix partenaire valide.');
-     if(type==='custom'&&(!Number.isFinite(discount)||discount<0||discount>100))throw new Error('Indiquez une réduction entre 0 et 100 %.');
+     if(type!=='custom'&&(!Number.isFinite(partnerPrice)||partnerPrice<0))throw new Error('Indiquez le tarif de la réparation entreprise.');
+     if(type==='custom'&&(!Number.isFinite(discount)||discount<0||discount>100))throw new Error('Indiquez une réduction Custom entreprise entre 0 et 100 %.');
 
      await rpc('ae_manager_add_partner_service',{
        p_token:token,
@@ -1596,20 +1613,24 @@ el('partnerServiceForm')?.addEventListener('submit',async e=>{
        p_service_type:type,
        p_partner_price:partnerPrice,
        p_discount_percent:discount,
-       p_billing_mode:billingMode,
-       p_access_groups:groups
+       p_billing_mode:'weekly_invoice',
+       p_access_groups:['all_staff']
      });
    }
 
    safeReset(form);
    document.querySelector('input[name="partnerServiceType"][value="totale"]')?.click();
    const mode=el('partnerServiceBillingMode');if(mode)mode.value='weekly_invoice';
-   if(el('partnerServiceEmployeeDiscountPercent'))el('partnerServiceEmployeeDiscountPercent').value='';
-   if(el('partnerServiceDirectionDiscountPercent'))el('partnerServiceDirectionDiscountPercent').value='';
-   document.querySelectorAll('#partnerAccessGroups input[type=checkbox]').forEach(input=>input.checked=false);
+
+   for(const id of [
+     'partnerServiceEmployeePrice',
+     'partnerServiceDirectionPrice',
+     'partnerServiceEmployeeDiscountPercent',
+     'partnerServiceDirectionDiscountPercent'
+   ]) if(el(id))el(id).value='';
+
    updatePartnerServiceTypeUI();
-   updatePartnerAccessCount();
-   siteToast('Prestation partenaire ajoutée.','success');
+   siteToast(personal?'Tarifs personnels ajoutés.':'Prestation entreprise ajoutée.','success');
    await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
  }catch(err){
    siteToast('Ajout impossible : '+err.message,'error');
