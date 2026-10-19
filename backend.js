@@ -46,7 +46,17 @@ const managerRoles=['rh','drh','assistant_direction','copatron','patron'];
 const roleLabels={client:'Client',mecano_novice:'Mécano novice',mecano_intermediaire:'Mécano intermédiaire',mecano_experimente:'Mécano expérimenté',chef_equipe:"Chef d'équipe",rh:'RH',drh:'DRH',assistant_direction:'Assistante de direction',copatron:'Co-patron',patron:'Patron'};
 const employeeRoles=['mecano_novice','mecano_intermediaire','mecano_experimente','chef_equipe','rh','drh','assistant_direction','copatron','patron'];
 
-async function rpc(name,args={}){const {data,error}=await db.rpc(name,args);if(error)throw error;return data}
+async function rpc(name,args={}){
+  const {data,error}=await db.rpc(name,args);
+  if(error){
+    const cleanMessage=String(error.message||error).replace(/\bRP\b/gi,'').replace(/\s{2,}/g,' ').replace(/\s+([,.;:!?])/g,'$1').trim();
+    const cleanError=new Error(cleanMessage);
+    cleanError.details=error.details;
+    cleanError.hint=error.hint;
+    throw cleanError;
+  }
+  return data;
+}
 function feedback(msg){if(el('authFeedback'))el('authFeedback').textContent=msg}
 function saveSession(result){token=result?.token||'';account=result?.account||null;if(token)localStorage.setItem('ae_session',token);else localStorage.removeItem('ae_session')}
 function money(v){return Number(v||0).toLocaleString('fr-FR')+' $'}
