@@ -1429,17 +1429,36 @@ async function managerRefresh(){
  wrap.dataset.role=emp.role;
 
  const top=document.createElement('div');top.className='employee-account-top';
- const title=document.createElement('div');
+ const identity=document.createElement('div');identity.className='employee-account-identity';
+ const avatar=document.createElement('div');avatar.className='employee-account-avatar';
+ if(emp.avatar_url){
+   const img=document.createElement('img');img.src=emp.avatar_url;img.alt='';avatar.append(img);
+ }else avatar.textContent=initials(emp.name);
+ const title=document.createElement('div');title.className='employee-account-copy';
  const strong=document.createElement('strong');strong.textContent=emp.name;
- const login=document.createElement('p');login.className='small muted';login.textContent='Identifiant : '+emp.login;
- const extra=document.createElement('p');extra.className='small muted';extra.textContent=(emp.joined_at?'Depuis le '+new Date(emp.joined_at+'T00:00:00').toLocaleDateString('fr-FR'):'Date inconnue')+' · '+(Number(emp.rating_avg||0)>0?Number(emp.rating_avg).toFixed(1)+' ★':'Aucun avis');
- title.append(strong,login,extra);
+ const login=document.createElement('small');login.className='muted';login.textContent=emp.login;
+ title.append(strong,login);
+ identity.append(avatar,title);
+
+ const controls=document.createElement('div');controls.className='employee-account-controls';
  const badge=document.createElement('span');badge.className='tag';badge.textContent=roleLabels[emp.role]||emp.role;
- top.append(title,badge);
+ const manageToggle=document.createElement('button');manageToggle.type='button';manageToggle.className='employee-manage-toggle';manageToggle.setAttribute('aria-expanded','false');manageToggle.innerHTML='<span>Gérer</span><b>⌄</b>';
+ controls.append(badge,manageToggle);
+ top.append(identity,controls);
 
  const meta=document.createElement('div');meta.className='employee-account-meta';
  if(emp.must_change_password){const change=document.createElement('span');change.className='force-change-badge';change.textContent='Mot de passe temporaire';meta.append(change)}
- wrap.append(top,meta);
+ if(emp.joined_at){const joined=document.createElement('span');joined.className='employee-joined-compact';joined.textContent='Depuis le '+new Date(emp.joined_at+'T00:00:00').toLocaleDateString('fr-FR');meta.append(joined)}
+ const body=document.createElement('div');body.className='employee-account-body hidden';
+ manageToggle.onclick=()=>{
+   const opening=body.classList.contains('hidden');
+   body.classList.toggle('hidden',!opening);
+   wrap.classList.toggle('is-open',opening);
+   manageToggle.setAttribute('aria-expanded',opening?'true':'false');
+   manageToggle.querySelector('span').textContent=opening?'Fermer':'Gérer';
+   manageToggle.querySelector('b').textContent=opening?'⌃':'⌄';
+ };
+ wrap.append(top,meta,body);
 
  const canManage=emp.account_id!==account.id&&canAssignRoleUI(emp.role);
  if(canManage){
@@ -1467,7 +1486,7 @@ async function managerRefresh(){
  await Promise.all([managerRefresh(),loadNotifications()]);
  }catch(err){siteToast(err.message,'error')}
  };
- actions.append(select,roleBtn,reset);wrap.append(actions);
+ actions.append(select,roleBtn,reset);body.append(actions);
 
  const historyBtn=document.createElement('button');historyBtn.type='button';historyBtn.className='btn secondary';historyBtn.style.marginTop='10px';historyBtn.textContent='Historique des grades';
  const history=document.createElement('div');history.className='role-history hidden';
@@ -1484,9 +1503,9 @@ async function managerRefresh(){
  history.classList.remove('hidden');
  }catch(err){siteToast(err.message)}
  };
- wrap.append(historyBtn,history);
+ body.append(historyBtn,history);
  }else if(emp.account_id!==account.id){
- const readOnly=document.createElement('p');readOnly.className='small muted';readOnly.textContent='Compte en lecture seule pour votre niveau d’accès.';wrap.append(readOnly);
+ const readOnly=document.createElement('p');readOnly.className='small muted';readOnly.textContent='Compte en lecture seule pour votre niveau d’accès.';body.append(readOnly);
  }
 
  const canEditProfile=emp.account_id===account.id||canAssignRoleUI(emp.role);
@@ -1503,9 +1522,10 @@ async function managerRefresh(){
  await Promise.all([managerRefresh(),loadStaff(),loadNotifications()]);
  }catch(err){siteToast(err.message)}
  };
- details.append(summary,form);wrap.append(details);
+ details.append(summary,form);body.append(details);
  }
 
+ if(!body.childElementCount)manageToggle.classList.add('hidden');
  box.append(wrap);
  }
  filterManagerEmployees();
