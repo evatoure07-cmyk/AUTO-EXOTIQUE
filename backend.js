@@ -1411,35 +1411,46 @@ async function loadManagerPartners(){
    }else{
      const wrapper=document.createElement('div');wrapper.className='partner-config-groups';
 
-     const makeMenu=(service)=>{
+     const makeActions=(service)=>{
        if(!canConfigurePartners())return null;
-       const details=document.createElement('details');details.className='partner-service-menu';
-       const summary=document.createElement('summary');summary.textContent='⋯';summary.setAttribute('aria-label','Actions');
-       const panel=document.createElement('div');panel.className='partner-service-menu-panel';
+       const actions=document.createElement('div');actions.className='partner-service-actions-inline';
 
-       const toggle=document.createElement('button');toggle.type='button';toggle.className='btn secondary';toggle.textContent=service.active?'Désactiver':'Réactiver';
+       const toggle=document.createElement('button');
+       toggle.type='button';
+       toggle.className='btn secondary';
+       toggle.textContent=service.active?'Suspendre':'Réactiver';
        toggle.onclick=async()=>{
-         details.open=false;
+         toggle.disabled=true;
          try{
            await rpc('ae_manager_set_partner_service_active',{p_token:token,p_service_id:service.id,p_active:!service.active});
-           siteToast('Prestation mise à jour.','success');
+           siteToast(service.active?'Tarif suspendu.':'Tarif réactivé.','success');
            await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
-         }catch(err){siteToast(err.message,'error')}
+         }catch(err){
+           toggle.disabled=false;
+           siteToast('Modification impossible : '+err.message,'error');
+         }
        };
 
-       const remove=document.createElement('button');remove.type='button';remove.className='btn danger';remove.textContent='Supprimer';
+       const remove=document.createElement('button');
+       remove.type='button';
+       remove.className='btn danger';
+       remove.textContent='Supprimer';
        remove.onclick=async()=>{
-         details.open=false;
-         if(!await siteConfirm('Supprimer cette prestation '+(partnerServiceTypeLabels[service.service_type]||service.name)+' ?',{title:'Supprimer la prestation',confirmText:'Supprimer'}))return;
+         const label=partnerServiceTypeLabels[service.service_type]||service.name;
+         if(!await siteConfirm('Supprimer définitivement ce tarif '+label+' ?',{title:'Supprimer le tarif',confirmText:'Supprimer'}))return;
          remove.disabled=true;
          try{
            await rpc('ae_manager_delete_partner_service',{p_token:token,p_service_id:service.id});
-           siteToast('Prestation supprimée.','success');
+           siteToast('Tarif supprimé.','success');
            await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
-         }catch(err){remove.disabled=false;siteToast('Suppression impossible : '+err.message,'error')}
+         }catch(err){
+           remove.disabled=false;
+           siteToast('Suppression impossible : '+err.message,'error');
+         }
        };
 
-       panel.append(toggle,remove);details.append(summary,panel);return details;
+       actions.append(toggle,remove);
+       return actions;
      };
 
      const audienceService=(services,audience)=>services.find(service=>moGroupAllowsAudience(service.access_groups,audience))||null;
@@ -1475,7 +1486,7 @@ async function loadManagerPartners(){
          const meta=document.createElement('small');meta.className='muted';meta.textContent=audienceLabel;
          const valueWrap=document.createElement('div');valueWrap.append(value,meta);
          cell.append(valueWrap);
-         const menu=service?makeMenu(service):null;if(menu)cell.append(menu);
+         const actions=service?makeActions(service):null;if(actions)cell.append(actions);
          return cell;
        };
 
@@ -1512,7 +1523,7 @@ async function loadManagerPartners(){
        const badge=document.createElement('div');badge.className='partner-config-cell';
        const status=document.createElement('small');status.className='muted';status.textContent=service.active?'Actif':'Désactivé';
        badge.append(status);
-       const menu=makeMenu(service);if(menu)badge.append(menu);
+       const actions=makeActions(service);if(actions)badge.append(actions);
        row.append(copy,price,badge);companyRows.push(row);
      }
      addSection('Réparations entreprise','Déclaration puis règlement fin de semaine',companyRows);
