@@ -1345,14 +1345,14 @@ body.light .employee-manage-toggle:hover{background:#eaf5f6}
 .mo-toolbar{display:flex;gap:10px;margin:12px 0 16px}
 .mo-toolbar input{width:min(440px,100%);min-height:44px}
 .mo-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
-.mo-table{width:100%;min-width:1180px;border-collapse:separate;border-spacing:0}
-.mo-table th,.mo-table td{padding:12px 10px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);text-align:center;font-size:10px}
+.mo-table{width:100%;min-width:980px;border-collapse:separate;border-spacing:0;table-layout:fixed}
+.mo-table th,.mo-table td{padding:14px 12px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);text-align:center;font-size:10px;vertical-align:middle}.mo-table th{height:58px;line-height:1.35}.mo-table td{min-height:62px}
 .mo-table th:last-child,.mo-table td:last-child{border-right:0}
 .mo-table tr:last-child td{border-bottom:0}
 .mo-table th{position:sticky;top:0;z-index:2;background:var(--soft);font-size:8px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
-.mo-table th:first-child,.mo-table td:first-child{text-align:left;position:sticky;left:0;z-index:1;background:var(--panel);min-width:190px}
+.mo-table th:first-child,.mo-table td:first-child{text-align:left;position:sticky;left:0;z-index:1;background:var(--panel);width:20%;min-width:180px}
 .mo-table th:first-child{z-index:3;background:var(--soft)}
-.mo-company{font-weight:900;font-size:12px}
+.mo-company{font-weight:900;font-size:12px}.mo-rate-stack{display:grid;gap:6px;justify-items:center}.mo-rate-line{display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap}.mo-rate-line small{color:var(--muted);font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}.mo-rate-line strong{font-size:11px;color:var(--cyan)}
 .mo-discount{display:inline-flex;align-items:center;justify-content:center;min-width:58px;padding:7px 9px;border-radius:999px;background:rgba(40,217,229,.10);border:1px solid rgba(40,217,229,.24);color:var(--cyan);font-weight:900}
 .mo-yes{font-weight:900;color:var(--cyan)}
 .mo-no{color:var(--muted)}
@@ -2047,7 +2047,7 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
  .partner-service-row>.btn{width:100%}
  .partner-directory-card{position:static!important}
 }
-</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js?v=20261019-6" defer></script></head><body>
+</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js?v=20261019-7" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
  <button id="theme" class="theme-toggle sidebar-theme-top" type="button" data-label="Changer de thème" aria-label="Passer en mode clair" aria-pressed="false"><span class="theme-icon sun">☀</span><span class="theme-track"><span class="theme-knob"></span></span><span class="theme-icon moon">◐</span></button>
@@ -2212,17 +2212,18 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
           <thead>
             <tr>
               <th>Entreprise</th>
-              <th>Réparation perso</th>
-              <th>Employés</th>
-              <th>Direction</th>
+              <th>Réparation perso<br>Employés</th>
+              <th>Réparation perso<br>Direction</th>
+              <th>Customisation perso<br>Employés</th>
+              <th>Customisation perso<br>Direction</th>
             </tr>
           </thead>
           <tbody id="partnerMoTableBody">
-            <tr><td colspan="4" class="mo-empty">Chargement...</td></tr>
+            <tr><td colspan="5" class="mo-empty">Chargement...</td></tr>
           </tbody>
         </table>
       </div>
-      <p class="muted mo-help">Les tarifs personnels peuvent être différents pour les Employés et la Direction. Les véhicules entreprise restent dans Déclaration partenaires et sont réglés en fin de semaine.</p>
+      <p class="muted mo-help">Une ligne par entreprise : réparations personnelles et customisations personnelles ont un tarif Employés et un tarif Direction séparés. Les véhicules entreprise restent dans Déclaration partenaires.</p>
     </div>
   </div>
 </div></section>
