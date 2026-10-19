@@ -1448,6 +1448,68 @@ details[open] .order-chevron{transform:rotate(180deg)}
 .partner-week-table-total{background:rgba(40,217,229,.08);font-weight:900}
 .partner-week-table-total>:last-child{color:var(--cyan);font-size:20px}
 @media(max-width:550px){.partner-week-table-row{grid-template-columns:minmax(0,1.5fr) 66px minmax(85px,1fr);padding:12px 9px;gap:5px;font-size:11px}.partner-week-table-header{font-size:9px}.partner-week-table-total>:last-child{font-size:16px}}
+
+/* Clear partner audience multi-select */
+.partner-access-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+.partner-access-option{
+  position:relative!important;
+  min-height:64px!important;
+  padding:11px 12px!important;
+  display:grid!important;
+  grid-template-columns:30px minmax(0,1fr)!important;
+  gap:10px!important;
+  align-items:center!important;
+  border-radius:14px!important;
+  user-select:none
+}
+.partner-access-option input{
+  position:absolute!important;
+  opacity:0!important;
+  pointer-events:none!important
+}
+.partner-checkmark{
+  width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
+  border:1px solid var(--line);background:var(--panel);color:transparent;
+  font-size:14px;font-weight:1000;transition:.16s
+}
+.partner-access-copy{display:block;min-width:0}
+.partner-access-copy strong{display:block;font-size:11px;color:var(--text)}
+.partner-access-copy small{display:block!important;margin:3px 0 0!important;font-size:8px!important;color:var(--muted)!important;line-height:1.35}
+.partner-access-option:has(input:checked){border-color:rgba(40,217,229,.5)!important;background:rgba(40,217,229,.11)!important}
+.partner-access-option:has(input:checked) .partner-checkmark{background:var(--cyan);border-color:var(--cyan);color:#041216;box-shadow:0 6px 16px rgba(40,217,229,.14)}
+.partner-access-heading small{padding:5px 8px;border-radius:999px;background:var(--soft);border:1px solid var(--line)}
+
+/* Partner directory clearer on the left */
+.partner-directory-list{max-height:360px;overflow:auto;padding-right:3px}
+.partner-directory-item{min-height:54px!important}
+.partner-directory-item span{font-weight:900}
+.partner-directory-item.active{background:rgba(40,217,229,.13)!important;border-color:rgba(40,217,229,.48)!important;box-shadow:inset 3px 0 0 var(--cyan)}
+.partner-directory-item.is-inactive{opacity:.58}
+.partner-config-actions{display:flex;gap:7px;flex-wrap:wrap}
+
+/* Orders: denser, scrollable, cleaner */
+.orders-admin-card{overflow:visible!important}
+.compact-order-list{display:grid;gap:7px;max-height:610px;overflow:auto;padding-right:4px}
+.compact-order-card,.manager-order-compact{border-radius:13px!important;box-shadow:none!important}
+.compact-order-card>summary,.manager-order-compact>summary{padding:10px 12px!important;min-height:56px!important}
+.compact-order-main strong{font-size:12px!important}
+.compact-order-main small{font-size:8px!important;margin-top:2px!important}
+.compact-order-status{padding:5px 8px!important;font-size:8px!important}
+.compact-order-total{font-size:19px!important}
+.compact-order-body{padding:0 12px 12px!important}
+.manager-order-meta{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+.manager-order-meta div{padding:8px!important}
+.manager-order-actions .btn{min-height:34px!important;padding:7px 10px!important;font-size:10px!important}
+#ordersList{gap:7px!important}
+#ordersList .compact-order-card>summary{padding:11px 13px!important}
+@media(max-width:760px){
+  .partner-access-grid{grid-template-columns:1fr!important}
+  .manager-order-meta{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .compact-order-list{max-height:none}
+}
+@media(max-width:480px){
+  .manager-order-meta{grid-template-columns:1fr!important}
+}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
@@ -1654,7 +1716,7 @@ details[open] .order-chevron{transform:rotate(180deg)}
  </div>
 
  <div class="admin-panel hidden" data-admin-panel="orders">
- <div class="card"><div class="panel-heading"><div><span class="tag">COMMANDES</span><h3>Commandes clients</h3></div></div><div id="managerOrders">Chargement...</div></div>
+ <div class="card orders-admin-card"><div class="panel-heading"><div><span class="tag">COMMANDES</span><h3>Commandes clients</h3></div><small class="muted">Cliquez sur une commande pour l’ouvrir</small></div><div id="managerOrders" class="compact-order-list">Chargement...</div></div>
  </div>
 
  <div class="admin-panel hidden" data-admin-panel="clients">
@@ -1764,13 +1826,13 @@ details[open] .order-chevron{transform:rotate(180deg)}
         <div class="partner-formula-example">Exemple 4 000 $ à −10 % → <b id="partnerCustomExample">12 600 $</b></div>
       </div>
     </div>
-    <div class="partner-access-heading"><label>À qui s’applique ce tarif ?</label><small>Plusieurs choix possibles</small></div>
+    <div class="partner-access-heading"><label>À qui s’applique ce tarif ?</label><small id="partnerAccessCount">0 groupe sélectionné</small></div>
     <div id="partnerAccessGroups" class="partner-access-grid">
-      <label class="partner-access-option"><input type="checkbox" value="all_staff"/> Tous les employés</label>
-      <label class="partner-access-option"><input type="checkbox" value="mecanos"/> Mécanos</label>
-      <label class="partner-access-option"><input type="checkbox" value="chef_equipe"/> Chef d’équipe</label>
-      <label class="partner-access-option"><input type="checkbox" value="gestion"/> Gestion <small>RH / DRH</small></label>
-      <label class="partner-access-option"><input type="checkbox" value="direction"/> Direction <small>Assistante / Co-patron / Patron</small></label>
+      <label class="partner-access-option"><input type="checkbox" value="all_staff"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Tous les employés</strong><small>Tous les grades</small></span></label>
+      <label class="partner-access-option"><input type="checkbox" value="mecanos"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Mécanos</strong><small>Novice · Intermédiaire · Expérimenté</small></span></label>
+      <label class="partner-access-option"><input type="checkbox" value="chef_equipe"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Chef d’équipe</strong><small>Chef d’équipe uniquement</small></span></label>
+      <label class="partner-access-option"><input type="checkbox" value="gestion"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Gestion</strong><small>RH · DRH</small></span></label>
+      <label class="partner-access-option"><input type="checkbox" value="direction"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Direction</strong><small>Assistante · Co-patron · Patron</small></span></label>
     </div>
     <label>Fonctionnement</label>
     <select id="partnerServiceBillingMode" required>
