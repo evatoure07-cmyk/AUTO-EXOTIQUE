@@ -1435,6 +1435,19 @@ details[open] .order-chevron{transform:rotate(180deg)}
 .partner-summary-intro p,.partner-config-intro p{margin:5px 0 0}
 .partner-tab-panel.hidden{display:none!important}
 @media(max-width:650px){.partner-admin-tabs{flex-direction:column}.partner-admin-tab{min-width:0;flex:auto}.partner-summary-intro,.partner-config-intro{padding:14px}}
+
+/* Weekly partner invoice ledger */
+#partnerWeeklyCards{display:block;width:100%;min-width:0}
+.partner-week-table{width:100%;overflow:hidden;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
+.partner-week-table-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(90px,.7fr) minmax(130px,1fr);gap:12px;align-items:center;padding:15px 18px;border-bottom:1px solid var(--line)}
+.partner-week-table-row:last-child{border-bottom:0}
+.partner-week-table-row>:nth-child(2){text-align:center}
+.partner-week-table-row>:nth-child(3){text-align:right}
+.partner-week-table-header{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--soft);font-weight:800}
+.partner-week-zero{opacity:.7}
+.partner-week-table-total{background:rgba(40,217,229,.08);font-weight:900}
+.partner-week-table-total>:last-child{color:var(--cyan);font-size:20px}
+@media(max-width:550px){.partner-week-table-row{grid-template-columns:minmax(0,1.5fr) 66px minmax(85px,1fr);padding:12px 9px;gap:5px;font-size:11px}.partner-week-table-header{font-size:9px}.partner-week-table-total>:last-child{font-size:16px}}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
