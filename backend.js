@@ -6,9 +6,9 @@ let token=localStorage.getItem('ae_session')||'';
 let account=null;
 let myProfile=null;
 let staffCache=[];
-const managerRoles=['rh','assistant_direction','copatron','patron'];
-const roleLabels={client:'Client',mecano_novice:'Mécano novice',mecano_intermediaire:'Mécano intermédiaire',mecano_experimente:'Mécano expérimenté',chef_equipe:"Chef d'équipe",rh:'RH',assistant_direction:'Assistant de direction',copatron:'Co-patron',patron:'Patron'};
-const employeeRoles=['mecano_novice','mecano_intermediaire','mecano_experimente','chef_equipe','rh','assistant_direction','copatron','patron'];
+const managerRoles=['rh','drh','assistant_direction','copatron','patron'];
+const roleLabels={client:'Client',mecano_novice:'Mécano novice',mecano_intermediaire:'Mécano intermédiaire',mecano_experimente:'Mécano expérimenté',chef_equipe:"Chef d'équipe",rh:'RH',drh:'DRH',assistant_direction:'Assistante de direction',copatron:'Co-patron',patron:'Patron'};
+const employeeRoles=['mecano_novice','mecano_intermediaire','mecano_experimente','chef_equipe','rh','drh','assistant_direction','copatron','patron'];
 
 async function rpc(name,args={}){const {data,error}=await db.rpc(name,args);if(error)throw error;return data}
 function feedback(msg){if(el('authFeedback'))el('authFeedback').textContent=msg}
@@ -75,7 +75,7 @@ function updateConnectedSpace(){
   el('disconnectedSpaceGrid')?.classList.toggle('hidden',connected);
   el('accountStatus')?.classList.toggle('hidden',connected);
 
-  if(!connected)return;
+  if(!connected){el('staffDashboardLink')?.classList.add('hidden');el('staffRHLink')?.classList.add('hidden');return;}
 
   const full=((myProfile?.first_name||account.first_name||'')+' '+(myProfile?.last_name||account.last_name||'')).trim();
   if(el('connectedSpaceName'))el('connectedSpaceName').textContent=full||'Mon compte';
@@ -90,6 +90,8 @@ function updateConnectedSpace(){
 
   el('connectedOrdersLink')?.classList.toggle('hidden',account.role!=='client');
   el('connectedAdminLink')?.classList.toggle('hidden',!managerRoles.includes(account.role));
+  el('staffDashboardLink')?.classList.toggle('hidden',account.role==='client');
+  el('staffRHLink')?.classList.toggle('hidden',!managerRoles.includes(account.role));
   if(el('authFeedback'))el('authFeedback').textContent='';
 }
 async function refresh(){
@@ -198,7 +200,6 @@ async function loadMyProfile(){
     info('ID RP',myProfile.civil_id_rp);
   }else{
     info('Dans l’équipe depuis',myProfile.joined_at?new Date(myProfile.joined_at+'T00:00:00').toLocaleDateString('fr-FR'):'—');
-    info('Interventions',String(myProfile.interventions_count||0));
   }
   details.append(grid);
 
@@ -239,10 +240,9 @@ async function loadMyProfile(){
     photoPicker.append(photoPreview,photoActions,pasteZone);
 
     const bio=document.createElement('textarea');bio.placeholder='Petite présentation';bio.value=myProfile.bio||'';
-    const dutyLabel=document.createElement('label');const duty=document.createElement('input');duty.type='checkbox';duty.checked=!!myProfile.on_duty;dutyLabel.append(duty,document.createTextNode(' En service'));
     const save=document.createElement('button');save.type='submit';save.className='btn';save.textContent='Enregistrer mon profil';
-    form.append(sub,photoPicker,bio,dutyLabel,save);
-    form.onsubmit=async e=>{e.preventDefault();save.disabled=true;try{await rpc('ae_update_my_staff_profile',{p_token:token,p_avatar_url:avatarValue,p_bio:bio.value,p_on_duty:duty.checked});myProfile=await rpc('ae_my_profile',{p_token:token});updateSidebarProfile();await Promise.all([loadMyProfile(),loadStaff()]);siteToast('Profil mis à jour.')}catch(err){siteToast(err.message)}finally{save.disabled=false}};
+    form.append(sub,photoPicker,bio,save);
+    form.onsubmit=async e=>{e.preventDefault();save.disabled=true;try{await rpc('ae_update_my_staff_profile',{p_token:token,p_avatar_url:avatarValue,p_bio:bio.value,p_on_duty:false});myProfile=await rpc('ae_my_profile',{p_token:token});updateSidebarProfile();await Promise.all([loadMyProfile(),loadStaff()]);siteToast('Profil mis à jour.')}catch(err){siteToast(err.message)}finally{save.disabled=false}};
     details.append(form);
   }
 
@@ -280,8 +280,6 @@ function showEmployeeProfile(s){
   const add=(label,value)=>{const d=document.createElement('div');d.className='profile-info-item';const a=document.createElement('small');a.textContent=label;const b=document.createElement('strong');b.textContent=value;d.append(a,b);grid.append(d)};
   add('Poste',roleLabels[s.role]||s.role);
   add('Ancienneté',s.joined_at?'Depuis le '+new Date(s.joined_at+'T00:00:00').toLocaleDateString('fr-FR'):'Non renseignée');
-  add('Interventions',String(s.interventions_count||0));
-  add('Service',s.on_duty?'En service':'Hors service');
   content.append(grid);
   if(s.bio){const bio=document.createElement('p');bio.className='muted';bio.style.marginTop='20px';bio.textContent=s.bio;content.append(bio)}
   modal.classList.remove('hidden');
@@ -437,8 +435,8 @@ async function loadNotifications(){
 async function loadStaff(){
   const box=el('staffList');if(!box)return;
   try{
-    const staff=await rpc('ae_public_staff');
-    staffCache=staff||[];
+    const [staff,reviewStaff]=await Promise.all([rpc('ae_public_staff'),rpc('ae_public_review_staff')]);
+    staffCache=reviewStaff||[];
     box.replaceChildren();
 
     const reviewSelect=el('reviewStaff');
@@ -446,7 +444,7 @@ async function loadStaff(){
       const current=reviewSelect.value;
       reviewSelect.replaceChildren();
       const first=document.createElement('option');first.value='';first.textContent='Choisir un employé';reviewSelect.append(first);
-      for(const person of staff||[]){
+      for(const person of reviewStaff||[]){
         if(account&&person.account_id===account.id)continue;
         const opt=document.createElement('option');opt.value=person.account_id;opt.textContent=person.name+' — '+(roleLabels[person.role]||person.role);reviewSelect.append(opt);
       }
@@ -456,9 +454,10 @@ async function loadStaff(){
     const hint=el('reviewHint');
     if(hint)hint.textContent=account?'Choisissez un membre de l’équipe et une note de 1 à 5 étoiles.':'Connectez-vous avec votre compte pour laisser un avis.';
 
-    const totalReviews=(staff||[]).reduce((sum,s)=>sum+Number(s.rating_count||0),0);
-    const weighted=(staff||[]).reduce((sum,s)=>sum+Number(s.rating_avg||0)*Number(s.rating_count||0),0);
-    const rated=(staff||[]).filter(s=>Number(s.rating_count||0)>0);
+    const all=reviewStaff||[];
+    const totalReviews=all.reduce((sum,s)=>sum+Number(s.rating_count||0),0);
+    const weighted=all.reduce((sum,s)=>sum+Number(s.rating_avg||0)*Number(s.rating_count||0),0);
+    const rated=all.filter(s=>Number(s.rating_count||0)>0);
     const overall=totalReviews?weighted/totalReviews:0;
 
     const reviewStats=el('reviewStats');
@@ -487,8 +486,25 @@ async function loadStaff(){
       }
     }
 
+    const podium=el('staffPodium');
+    if(podium){
+      podium.replaceChildren();
+      const top=[...all].sort((a,b)=>Number(b.rating_avg||0)-Number(a.rating_avg||0)||Number(b.rating_count||0)-Number(a.rating_count||0)||String(a.name).localeCompare(String(b.name))).slice(0,3);
+      top.forEach((person,index)=>{
+        const card=document.createElement('article');card.className='podium-card '+(index===0?'first':'');
+        const pos=document.createElement('div');pos.className='podium-position';pos.textContent='#'+(index+1);
+        const photo=document.createElement('div');photo.className='podium-photo';
+        if(person.avatar_url){const img=document.createElement('img');img.src=person.avatar_url;img.alt='Photo de '+person.name;photo.append(img)}
+        else photo.textContent=initials(person.name);
+        const name=document.createElement('h3');name.textContent=person.name;
+        const role=document.createElement('p');role.className='muted';role.textContent=roleLabels[person.role]||person.role;
+        const rating=document.createElement('p');rating.className='muted';rating.textContent=(Number(person.rating_avg||0)>0?Number(person.rating_avg).toFixed(1):'—')+' ★ · '+Number(person.rating_count||0)+' avis';
+        card.append(pos,photo,name,role,rating);card.onclick=()=>showEmployeeProfile(person);podium.append(card);
+      });
+    }
+
     if(!staff?.length){
-      const card=document.createElement('div');card.className='card';card.innerHTML='<h3>Équipe en préparation</h3><p class="muted">Les fiches apparaîtront ici dès que les comptes employés seront configurés.</p>';box.append(card);return;
+      const card=document.createElement('div');card.className='card';card.innerHTML='<h3>Équipe en préparation</h3><p class="muted">Les profils de direction et RH apparaîtront ici.</p>';box.append(card);return;
     }
 
     for(const s of staff){
@@ -496,11 +512,10 @@ async function loadStaff(){
       const head=document.createElement('div');head.className='staff-head';
       const avatar=document.createElement('div');avatar.className='staff-avatar';
       if(s.avatar_url){const img=document.createElement('img');img.src=s.avatar_url;img.alt='';img.className='staff-avatar';head.append(img)}
-      else{avatar.textContent=(s.name||'?').split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();head.append(avatar)}
-      const duty=document.createElement('span');duty.className='duty '+(s.on_duty?'on':'off');duty.textContent=s.on_duty?'En service':'Hors service';head.append(duty);
+      else{avatar.textContent=initials(s.name);head.append(avatar)}
       const role=document.createElement('span');role.className='tag';role.textContent=roleLabels[s.role]||s.role;
       const name=document.createElement('h3');name.textContent=s.name;
-      const meta=document.createElement('p');meta.className='muted';meta.textContent=(s.joined_at?'Depuis le '+new Date(s.joined_at+'T00:00:00').toLocaleDateString('fr-FR'):'Ancienneté non renseignée')+' · '+Number(s.interventions_count||0)+' intervention(s)';
+      const meta=document.createElement('p');meta.className='muted';meta.textContent=s.joined_at?'Depuis le '+new Date(s.joined_at+'T00:00:00').toLocaleDateString('fr-FR'):'Ancienneté non renseignée';
       const rating=document.createElement('p');rating.className='muted';rating.textContent=(Number(s.rating_avg||0)>0?Number(s.rating_avg).toFixed(1):'—')+' / 5 · '+Number(s.rating_count||0)+' avis';
       card.append(head,role,name,meta,rating);
       if(s.bio){const bio=document.createElement('p');bio.className='muted';bio.textContent=s.bio;card.append(bio)}
@@ -625,7 +640,8 @@ function showTemporaryCredential(login,password,label='Mot de passe temporaire')
 function canAssignRoleUI(role){
   if(!account)return false;
   if(['patron','copatron'].includes(account.role))return employeeRoles.includes(role);
-  if(account.role==='assistant_direction')return ['mecano_novice','mecano_intermediaire','mecano_experimente','chef_equipe','rh'].includes(role);
+  if(account.role==='assistant_direction')return ['mecano_novice','mecano_intermediaire','mecano_experimente','chef_equipe','rh','drh'].includes(role);
+  if(account.role==='drh')return ['mecano_novice','mecano_intermediaire','mecano_experimente','chef_equipe','rh'].includes(role);
   if(account.role==='rh')return ['mecano_novice','mecano_intermediaire','mecano_experimente','chef_equipe'].includes(role);
   return false;
 }
@@ -689,7 +705,9 @@ function activateAdminTab(name){
   localStorage.setItem('ae_admin_tab',target);
 }
 document.querySelectorAll('[data-admin-tab]').forEach(btn=>btn.addEventListener('click',()=>activateAdminTab(btn.dataset.adminTab)));
-activateAdminTab(localStorage.getItem('ae_admin_tab')||'dashboard');
+el('staffRHLink')?.addEventListener('click',()=>{localStorage.setItem('ae_admin_tab','rh');setTimeout(()=>activateAdminTab('rh'),0)});
+el('staffDashboardLink')?.addEventListener('click',()=>{loadStaffDashboard().catch(()=>{})});
+activateAdminTab(localStorage.getItem('ae_admin_tab')==='team'?'rh':(localStorage.getItem('ae_admin_tab')||'dashboard'));
 
 function filterManagerClients(){
   const q=(el('managerCustomerSearch')?.value||'').trim().toLowerCase();
@@ -698,19 +716,15 @@ function filterManagerClients(){
 function filterManagerEmployees(){
   const q=(el('managerEmployeeSearch')?.value||'').trim().toLowerCase();
   const role=el('managerEmployeeRole')?.value||'';
-  const status=el('managerEmployeeStatus')?.value||'';
   document.querySelectorAll('#managerEmployees .employee-account-card').forEach(card=>{
     const matchText=!q||String(card.dataset.search||'').includes(q);
     const matchRole=!role||card.dataset.role===role;
-    const statuses=String(card.dataset.status||'').split(' ');
-    const matchStatus=!status||statuses.includes(status);
-    card.classList.toggle('is-filtered',!(matchText&&matchRole&&matchStatus));
+    card.classList.toggle('is-filtered',!(matchText&&matchRole));
   });
 }
 el('managerCustomerSearch')?.addEventListener('input',filterManagerClients);
 el('managerEmployeeSearch')?.addEventListener('input',filterManagerEmployees);
 el('managerEmployeeRole')?.addEventListener('change',filterManagerEmployees);
-el('managerEmployeeStatus')?.addEventListener('change',filterManagerEmployees);
 
 const discordFunctionUrl='https://gkljzpwfmthzjgfzzeoy.supabase.co/functions/v1/auto-exotic-discord';
 async function triggerDiscordSync(retryFailed=false){
@@ -768,7 +782,7 @@ async function managerRefresh(){
 
   try{
     const stats=await rpc('ae_manager_team_stats',{p_token:token});const box=el('managerTeamStats');box.replaceChildren();
-    [['Employés',stats.employees],['En service',stats.on_duty],['MDP temporaires',stats.temporary_passwords]].forEach(([label,value])=>{
+    [['Employés',stats.employees],['Note moyenne',Number(stats.rating_avg||0)>0?Number(stats.rating_avg).toFixed(1)+' / 5':'—'],['MDP temporaires',stats.temporary_passwords]].forEach(([label,value])=>{
       const card=document.createElement('div');card.className='stat-card';
       const strong=document.createElement('strong');strong.textContent=String(value||0);
       const span=document.createElement('span');span.textContent=label;card.append(strong,span);box.append(card);
@@ -782,11 +796,13 @@ async function managerRefresh(){
     const p=document.createElement('p');p.className='muted';
     const chips=document.createElement('div');chips.className='permission-chips';
     const permissions=account.role==='rh'
-      ?['Voir tous les profils','Clients & commandes','Créer/gérer les mécanos','Gérer chefs d’équipe','Partenariats']
+      ?['Voir les profils','Créer/gérer les mécanos','Gérer chefs d’équipe','Clients & commandes']
+      :account.role==='drh'
+      ?['Voir les profils','Créer/gérer les mécanos','Gérer chefs d’équipe','Gérer RH','Clients & commandes']
       :account.role==='assistant_direction'
-      ?['Voir tous les profils','Clients & commandes','Créer/gérer les mécanos','Gérer RH','Partenariats','Journal']
+      ?['Voir les profils','Créer les comptes','Gérer RH & DRH','Clients & commandes','Partenariats','Journal']
       :['Accès complet','Tous les grades','Clients & commandes','Partenariats','Journal','Historique','Discord'];
-    p.textContent=account.role==='rh'?'Les comptes de direction restent en lecture seule.':account.role==='assistant_direction'?'Les grades Assistante, Co-patron et Patron restent protégés.':'Vous pouvez gérer l’ensemble des comptes et grades.';
+    p.textContent=account.role==='rh'?'Les postes supérieurs restent en lecture seule.':account.role==='drh'?'Vous gérez l’équipe RH et les grades opérationnels.':account.role==='assistant_direction'?'Les grades Assistante, Co-patron et Patron restent protégés.':'Vous pouvez gérer l’ensemble des comptes et grades.';
     permissions.forEach(label=>{const chip=document.createElement('span');chip.className='permission-chip';chip.textContent=label;chips.append(chip)});
     permissionCard.append(h,p,chips);
   }
@@ -861,20 +877,18 @@ async function managerRefresh(){
       const wrap=document.createElement('div');wrap.className='employee-account-card';
       wrap.dataset.search=((emp.name||'')+' '+(emp.login||'')+' '+(roleLabels[emp.role]||emp.role)).toLowerCase();
       wrap.dataset.role=emp.role;
-      wrap.dataset.status=(emp.on_duty?'on':'off')+(emp.must_change_password?' temp':'');
 
       const top=document.createElement('div');top.className='employee-account-top';
       const title=document.createElement('div');
       const strong=document.createElement('strong');strong.textContent=emp.name;
       const login=document.createElement('p');login.className='small muted';login.textContent='Identifiant : '+emp.login;
-      const extra=document.createElement('p');extra.className='small muted';extra.textContent=(emp.joined_at?'Depuis le '+new Date(emp.joined_at+'T00:00:00').toLocaleDateString('fr-FR'):'Date inconnue')+' · '+Number(emp.interventions_count||0)+' intervention(s) · '+(Number(emp.rating_avg||0)>0?Number(emp.rating_avg).toFixed(1)+' ★':'Aucun avis');
+      const extra=document.createElement('p');extra.className='small muted';extra.textContent=(emp.joined_at?'Depuis le '+new Date(emp.joined_at+'T00:00:00').toLocaleDateString('fr-FR'):'Date inconnue')+' · '+(Number(emp.rating_avg||0)>0?Number(emp.rating_avg).toFixed(1)+' ★':'Aucun avis');
       title.append(strong,login,extra);
       const badge=document.createElement('span');badge.className='tag';badge.textContent=roleLabels[emp.role]||emp.role;
       top.append(title,badge);
 
       const meta=document.createElement('div');meta.className='employee-account-meta';
       if(emp.must_change_password){const change=document.createElement('span');change.className='force-change-badge';change.textContent='Mot de passe temporaire';meta.append(change)}
-      const service=document.createElement('span');service.className='small muted';service.textContent=emp.on_duty?'● En service':'○ Hors service';meta.append(service);
       wrap.append(top,meta);
 
       const canManage=emp.account_id!==account.id&&canAssignRoleUI(emp.role);
@@ -930,11 +944,11 @@ async function managerRefresh(){
         const details=document.createElement('details');details.style.marginTop='12px';
         const summary=document.createElement('summary');summary.textContent='Modifier la fiche publique';
         const form=document.createElement('form');form.className='form';form.style.marginTop='12px';
-        form.innerHTML='<input placeholder="URL avatar" value="'+esc(emp.avatar_url||'').replaceAll('"','&quot;')+'"><label>Date d’arrivée</label><input type="date" value="'+esc(emp.joined_at||'')+'"><input type="number" min="0" placeholder="Nombre d’interventions" value="'+Number(emp.interventions_count||0)+'"><label><input type="checkbox" '+(emp.on_duty?'checked':'')+'> En service</label><textarea placeholder="Petite présentation">'+esc(emp.bio||'')+'</textarea><button class="btn secondary" type="submit">Enregistrer la fiche</button>';
+        form.innerHTML='<input placeholder="URL avatar" value="'+esc(emp.avatar_url||'').replaceAll('"','&quot;')+'"><label>Date d’arrivée</label><input type="date" value="'+esc(emp.joined_at||'')+'"><textarea placeholder="Petite présentation">'+esc(emp.bio||'')+'</textarea><button class="btn secondary" type="submit">Enregistrer la fiche</button>';
         form.onsubmit=async e=>{
           e.preventDefault();const f=form.querySelectorAll('input,textarea');
           try{
-            await rpc('ae_manager_update_staff_profile',{p_token:token,p_account_id:emp.account_id,p_avatar_url:f[0].value,p_joined_at:f[1].value||null,p_interventions_count:Number(f[2].value||0),p_on_duty:f[3].checked,p_bio:f[4].value});
+            await rpc('ae_manager_update_staff_profile',{p_token:token,p_account_id:emp.account_id,p_avatar_url:f[0].value,p_joined_at:f[1].value||null,p_interventions_count:0,p_on_duty:false,p_bio:f[2].value});
             siteToast('Fiche employé mise à jour.');
             await Promise.all([managerRefresh(),loadStaff(),loadNotifications()]);
           }catch(err){siteToast(err.message)}
