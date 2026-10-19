@@ -252,22 +252,44 @@ async function loadOrders(){
   }catch(err){const c=document.createElement('div');c.className='card';c.textContent='Impossible de charger les commandes : '+err.message;box.append(c)}
 }
 
+
+let notificationCache=[];
+let notificationFilter='all';
+const notificationKindLabels={order:'Commandes',team:'Équipe',security:'Sécurité',account:'Compte',info:'Info',success:'Commandes',warning:'Commandes'};
+function renderNotifications(){
+  const list=el('notificationsList');if(!list)return;
+  list.replaceChildren();
+  const filtered=(notificationCache||[]).filter(n=>{
+    if(notificationFilter==='all')return true;
+    const kind=(n.kind==='success'||n.kind==='warning')?'order':(n.kind||'info');
+    return kind===notificationFilter;
+  });
+  if(!filtered.length){
+    const p=document.createElement('p');p.className='muted';p.textContent=notificationCache.length?'Aucune notification dans cette catégorie.':'Aucune notification.';list.append(p);return;
+  }
+  for(const n of filtered){
+    const kind=(n.kind==='success'||n.kind==='warning')?'order':(n.kind||'info');
+    const item=document.createElement('div');item.className='notification-item'+(!n.read_at?' unread':'');item.dataset.kind=kind;
+    const kindTag=document.createElement('span');kindTag.className='notification-kind';kindTag.textContent=notificationKindLabels[kind]||'Info';
+    const title=document.createElement('strong');title.textContent=n.title;
+    const body=document.createElement('p');body.className='muted';body.textContent=n.body;
+    const date=document.createElement('small');date.className='muted';date.textContent=new Date(n.created_at).toLocaleString('fr-FR');
+    item.append(kindTag,title,body,date);list.append(item);
+  }
+}
 async function loadNotifications(){
   const list=el('notificationsList'),badge=el('notificationBadge');if(!list||!badge)return;
-  list.replaceChildren();
-  if(!token||!account){const p=document.createElement('p');p.className='muted';p.textContent='Connectez-vous pour voir vos notifications.';list.append(p);badge.classList.add('hidden');return}
+  if(!token||!account){
+    notificationCache=[];renderNotifications();
+    const p=document.createElement('p');p.className='muted';p.textContent='Connectez-vous pour voir vos notifications.';list.replaceChildren(p);
+    badge.classList.add('hidden');return;
+  }
   try{
     const data=await rpc('ae_list_my_notifications',{p_token:token});
-    const unread=(data||[]).filter(n=>!n.read_at).length;
+    notificationCache=data||[];
+    const unread=notificationCache.filter(n=>!n.read_at).length;
     badge.textContent=String(unread);badge.classList.toggle('hidden',unread===0);
-    if(!data?.length){const p=document.createElement('p');p.className='muted';p.textContent='Aucune notification.';list.append(p);return}
-    for(const n of data){
-      const item=document.createElement('div');item.className='notification-item'+(!n.read_at?' unread':'');
-      const title=document.createElement('strong');title.textContent=n.title;
-      const body=document.createElement('p');body.className='muted';body.textContent=n.body;
-      const date=document.createElement('small');date.className='muted';date.textContent=new Date(n.created_at).toLocaleString('fr-FR');
-      item.append(title,body,date);list.append(item);
-    }
+    renderNotifications();
   }catch(err){list.textContent='Notifications indisponibles : '+err.message}
 }
 
@@ -277,22 +299,62 @@ async function loadStaff(){
     const staff=await rpc('ae_public_staff');
     staffCache=staff||[];
     box.replaceChildren();
+
     const reviewSelect=el('reviewStaff');
     if(reviewSelect){
       const current=reviewSelect.value;
       reviewSelect.replaceChildren();
       const first=document.createElement('option');first.value='';first.textContent='Choisir un employé';reviewSelect.append(first);
-      for(const person of staff||[]){const opt=document.createElement('option');opt.value=person.account_id;opt.textContent=person.name+' — '+(roleLabels[person.role]||person.role);reviewSelect.append(opt)}
+      for(const person of staff||[]){
+        const opt=document.createElement('option');opt.value=person.account_id;opt.textContent=person.name+' — '+(roleLabels[person.role]||person.role);reviewSelect.append(opt);
+      }
       if([...reviewSelect.options].some(o=>o.value===current))reviewSelect.value=current;
     }
+
     const hint=el('reviewHint');
     if(hint)hint.textContent=account?.role==='client'?'Choisissez un employé et une note de 1 à 5 étoiles.':'Vous devez être connecté avec un compte client pour noter un employé.';
-    if(!staff?.length){const c=document.createElement('div');c.className='card';c.innerHTML='<h3>Équipe en préparation</h3><p class="muted">Les fiches apparaîtront ici dès que les comptes employés seront configurés.</p>';box.append(c);return}
+
+    const totalReviews=(staff||[]).reduce((sum,s)=>sum+Number(s.rating_count||0),0);
+    const weighted=(staff||[]).reduce((sum,s)=>sum+Number(s.rating_avg||0)*Number(s.rating_count||0),0);
+    const rated=(staff||[]).filter(s=>Number(s.rating_count||0)>0);
+    const overall=totalReviews?weighted/totalReviews:0;
+
+    const reviewStats=el('reviewStats');
+    if(reviewStats){
+      reviewStats.replaceChildren();
+      [['Note moyenne',overall?overall.toFixed(1)+' / 5':'—'],['Avis reçus',String(totalReviews)],['Employés notés',String(rated.length)]].forEach(([label,value])=>{
+        const card=document.createElement('div');card.className='stat-card';
+        const strong=document.createElement('strong');strong.textContent=value;
+        const span=document.createElement('span');span.textContent=label;card.append(strong,span);reviewStats.append(card);
+      });
+    }
+
+    const reviewTop=el('reviewTop');
+    if(reviewTop){
+      reviewTop.replaceChildren();
+      const top=[...rated].sort((a,b)=>Number(b.rating_avg)-Number(a.rating_avg)||Number(b.rating_count)-Number(a.rating_count)).slice(0,3);
+      if(!top.length){
+        const card=document.createElement('div');card.className='card';card.innerHTML='<strong>Aucun avis pour le moment</strong><small>Le classement apparaîtra ici après les premières notes.</small>';reviewTop.append(card);
+      }else{
+        top.forEach((person,index)=>{
+          const card=document.createElement('div');card.className='card';
+          const strong=document.createElement('strong');strong.textContent=(index+1)+'. '+person.name;
+          const small=document.createElement('small');small.textContent=Number(person.rating_avg).toFixed(1)+' ★ · '+Number(person.rating_count||0)+' avis';
+          card.append(strong,small);reviewTop.append(card);
+        });
+      }
+    }
+
+    if(!staff?.length){
+      const card=document.createElement('div');card.className='card';card.innerHTML='<h3>Équipe en préparation</h3><p class="muted">Les fiches apparaîtront ici dès que les comptes employés seront configurés.</p>';box.append(card);return;
+    }
+
     for(const s of staff){
       const card=document.createElement('article');card.className='card staff-card reveal';
       const head=document.createElement('div');head.className='staff-head';
       const avatar=document.createElement('div');avatar.className='staff-avatar';
-      if(s.avatar_url){const img=document.createElement('img');img.src=s.avatar_url;img.alt='';img.className='staff-avatar';avatar.replaceWith(img);head.append(img)}else{avatar.textContent=(s.name||'?').split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();head.append(avatar)}
+      if(s.avatar_url){const img=document.createElement('img');img.src=s.avatar_url;img.alt='';img.className='staff-avatar';head.append(img)}
+      else{avatar.textContent=(s.name||'?').split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();head.append(avatar)}
       const duty=document.createElement('span');duty.className='duty '+(s.on_duty?'on':'off');duty.textContent=s.on_duty?'En service':'Hors service';head.append(duty);
       const role=document.createElement('span');role.className='tag';role.textContent=roleLabels[s.role]||s.role;
       const name=document.createElement('h3');name.textContent=s.name;
@@ -311,7 +373,7 @@ async function loadNews(){
   const box=el('newsList');if(!box)return;
   try{
     const news=await rpc('ae_public_news');box.replaceChildren();
-    if(!news?.length){const c=document.createElement('article');c.className='card';c.innerHTML='<span class="tag">JOURNAL</span><h3>Le journal arrive bientôt</h3><p class="muted">La direction pourra publier ici les annonces, événements, nouveautés et recrutements.</p>';box.append(c);return}
+    if(!news?.length){const c=document.createElement('article');c.className='card';c.innerHTML='<span class="tag">JOURNAL</span><h3>Le journal arrive bientôt</h3><p class="muted">La direction pourra publier ici les annonces, événements et nouveautés.</p>';box.append(c);return}
     for(const n of news){
       const card=document.createElement('article');card.className='card news-card reveal'+(n.cover_url?' has-cover':'');
       if(n.cover_url)card.style.backgroundImage='url("'+String(n.cover_url).replaceAll('"','')+'")';
@@ -328,27 +390,6 @@ async function loadNews(){
     revealNow();
   }catch(err){box.textContent='Journal indisponible : '+err.message}
 }
-
-el('activationForm')?.addEventListener('submit',async e=>{
-  e.preventDefault();
-  const form=e.currentTarget;
-  const login=el('activationLogin')?.value.trim();
-  const activationToken=el('activationToken')?.value.trim();
-  const password=el('activationPassword')?.value||'';
-  const confirmPassword=el('activationPasswordConfirm')?.value||'';
-  const feedbackBox=el('activationFeedback');
-  if(password!==confirmPassword){if(feedbackBox)feedbackBox.textContent='Les deux mots de passe ne correspondent pas.';return}
-  if(password.length<8){if(feedbackBox)feedbackBox.textContent='Le mot de passe doit contenir au moins 8 caractères.';return}
-  const button=form.querySelector('button');button.disabled=true;
-  try{
-    await rpc('ae_activate_employee',{p_login:login,p_token:activationToken,p_new_password:password});
-    if(feedbackBox)feedbackBox.textContent='Compte activé. Vous pouvez maintenant vous connecter avec votre identifiant et votre nouveau mot de passe.';
-    form.reset();
-    setTimeout(()=>{location.hash='#/espace';},350);
-  }catch(err){
-    if(feedbackBox)feedbackBox.textContent='Activation impossible : '+err.message;
-  }finally{button.disabled=false}
-});
 
 el('loginForm')?.addEventListener('submit',async e=>{
   e.preventDefault();const i=e.currentTarget.querySelectorAll('input');
@@ -394,7 +435,7 @@ el('submitOrder')?.addEventListener('click',async()=>{
   try{
     const result=await rpc('ae_create_order',{p_token:token,p_quantity:quantity});
     alert('Commande AE-'+String(result.id).padStart(4,'0')+' enregistrée !');
-    location.hash='#/commandes';await Promise.all([loadOrders(),loadNotifications()]);
+    triggerDiscordSync(false).catch(()=>{});location.hash='#/commandes';await Promise.all([loadOrders(),loadNotifications()]);
   }catch(err){alert('Commande impossible : '+err.message)}
 });
 
@@ -418,18 +459,32 @@ function showTemporaryCredential(login,password,label='Mot de passe temporaire')
   const box=el('temporaryCredential');if(!box)return;
   box.classList.remove('hidden');box.replaceChildren();
   const title=document.createElement('strong');title.textContent=label;
-  const note=document.createElement('p');note.className='muted small';note.textContent='Copiez-le maintenant : il ne sera plus affiché ensuite.';
+  const note=document.createElement('p');note.className='muted small';note.textContent='Copiez les accès maintenant : le mot de passe ne sera plus affiché ensuite.';
   const loginRow=document.createElement('div');loginRow.className='credential-row';
   const loginValue=document.createElement('div');loginValue.className='credential-value';loginValue.textContent='Identifiant : '+login;
   const passRow=document.createElement('div');passRow.className='credential-row';
-  const passValue=document.createElement('div');passValue.className='credential-value';passValue.textContent=password;
-  const copy=document.createElement('button');copy.type='button';copy.className='btn secondary';copy.textContent='Copier';copy.onclick=async()=>{try{await navigator.clipboard.writeText(password);copy.textContent='Copié ✓'}catch(_){alert('Copie impossible, sélectionnez le mot de passe manuellement.')}};
-  loginRow.append(loginValue);passRow.append(passValue,copy);box.append(title,note,loginRow,passRow);
+  const passValue=document.createElement('div');passValue.className='credential-value';passValue.textContent='Mot de passe : '+password;
+  const copyAll=document.createElement('button');copyAll.type='button';copyAll.className='btn';copyAll.textContent='Copier les accès';
+  copyAll.onclick=async()=>{
+    const value='Identifiant : '+login+'\nMot de passe temporaire : '+password;
+    try{await navigator.clipboard.writeText(value);copyAll.textContent='Accès copiés ✓'}
+    catch(_){alert(value)}
+  };
+  loginRow.append(loginValue);passRow.append(passValue);box.append(title,note,loginRow,passRow,copyAll);
 }
+
+function canAssignRoleUI(role){
+  if(!account)return false;
+  if(['patron','copatron'].includes(account.role))return employeeRoles.includes(role);
+  if(account.role==='assistant_direction')return ['mecano_novice','mecano_intermediaire','mecano_experimente','chef_equipe','rh'].includes(role);
+  if(account.role==='rh')return ['mecano_novice','mecano_intermediaire','mecano_experimente','chef_equipe'].includes(role);
+  return false;
+}
+
 el('employeeAccountForm')?.addEventListener('submit',async e=>{
   e.preventDefault();
   const form=e.currentTarget;
-  if(!account||!['assistant_direction','copatron','patron'].includes(account.role)){alert('Accès direction requis.');return}
+  if(!account||!managerRoles.includes(account.role)){alert('Accès administration requis.');return}
   const fields=form.querySelectorAll('input,select');
   const button=form.querySelector('button');button.disabled=true;
   try{
@@ -442,7 +497,7 @@ el('employeeAccountForm')?.addEventListener('submit',async e=>{
     });
     form.reset();
     showTemporaryCredential(result.login,result.temporary_password);
-    await Promise.all([managerRefresh(),loadStaff()]);
+    await Promise.all([managerRefresh(),loadStaff(),loadNotifications()]);
   }catch(err){alert('Création impossible : '+err.message)}
   finally{button.disabled=false}
 });
@@ -477,6 +532,77 @@ el('newsForm')?.addEventListener('submit',async e=>{
   }catch(err){alert('Publication impossible : '+err.message)}
 });
 
+
+function activateAdminTab(name){
+  const target=name||'dashboard';
+  document.querySelectorAll('[data-admin-tab]').forEach(btn=>btn.classList.toggle('active',btn.dataset.adminTab===target));
+  document.querySelectorAll('[data-admin-panel]').forEach(panel=>panel.classList.toggle('hidden',panel.dataset.adminPanel!==target));
+  localStorage.setItem('ae_admin_tab',target);
+}
+document.querySelectorAll('[data-admin-tab]').forEach(btn=>btn.addEventListener('click',()=>activateAdminTab(btn.dataset.adminTab)));
+activateAdminTab(localStorage.getItem('ae_admin_tab')||'dashboard');
+
+function filterManagerClients(){
+  const q=(el('managerCustomerSearch')?.value||'').trim().toLowerCase();
+  document.querySelectorAll('#managerCustomers .client-file').forEach(card=>card.classList.toggle('is-filtered',q&&!String(card.dataset.search||'').includes(q)));
+}
+function filterManagerEmployees(){
+  const q=(el('managerEmployeeSearch')?.value||'').trim().toLowerCase();
+  const role=el('managerEmployeeRole')?.value||'';
+  const status=el('managerEmployeeStatus')?.value||'';
+  document.querySelectorAll('#managerEmployees .employee-account-card').forEach(card=>{
+    const matchText=!q||String(card.dataset.search||'').includes(q);
+    const matchRole=!role||card.dataset.role===role;
+    const statuses=String(card.dataset.status||'').split(' ');
+    const matchStatus=!status||statuses.includes(status);
+    card.classList.toggle('is-filtered',!(matchText&&matchRole&&matchStatus));
+  });
+}
+el('managerCustomerSearch')?.addEventListener('input',filterManagerClients);
+el('managerEmployeeSearch')?.addEventListener('input',filterManagerEmployees);
+el('managerEmployeeRole')?.addEventListener('change',filterManagerEmployees);
+el('managerEmployeeStatus')?.addEventListener('change',filterManagerEmployees);
+
+const discordFunctionUrl='https://gkljzpwfmthzjgfzzeoy.supabase.co/functions/v1/auto-exotic-discord';
+async function triggerDiscordSync(retryFailed=false){
+  if(!token)return null;
+  const res=await fetch(discordFunctionUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,retry_failed:retryFailed})});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok)throw new Error(data.error||'Synchronisation Discord impossible');
+  return data;
+}
+async function refreshDiscordAdmin(){
+  if(!account||!managerRoles.includes(account.role))return;
+  const state=el('discordConnectionState'),statsBox=el('discordQueueStats');
+  try{
+    const [edgeRes,queue]=await Promise.all([
+      fetch(discordFunctionUrl).then(r=>r.json()),
+      rpc('ae_manager_discord_queue_status',{p_token:token})
+    ]);
+    if(state){
+      state.classList.toggle('connected',!!edgeRes.configured);
+      state.textContent=edgeRes.configured?'Discord connecté — bot, salon et interactions prêts':'Discord non connecté — configurez le bot côté Supabase pour activer l’envoi';
+    }
+    if(statsBox){
+      statsBox.replaceChildren();
+      [['En attente',queue.pending],['Envoyés',queue.sent],['Échecs',queue.failed]].forEach(([label,value])=>{
+        const card=document.createElement('div');card.className='stat-card';
+        const strong=document.createElement('strong');strong.textContent=String(value||0);
+        const span=document.createElement('span');span.textContent=label;card.append(strong,span);statsBox.append(card);
+      });
+    }
+  }catch(err){if(state)state.textContent='Statut Discord indisponible : '+err.message}
+}
+el('discordSyncButton')?.addEventListener('click',async e=>{
+  const button=e.currentTarget;button.disabled=true;
+  try{
+    const result=await triggerDiscordSync(true);
+    alert((result?.sent||0)+' événement(s) Discord synchronisé(s).');
+    await refreshDiscordAdmin();
+  }catch(err){alert(err.message)}
+  finally{button.disabled=false}
+});
+
 async function managerRefresh(){
   const panel=el('managerPanel');if(!panel)return;
   const manager=!!account&&managerRoles.includes(account.role);
@@ -485,20 +611,50 @@ async function managerRefresh(){
   try{
     const stats=await rpc('ae_manager_stats',{p_token:token});const box=el('managerStats');box.replaceChildren();
     [['Commandes livrées',stats.delivered_orders],['Kits moteur vendus',stats.kits_sold],['CA livré',money(stats.revenue)]].forEach(([label,value])=>{
-      const c=document.createElement('div');c.className='stat-card reveal';const strong=document.createElement('strong');strong.textContent=value;const span=document.createElement('span');span.textContent=label;c.append(strong,span);box.append(c)
+      const card=document.createElement('div');card.className='stat-card reveal';
+      const strong=document.createElement('strong');strong.textContent=value;
+      const span=document.createElement('span');span.textContent=label;card.append(strong,span);box.append(card);
     });
   }catch(err){el('managerStats').textContent='Statistiques indisponibles : '+err.message}
 
   try{
+    const stats=await rpc('ae_manager_team_stats',{p_token:token});const box=el('managerTeamStats');box.replaceChildren();
+    [['Employés',stats.employees],['En service',stats.on_duty],['MDP temporaires',stats.temporary_passwords]].forEach(([label,value])=>{
+      const card=document.createElement('div');card.className='stat-card';
+      const strong=document.createElement('strong');strong.textContent=String(value||0);
+      const span=document.createElement('span');span.textContent=label;card.append(strong,span);box.append(card);
+    });
+  }catch(err){if(el('managerTeamStats'))el('managerTeamStats').textContent='Statistiques équipe indisponibles.'}
+
+  const permissionCard=el('adminPermissionCard');
+  if(permissionCard){
+    permissionCard.replaceChildren();
+    const h=document.createElement('h3');h.textContent='Vos permissions — '+(roleLabels[account.role]||account.role);
+    const p=document.createElement('p');p.className='muted';
+    const chips=document.createElement('div');chips.className='permission-chips';
+    const permissions=account.role==='rh'
+      ?['Voir tous les profils','Clients & commandes','Créer/gérer les mécanos','Gérer chefs d’équipe','Partenariats']
+      :account.role==='assistant_direction'
+      ?['Voir tous les profils','Clients & commandes','Créer/gérer les mécanos','Gérer RH','Partenariats','Journal']
+      :['Accès complet','Tous les grades','Clients & commandes','Partenariats','Journal','Historique','Discord'];
+    p.textContent=account.role==='rh'?'Les comptes de direction restent en lecture seule.':account.role==='assistant_direction'?'Les grades Assistante, Co-patron et Patron restent protégés.':'Vous pouvez gérer l’ensemble des comptes et grades.';
+    permissions.forEach(label=>{const chip=document.createElement('span');chip.className='permission-chip';chip.textContent=label;chips.append(chip)});
+    permissionCard.append(h,p,chips);
+  }
+
+  try{
     const req=await rpc('ae_manager_list_requests',{p_token:token});const requestBox=el('managerRequests');requestBox.replaceChildren();
-    if(!req?.length)requestBox.textContent='Aucune demande.';
-    for(const item of req||[]){
+    const filtered=(req||[]).filter(item=>item.kind!=='recrutement');
+    if(!filtered.length)requestBox.textContent='Aucune demande.';
+    for(const item of filtered){
       const box=document.createElement('div');box.className='manager-item';
       const title=document.createElement('strong');title.textContent=item.kind+' #'+item.id+' — '+item.status;
       const p=document.createElement('p');p.textContent=Object.entries(item.payload||{}).map(([k,v])=>k+': '+v).join(' · ');
       box.append(title,p);
       for(const [label,status] of [['Accepter','acceptee'],['Refuser','refusee']]){
-        const b=document.createElement('button');b.className='btn secondary';b.textContent=label;b.onclick=async()=>{try{await rpc('ae_manager_update_request',{p_token:token,p_id:item.id,p_status:status});await managerRefresh()}catch(err){alert(err.message)}};box.append(b)
+        const b=document.createElement('button');b.className='btn secondary';b.textContent=label;
+        b.onclick=async()=>{try{await rpc('ae_manager_update_request',{p_token:token,p_id:item.id,p_status:status});await managerRefresh()}catch(err){alert(err.message)}};
+        box.append(b);
       }
       requestBox.append(box);
     }
@@ -513,8 +669,10 @@ async function managerRefresh(){
       const p=document.createElement('p');p.textContent=item.customer+' · '+(item.phone||'sans téléphone')+' · '+item.quantity+' kit(s) · '+money(item.quantity*item.unit_price);
       box.append(title,p);
       if(item.status==='En attente de préparation'){
-        const delivered=document.createElement('button');delivered.className='btn secondary';delivered.textContent='Livrée';delivered.onclick=async()=>{try{await rpc('ae_manager_update_order',{p_token:token,p_id:item.id,p_status:'Livrée',p_reason:null});await managerRefresh()}catch(err){alert(err.message)}};
-        const cancel=document.createElement('button');cancel.className='btn secondary';cancel.textContent='Annuler';cancel.onclick=async()=>{const reason=prompt('Motif de l’annulation (obligatoire) :')?.trim();if(!reason)return;try{await rpc('ae_manager_update_order',{p_token:token,p_id:item.id,p_status:'Annulée',p_reason:reason});await managerRefresh()}catch(err){alert(err.message)}};
+        const delivered=document.createElement('button');delivered.className='btn secondary';delivered.textContent='Livrée';
+        delivered.onclick=async()=>{try{await rpc('ae_manager_update_order',{p_token:token,p_id:item.id,p_status:'Livrée',p_reason:null});triggerDiscordSync(false).catch(()=>{});await Promise.all([managerRefresh(),loadNotifications()])}catch(err){alert(err.message)}};
+        const cancel=document.createElement('button');cancel.className='btn secondary';cancel.textContent='Annuler';
+        cancel.onclick=async()=>{const reason=prompt('Motif de l’annulation (obligatoire) :')?.trim();if(!reason)return;try{await rpc('ae_manager_update_order',{p_token:token,p_id:item.id,p_status:'Annulée',p_reason:reason});triggerDiscordSync(false).catch(()=>{});await Promise.all([managerRefresh(),loadNotifications()])}catch(err){alert(err.message)}};
         box.append(delivered,cancel);
       }
       orderBox.append(box);
@@ -524,79 +682,143 @@ async function managerRefresh(){
   try{
     const customers=await rpc('ae_manager_list_customers',{p_token:token});const box=el('managerCustomers');box.replaceChildren();
     if(!customers?.length)box.textContent='Aucun client.';
-    for(const c of customers||[]){
+    for(const customer of customers||[]){
       const details=document.createElement('details');details.className='client-file';
-      const summary=document.createElement('summary');summary.textContent=c.name+' · '+(c.phone||'sans téléphone');
+      details.dataset.search=((customer.name||'')+' '+(customer.phone||'')+' '+(customer.iban_rp||'')+' '+(customer.civil_id_rp||'')).toLowerCase();
+      const summary=document.createElement('summary');summary.textContent=customer.name+' · '+(customer.phone||'sans téléphone');
       const meta=document.createElement('div');meta.className='client-meta';
-      const spent=document.createElement('div');spent.innerHTML='<small>Total dépensé</small><strong>'+money(c.total_spent)+'</strong>';
-      const last=document.createElement('div');last.innerHTML='<small>Dernière commande</small><strong>'+(c.last_order_at?new Date(c.last_order_at).toLocaleDateString('fr-FR'):'Aucune')+'</strong>';
+      const spent=document.createElement('div');spent.innerHTML='<small>Total dépensé</small><strong>'+money(customer.total_spent)+'</strong>';
+      const last=document.createElement('div');last.innerHTML='<small>Dernière commande</small><strong>'+(customer.last_order_at?new Date(customer.last_order_at).toLocaleDateString('fr-FR'):'Aucune')+'</strong>';
       meta.append(spent,last);
-      const ids=document.createElement('p');ids.className='muted';ids.textContent='IBAN RP : '+(c.iban_rp||'—')+' · ID RP : '+(c.civil_id_rp||'—');
+      const ids=document.createElement('p');ids.className='muted';ids.textContent='IBAN RP : '+(customer.iban_rp||'—')+' · ID RP : '+(customer.civil_id_rp||'—')+' · Compte créé le '+(customer.created_at?new Date(customer.created_at).toLocaleDateString('fr-FR'):'—');
       details.append(summary,meta,ids);
-      for(const o of c.orders||[]){const row=document.createElement('p');row.className='small muted';row.textContent='AE-'+String(o.id).padStart(4,'0')+' · '+o.quantity+' kit(s) · '+o.status+' · '+money(o.quantity*o.unit_price);details.append(row)}
+      for(const o of customer.orders||[]){
+        const row=document.createElement('p');row.className='small muted';row.textContent='AE-'+String(o.id).padStart(4,'0')+' · '+o.quantity+' kit(s) · '+o.status+' · '+money(o.quantity*o.unit_price);details.append(row);
+      }
       box.append(details);
     }
+    filterManagerClients();
   }catch(err){el('managerCustomers').textContent='Fiches clients indisponibles : '+err.message}
 
   try{
     const employees=await rpc('ae_manager_list_employees',{p_token:token});const box=el('managerEmployees');box.replaceChildren();
-    const canManageAccounts=['assistant_direction','copatron','patron'].includes(account.role);
-    document.querySelector('.account-management')?.classList.toggle('hidden',!canManageAccounts);
+    document.querySelector('.account-management')?.classList.toggle('hidden',!managerRoles.includes(account.role));
+
     const roleSelect=el('employeeRoleSelect');
-    if(roleSelect){
-      [...roleSelect.options].forEach(opt=>{
-        opt.disabled=account.role==='assistant_direction'&&['assistant_direction','copatron','patron'].includes(opt.value);
-      });
-    }
+    if(roleSelect)[...roleSelect.options].forEach(opt=>opt.disabled=!canAssignRoleUI(opt.value));
+
     if(!employees?.length)box.textContent='Aucun compte employé configuré.';
     for(const emp of employees||[]){
       const wrap=document.createElement('div');wrap.className='employee-account-card';
+      wrap.dataset.search=((emp.name||'')+' '+(emp.login||'')+' '+(roleLabels[emp.role]||emp.role)).toLowerCase();
+      wrap.dataset.role=emp.role;
+      wrap.dataset.status=(emp.on_duty?'on':'off')+(emp.must_change_password?' temp':'');
+
       const top=document.createElement('div');top.className='employee-account-top';
       const title=document.createElement('div');
       const strong=document.createElement('strong');strong.textContent=emp.name;
       const login=document.createElement('p');login.className='small muted';login.textContent='Identifiant : '+emp.login;
-      title.append(strong,login);
+      const extra=document.createElement('p');extra.className='small muted';extra.textContent=(emp.joined_at?'Depuis le '+new Date(emp.joined_at+'T00:00:00').toLocaleDateString('fr-FR'):'Date inconnue')+' · '+Number(emp.interventions_count||0)+' intervention(s) · '+(Number(emp.rating_avg||0)>0?Number(emp.rating_avg).toFixed(1)+' ★':'Aucun avis');
+      title.append(strong,login,extra);
       const badge=document.createElement('span');badge.className='tag';badge.textContent=roleLabels[emp.role]||emp.role;
       top.append(title,badge);
+
       const meta=document.createElement('div');meta.className='employee-account-meta';
       if(emp.must_change_password){const change=document.createElement('span');change.className='force-change-badge';change.textContent='Mot de passe temporaire';meta.append(change)}
-      const service=document.createElement('span');service.className='small muted';service.textContent=emp.on_duty?'En service':'Hors service';meta.append(service);
+      const service=document.createElement('span');service.className='small muted';service.textContent=emp.on_duty?'● En service':'○ Hors service';meta.append(service);
       wrap.append(top,meta);
 
-      if(canManageAccounts){
+      const canManage=emp.account_id!==account.id&&canAssignRoleUI(emp.role);
+      if(canManage){
         const actions=document.createElement('div');actions.className='employee-role-actions';
         const select=document.createElement('select');
-        for(const role of employeeRoles){const o=document.createElement('option');o.value=role;o.textContent=roleLabels[role];o.selected=role===emp.role;if(account.role==='assistant_direction'&&['assistant_direction','copatron','patron'].includes(role))o.disabled=true;select.append(o)}
+        for(const role of employeeRoles){
+          const o=document.createElement('option');o.value=role;o.textContent=roleLabels[role];o.selected=role===emp.role;o.disabled=!canAssignRoleUI(role);select.append(o);
+        }
         const roleBtn=document.createElement('button');roleBtn.type='button';roleBtn.className='btn secondary';roleBtn.textContent='Modifier le grade';
-        roleBtn.disabled=emp.account_id===account.id;
         roleBtn.onclick=async()=>{
           if(select.value===emp.role)return;
           const reason=prompt('Motif de la promotion / rétrogradation (facultatif) :')||'';
           if(!confirm('Passer '+emp.name+' de '+(roleLabels[emp.role]||emp.role)+' à '+(roleLabels[select.value]||select.value)+' ?')){select.value=emp.role;return}
-          try{await rpc('ae_manager_update_employee_role',{p_token:token,p_account_id:emp.account_id,p_new_role:select.value,p_reason:reason});await Promise.all([managerRefresh(),loadStaff()])}catch(err){alert(err.message);select.value=emp.role}
+          try{await rpc('ae_manager_update_employee_role',{p_token:token,p_account_id:emp.account_id,p_new_role:select.value,p_reason:reason});await Promise.all([managerRefresh(),loadStaff(),loadNotifications()])}catch(err){alert(err.message);select.value=emp.role}
         };
-        const reset=document.createElement('button');reset.type='button';reset.className='btn secondary';reset.textContent='Nouveau MDP temporaire';reset.disabled=emp.account_id===account.id;
+        const reset=document.createElement('button');reset.type='button';reset.className='btn secondary';reset.textContent='Nouveau MDP temporaire';
         reset.onclick=async()=>{
           if(!confirm('Réinitialiser le mot de passe de '+emp.name+' ?'))return;
-          try{const result=await rpc('ae_manager_reset_employee_password',{p_token:token,p_account_id:emp.account_id});showTemporaryCredential(emp.login,result.temporary_password,'Nouveau mot de passe temporaire');await managerRefresh()}catch(err){alert(err.message)}
+          try{
+            const result=await rpc('ae_manager_reset_employee_password',{p_token:token,p_account_id:emp.account_id});
+            showTemporaryCredential(emp.login,result.temporary_password,'Nouveau mot de passe temporaire');
+            await Promise.all([managerRefresh(),loadNotifications()]);
+          }catch(err){alert(err.message)}
         };
         actions.append(select,roleBtn,reset);wrap.append(actions);
 
         const historyBtn=document.createElement('button');historyBtn.type='button';historyBtn.className='btn secondary';historyBtn.style.marginTop='10px';historyBtn.textContent='Historique des grades';
         const history=document.createElement('div');history.className='role-history hidden';
-        historyBtn.onclick=async()=>{if(!history.classList.contains('hidden')){history.classList.add('hidden');return}try{const rows=await rpc('ae_manager_role_history',{p_token:token,p_account_id:emp.account_id});history.replaceChildren();if(!rows?.length)history.textContent='Aucun changement de grade.';for(const row of rows||[]){const p=document.createElement('div');p.className='role-history-item';p.textContent=(row.old_role?roleLabels[row.old_role]+' → ':'Création → ')+(roleLabels[row.new_role]||row.new_role)+' · '+new Date(row.created_at).toLocaleString('fr-FR')+' · '+row.changed_by+(row.reason?' · '+row.reason:'');history.append(p)}history.classList.remove('hidden')}catch(err){alert(err.message)}};
+        historyBtn.onclick=async()=>{
+          if(!history.classList.contains('hidden')){history.classList.add('hidden');return}
+          try{
+            const rows=await rpc('ae_manager_role_history',{p_token:token,p_account_id:emp.account_id});history.replaceChildren();
+            if(!rows?.length)history.textContent='Aucun changement de grade.';
+            for(const row of rows||[]){
+              const p=document.createElement('div');p.className='role-history-item';
+              p.textContent=(row.old_role?(roleLabels[row.old_role]||row.old_role)+' → ':'Création → ')+(roleLabels[row.new_role]||row.new_role)+' · '+new Date(row.created_at).toLocaleString('fr-FR')+' · '+row.changed_by+(row.reason?' · '+row.reason:'');
+              history.append(p);
+            }
+            history.classList.remove('hidden');
+          }catch(err){alert(err.message)}
+        };
         wrap.append(historyBtn,history);
+      }else if(emp.account_id!==account.id){
+        const readOnly=document.createElement('p');readOnly.className='small muted';readOnly.textContent='Compte en lecture seule pour votre niveau d’accès.';wrap.append(readOnly);
       }
 
-      const details=document.createElement('details');details.style.marginTop='12px';
-      const summary=document.createElement('summary');summary.textContent='Modifier la fiche publique';
-      const form=document.createElement('form');form.className='form';form.style.marginTop='12px';form.innerHTML='<input placeholder="URL avatar" value="'+esc(emp.avatar_url||'').replaceAll('"','&quot;')+'"><label>Date d’arrivée</label><input type="date" value="'+esc(emp.joined_at||'')+'"><input type="number" min="0" placeholder="Nombre d’interventions" value="'+Number(emp.interventions_count||0)+'"><label><input type="checkbox" '+(emp.on_duty?'checked':'')+'> En service</label><textarea placeholder="Petite présentation">'+esc(emp.bio||'')+'</textarea><button class="btn secondary" type="submit">Enregistrer la fiche</button>';
-      form.onsubmit=async e=>{e.preventDefault();const f=form.querySelectorAll('input,textarea');try{await rpc('ae_manager_update_staff_profile',{p_token:token,p_account_id:emp.account_id,p_avatar_url:f[0].value,p_joined_at:f[1].value||null,p_interventions_count:Number(f[2].value||0),p_on_duty:f[3].checked,p_bio:f[4].value});alert('Fiche employé mise à jour.');await Promise.all([managerRefresh(),loadStaff()])}catch(err){alert(err.message)}};
-      details.append(summary,form);wrap.append(details);box.append(wrap);
+      const canEditProfile=emp.account_id===account.id||canAssignRoleUI(emp.role);
+      if(canEditProfile){
+        const details=document.createElement('details');details.style.marginTop='12px';
+        const summary=document.createElement('summary');summary.textContent='Modifier la fiche publique';
+        const form=document.createElement('form');form.className='form';form.style.marginTop='12px';
+        form.innerHTML='<input placeholder="URL avatar" value="'+esc(emp.avatar_url||'').replaceAll('"','&quot;')+'"><label>Date d’arrivée</label><input type="date" value="'+esc(emp.joined_at||'')+'"><input type="number" min="0" placeholder="Nombre d’interventions" value="'+Number(emp.interventions_count||0)+'"><label><input type="checkbox" '+(emp.on_duty?'checked':'')+'> En service</label><textarea placeholder="Petite présentation">'+esc(emp.bio||'')+'</textarea><button class="btn secondary" type="submit">Enregistrer la fiche</button>';
+        form.onsubmit=async e=>{
+          e.preventDefault();const f=form.querySelectorAll('input,textarea');
+          try{
+            await rpc('ae_manager_update_staff_profile',{p_token:token,p_account_id:emp.account_id,p_avatar_url:f[0].value,p_joined_at:f[1].value||null,p_interventions_count:Number(f[2].value||0),p_on_duty:f[3].checked,p_bio:f[4].value});
+            alert('Fiche employé mise à jour.');
+            await Promise.all([managerRefresh(),loadStaff(),loadNotifications()]);
+          }catch(err){alert(err.message)}
+        };
+        details.append(summary,form);wrap.append(details);
+      }
+
+      box.append(wrap);
     }
+    filterManagerEmployees();
   }catch(err){el('managerEmployees').textContent='Fiches employés indisponibles : '+err.message}
+
+  try{
+    const rows=await rpc('ae_manager_audit_log',{p_token:token,p_limit:100});const box=el('managerAuditLog');box.replaceChildren();
+    if(!rows?.length)box.textContent='Aucune action enregistrée.';
+    const actionLabels={employee_created:'Compte employé créé',password_reset:'Mot de passe réinitialisé',role_changed:'Grade modifié',profile_updated:'Profil employé modifié',order_status_changed:'Statut de commande modifié',discord_order_delivered:'Commande livrée depuis Discord',discord_order_cancelled:'Commande annulée depuis Discord'};
+    for(const row of rows||[]){
+      const item=document.createElement('div');item.className='audit-item';
+      const strong=document.createElement('strong');strong.textContent=actionLabels[row.action]||row.action;
+      const meta=document.createElement('small');meta.textContent=new Date(row.created_at).toLocaleString('fr-FR')+' · '+row.actor+(row.target?' → '+row.target:'');
+      const details=document.createElement('p');details.className='small muted';
+      const d=row.details||{};
+      details.textContent=[d.old_role&&d.new_role?(roleLabels[d.old_role]||d.old_role)+' → '+(roleLabels[d.new_role]||d.new_role):'',d.order_id?'AE-'+String(d.order_id).padStart(4,'0'):'',d.reason||''].filter(Boolean).join(' · ');
+      item.append(strong,meta);if(details.textContent)item.append(details);box.append(item);
+    }
+  }catch(err){if(el('managerAuditLog'))el('managerAuditLog').textContent='Historique indisponible : '+err.message}
+
+  await refreshDiscordAdmin();
   revealNow();
 }
+
+document.querySelectorAll('[data-notification-filter]').forEach(button=>button.addEventListener('click',()=>{
+  notificationFilter=button.dataset.notificationFilter||'all';
+  document.querySelectorAll('[data-notification-filter]').forEach(b=>b.classList.toggle('active',b===button));
+  renderNotifications();
+}));
 
 el('closeEmployeeProfile')?.addEventListener('click',()=>el('employeeProfileModal')?.classList.add('hidden'));
 el('employeeProfileModal')?.addEventListener('click',e=>{if(e.target===el('employeeProfileModal'))el('employeeProfileModal').classList.add('hidden')});
