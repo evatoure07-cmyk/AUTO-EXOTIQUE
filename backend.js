@@ -1280,7 +1280,7 @@ function setPartnerAdminTab(tab){
 document.querySelectorAll('[data-partner-tab]').forEach(button=>{
  button.addEventListener('click',()=>setPartnerAdminTab(button.dataset.partnerTab));
 });
-setPartnerAdminTab('summary');
+setPartnerAdminTab('configure');
 
 async function loadManagerPartners(){
  const catalogBox=el('managerPartnerCatalog');
@@ -1835,6 +1835,19 @@ async function managerRefresh(){
  details.append(summary,meta,ids);
  for(const o of customer.orders||[]){
  const row=document.createElement('p');row.className='small muted';row.textContent='AE-'+String(o.id).padStart(4,'0')+' · '+o.quantity+' kit(s) · '+o.status+' · '+money(o.quantity*o.unit_price);details.append(row);
+ }
+ if(['assistant_direction','copatron','patron'].includes(account.role)){
+   const actions=document.createElement('div');actions.className='client-file-actions';
+   const remove=document.createElement('button');remove.type='button';remove.className='btn danger';remove.textContent='Supprimer le compte client';
+   remove.onclick=async()=>{
+     if(!await siteConfirm('Supprimer le compte de '+customer.name+' ? Ses anciennes commandes seront conservées.',{title:'Supprimer le compte client',confirmText:'Supprimer'}))return;
+     try{
+       await rpc('ae_manager_delete_client',{p_token:token,p_account_id:customer.id});
+       siteToast('Compte client supprimé.','success');
+       await Promise.all([managerRefresh(),loadNotifications()]);
+     }catch(err){siteToast('Suppression impossible : '+err.message,'error')}
+   };
+   actions.append(remove);details.append(actions);
  }
  box.append(details);
  }
