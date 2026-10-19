@@ -1133,6 +1133,28 @@ body.light .footer{
     text-align:center;
   }
 }
+
+.notification-head{position:sticky;top:-18px;z-index:3;padding:18px 0 10px;background:linear-gradient(180deg,rgba(7,16,22,.995) 0%,rgba(7,16,22,.98) 78%,rgba(7,16,22,0) 100%)}
+body.light .notification-head{background:linear-gradient(180deg,rgba(248,252,253,.995) 0%,rgba(248,252,253,.98) 78%,rgba(248,252,253,0) 100%)}
+.notification-head-actions{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.notification-head .notification-mark-read{
+  border:1px solid var(--line);background:var(--soft);color:var(--text);
+  border-radius:10px;padding:8px 10px;font-size:10px;font-weight:900;line-height:1;
+  white-space:nowrap
+}
+.notification-head .notification-mark-read:hover{border-color:rgba(40,217,229,.4);color:var(--cyan)}
+.notification-head .notification-close{
+  width:32px;height:32px;display:grid;place-items:center;padding:0;
+  border:1px solid var(--line);border-radius:10px;background:transparent;
+  color:var(--text);font-size:20px;line-height:1
+}
+.notification-head .notification-close:hover{background:var(--soft);border-color:rgba(40,217,229,.35)}
+@media(max-width:420px){
+ .notification-head{align-items:flex-start}
+ .notification-head-actions{gap:5px}
+ .notification-head .notification-mark-read{padding:7px 8px;font-size:9px}
+ .notification-head .notification-close{width:30px;height:30px}
+}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
@@ -1417,7 +1439,7 @@ body.light .footer{
  </div>
 </div>
 <div class="notice">Connectez-vous avec un compte RH, Assistante de direction, Co-patron ou Patron pour afficher l'administration.</div>
-</div></section></main><div id="notificationsPanel" class="notifications-panel hidden"><div class="notification-head"><strong>Notifications</strong><button id="closeNotifications" type="button">×</button></div><div class="notification-filters"><button type="button" class="active" data-notification-filter="all">Toutes</button><button type="button" data-notification-filter="order">Commandes</button><button type="button" data-notification-filter="team">Équipe</button><button type="button" data-notification-filter="security">Sécurité</button><button type="button" data-notification-filter="account">Compte</button></div><div id="notificationsList"><p class="muted">Connectez-vous pour voir vos notifications.</p></div><button id="markNotificationsRead" class="btn secondary" type="button">Tout marquer comme lu</button></div><nav class="mobile-nav"><a href="#/accueil" data-page="accueil" data-no=""><span>⌂</span><small>Accueil</small></a><a href="#/prestations" data-page="prestations" data-no=""><span>⌘</span><small>Services</small></a><a href="#/commander" data-page="commander" data-no=""><span>＋</span><small>Commander</small></a><a href="#/commandes" data-page="commandes" data-no=""><span>≡</span><small>Commandes</small></a><a href="#/avis" data-page="avis" data-no=""><span>★</span><small>Avis</small></a><a href="#/espace" data-page="espace" data-no=""><span>○</span><small>Profil</small></a></nav>
+</div></section></main><div id="notificationsPanel" class="notifications-panel hidden"><div class="notification-head"><strong>Notifications</strong><div class="notification-head-actions"><button id="markNotificationsRead" class="notification-mark-read" type="button">Tout marquer comme lu</button><button id="closeNotifications" class="notification-close" type="button">×</button></div></div><div class="notification-filters"><button type="button" class="active" data-notification-filter="all">Toutes</button><button type="button" data-notification-filter="order">Commandes</button><button type="button" data-notification-filter="team">Équipe</button><button type="button" data-notification-filter="security">Sécurité</button><button type="button" data-notification-filter="account">Compte</button></div><div id="notificationsList"><p class="muted">Connectez-vous pour voir vos notifications.</p></div></div><nav class="mobile-nav"><a href="#/accueil" data-page="accueil" data-no=""><span>⌂</span><small>Accueil</small></a><a href="#/prestations" data-page="prestations" data-no=""><span>⌘</span><small>Services</small></a><a href="#/commander" data-page="commander" data-no=""><span>＋</span><small>Commander</small></a><a href="#/commandes" data-page="commandes" data-no=""><span>≡</span><small>Commandes</small></a><a href="#/avis" data-page="avis" data-no=""><span>★</span><small>Avis</small></a><a href="#/espace" data-page="espace" data-no=""><span>○</span><small>Profil</small></a></nav>
 <script>
 const theme=localStorage.getItem('ae_theme')||(matchMedia('(prefers-color-scheme:light)').matches?'light':'dark');
 const themeBtn=document.getElementById('theme');
