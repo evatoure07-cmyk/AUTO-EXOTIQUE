@@ -1596,6 +1596,53 @@ body.light .news-card .btn.secondary{
 .partner-directory-empty{padding:18px 10px;text-align:center;font-size:11px;color:var(--muted)}
 @media(max-width:900px){.partner-directory-list{max-height:300px}}
 
+
+/* Partner administration — simplified workspace */
+.partner-config-editor{padding:20px!important}
+.partner-service-builder{display:grid;gap:14px!important}
+.partner-form-step{padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--soft)}
+.partner-step-head{display:flex;align-items:center;gap:11px;margin-bottom:13px}
+.partner-step-head>span{width:29px;height:29px;display:grid;place-items:center;border-radius:9px;background:var(--cyan);color:#06191c;font-weight:1000;font-size:11px}
+.partner-step-head strong{display:block;font-size:12px}
+.partner-step-head small{display:block;margin-top:2px;color:var(--muted);font-size:9px}
+.partner-mode-help{margin-top:9px;padding:10px 11px;border-radius:11px;background:var(--panel);color:var(--muted);font-size:9px;line-height:1.45}
+.partner-rate-box{padding:13px;border:1px solid var(--line);border-radius:13px;background:var(--panel)}
+.partner-rate-box>label{display:block;margin-bottom:7px;font-weight:900}
+.partner-rate-box>small{display:block;margin-top:6px;color:var(--muted);font-size:8px}
+.partner-custom-rule{grid-column:1/-1;padding:10px 12px;border-radius:11px;background:rgba(40,217,229,.08);border:1px solid rgba(40,217,229,.18);font-size:9px;color:var(--muted)}
+.partner-add-service{width:100%;min-height:45px}
+.partner-config-divider{margin:20px 0 16px!important}
+
+/* Configured tariffs grouped by purpose */
+.partner-config-groups{display:grid;gap:14px}
+.partner-config-section{border:1px solid var(--line);border-radius:16px;background:var(--panel);overflow:hidden}
+.partner-config-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;background:var(--soft);border-bottom:1px solid var(--line)}
+.partner-config-section-head strong{font-size:12px}
+.partner-config-section-head small{color:var(--muted);font-size:8px}
+.partner-config-table{display:grid}
+.partner-config-row{display:grid;grid-template-columns:minmax(150px,1.3fr) minmax(130px,.8fr) minmax(130px,.8fr);align-items:center;gap:12px;padding:12px 15px;border-bottom:1px solid var(--line)}
+.partner-config-row:last-child{border-bottom:0}
+.partner-config-label strong{display:block;font-size:11px}
+.partner-config-label small{display:block;margin-top:3px;color:var(--muted);font-size:8px}
+.partner-config-value{font:900 17px Rajdhani,sans-serif;color:var(--cyan)}
+.partner-config-value.muted{color:var(--muted)}
+.partner-config-cell{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.partner-service-menu{position:relative}
+.partner-service-menu>summary{list-style:none;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);border-radius:9px;background:var(--soft);font-weight:1000;font-size:16px}
+.partner-service-menu>summary::-webkit-details-marker{display:none}
+.partner-service-menu[open]>summary{border-color:rgba(40,217,229,.35);color:var(--cyan)}
+.partner-service-menu-panel{position:absolute;right:0;top:35px;z-index:12;min-width:145px;padding:6px;border:1px solid var(--line);border-radius:11px;background:var(--panel);box-shadow:0 14px 35px rgba(0,0,0,.16)}
+.partner-service-menu-panel button{width:100%;justify-content:flex-start;min-height:32px;padding:7px 9px!important;font-size:9px!important}
+.partner-config-empty{padding:18px;color:var(--muted);font-size:9px;text-align:center}
+.partner-danger-zone{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:16px;padding:14px;border:1px solid rgba(245,91,91,.20);border-radius:14px;background:rgba(245,91,91,.04)}
+.partner-danger-zone strong{display:block;font-size:10px}
+.partner-danger-zone small{display:block;margin-top:3px;color:var(--muted);font-size:8px}
+@media(max-width:760px){
+ .partner-config-row{grid-template-columns:1fr}
+ .partner-config-cell{justify-content:flex-start}
+ .partner-danger-zone{align-items:stretch;flex-direction:column}
+}
+
 /* Partner admin cleanup */
 .partner-config-editor{overflow:visible!important}
 .partner-config-divider{height:1px;background:var(--line);margin:24px 0 18px}
@@ -2047,7 +2094,7 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
  .partner-service-row>.btn{width:100%}
  .partner-directory-card{position:static!important}
 }
-</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js?v=20261019-8" defer></script></head><body>
+</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js?v=20261019-9" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
  <button id="theme" class="theme-toggle sidebar-theme-top" type="button" data-label="Changer de thème" aria-label="Passer en mode clair" aria-pressed="false"><span class="theme-icon sun">☀</span><span class="theme-track"><span class="theme-knob"></span></span><span class="theme-icon moon">◐</span></button>
@@ -2338,60 +2385,70 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
    <div class="card partner-config-editor">
     <div class="panel-heading"><div><span class="tag">CONTRAT</span><h3>Configurer le partenaire</h3></div></div>
     <div id="partnerServiceSelectedPartner" class="partner-selected-banner">Sélectionnez un partenaire dans la liste à gauche.</div>
-    <form id="partnerServiceForm" class="form">
+    <form id="partnerServiceForm" class="form partner-service-builder">
      <select id="partnerServicePartner" class="hidden" required><option value="">Choisir le partenaire</option></select>
 
-     <label>Type de prestation</label>
-     <div id="partnerServiceTypePicker" class="partner-type-picker" role="radiogroup" aria-label="Type de prestation">
-       <label><input type="radio" name="partnerServiceType" value="totale" checked/><span>Réparation totale</span></label>
-       <label><input type="radio" name="partnerServiceType" value="moteur"/><span>Réparation moteur</span></label>
-       <label><input type="radio" name="partnerServiceType" value="custom"/><span>Customisation</span></label>
-     </div>
+     <section class="partner-form-step">
+      <div class="partner-step-head"><span>1</span><div><strong>Prestation</strong><small>Choisissez ce que couvre le partenariat.</small></div></div>
+      <div id="partnerServiceTypePicker" class="partner-type-picker" role="radiogroup" aria-label="Type de prestation">
+        <label><input type="radio" name="partnerServiceType" value="totale" checked/><span>Réparation totale</span></label>
+        <label><input type="radio" name="partnerServiceType" value="moteur"/><span>Réparation moteur</span></label>
+        <label><input type="radio" name="partnerServiceType" value="custom"/><span>Customisation</span></label>
+      </div>
+     </section>
 
-     <label>Type de véhicule / règlement</label>
-     <select id="partnerServiceBillingMode" required>
-       <option value="weekly_invoice">Véhicule entreprise — déclaration / fin de semaine</option>
-       <option value="direct_discount">Véhicule personnel — tarif direct</option>
-     </select>
-     <div id="partnerServiceModeHelp" class="notice">Véhicule entreprise : la prestation est déclarée et réglée en fin de semaine.</div>
+     <section class="partner-form-step">
+      <div class="partner-step-head"><span>2</span><div><strong>Usage</strong><small>Personnel = paiement direct. Entreprise = déclaration fin de semaine.</small></div></div>
+      <select id="partnerServiceBillingMode" required>
+        <option value="weekly_invoice">Véhicule entreprise — déclaration / fin de semaine</option>
+        <option value="direct_discount">Véhicule personnel — tarif direct</option>
+      </select>
+      <div id="partnerServiceModeHelp" class="partner-mode-help">Véhicule entreprise : la prestation est déclarée et réglée en fin de semaine.</div>
+     </section>
 
-     <div id="partnerCompanyFixedPrice">
-       <label>Tarif réparation entreprise</label>
-       <div class="partner-money-input"><input id="partnerServicePartnerPrice" type="number" min="0" step="1" placeholder="Ex. 600"/><span>$</span></div>
-     </div>
+     <section class="partner-form-step">
+      <div class="partner-step-head"><span>3</span><div><strong>Tarif</strong><small>Renseignez uniquement les tarifs concernés.</small></div></div>
 
-     <div id="partnerPersonalFixedPrices" class="hidden partner-personal-rates">
-       <div>
-         <label>Réparation perso — Employés</label>
-         <div class="partner-money-input"><input id="partnerServiceEmployeePrice" type="number" min="0" step="1" inputmode="numeric" placeholder="Ex. 500"/><span>$</span></div>
-       </div>
-       <div>
-         <label>Réparation perso — Direction</label>
-         <div class="partner-money-input"><input id="partnerServiceDirectionPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="Ex. 1"/><span>$</span></div>
-       </div>
-       <small>Les deux tarifs peuvent être différents. Laissez vide si un groupe n’a pas de tarif personnel.</small>
-     </div>
+      <div id="partnerCompanyFixedPrice">
+        <label>Tarif réparation entreprise</label>
+        <div class="partner-money-input"><input id="partnerServicePartnerPrice" type="number" min="0" step="1" placeholder="Ex. 600"/><span>$</span></div>
+      </div>
 
-     <div id="partnerCustomConfig" class="hidden partner-custom-config">
-       <div id="partnerCustomGenericRate" class="hidden"></div>
+      <div id="partnerPersonalFixedPrices" class="hidden partner-personal-rates">
+        <div class="partner-rate-box">
+          <label>Employés</label>
+          <div class="partner-money-input"><input id="partnerServiceEmployeePrice" type="number" min="0" step="1" inputmode="numeric" placeholder="Ex. 500"/><span>$</span></div>
+          <small>Réparation véhicule personnel</small>
+        </div>
+        <div class="partner-rate-box">
+          <label>Direction</label>
+          <div class="partner-money-input"><input id="partnerServiceDirectionPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="Ex. 1"/><span>$</span></div>
+          <small>Réparation véhicule personnel</small>
+        </div>
+      </div>
 
-       <div id="partnerPersonalCustomRates" class="hidden partner-personal-rates">
-         <div>
-           <label>Custom perso — Employés</label>
-           <div class="partner-percent-input"><input id="partnerServiceEmployeeDiscountPercent" type="number" min="0" max="100" step="1" inputmode="numeric" placeholder="Ex. 10"/><span>%</span></div>
-         </div>
-         <div>
-           <label>Custom perso — Direction</label>
-           <div class="partner-percent-input"><input id="partnerServiceDirectionDiscountPercent" type="number" min="0" max="100" step="1" inputmode="numeric" placeholder="Ex. 20"/><span>%</span></div>
-         </div>
-         <small>La remise s’applique uniquement sur la marge : marge = prix usine × 2,5, plafonnée à 10 000 $, puis réduction sur cette marge. Les Customisations sont toujours payées immédiatement.</small>
-       </div>
-     </div>
+      <div id="partnerCustomConfig" class="hidden partner-custom-config">
+        <div id="partnerCustomGenericRate" class="hidden"></div>
+        <div id="partnerPersonalCustomRates" class="hidden partner-personal-rates">
+          <div class="partner-rate-box">
+            <label>Employés</label>
+            <div class="partner-percent-input"><input id="partnerServiceEmployeeDiscountPercent" type="number" min="0" max="100" step="1" inputmode="numeric" placeholder="Ex. 10"/><span>%</span></div>
+            <small>Réduction sur la marge Custom</small>
+          </div>
+          <div class="partner-rate-box">
+            <label>Direction</label>
+            <div class="partner-percent-input"><input id="partnerServiceDirectionDiscountPercent" type="number" min="0" max="100" step="1" inputmode="numeric" placeholder="Ex. 20"/><span>%</span></div>
+            <small>Réduction sur la marge Custom</small>
+          </div>
+          <div class="partner-custom-rule">Custom = paiement immédiat · remise appliquée uniquement sur la marge · marge plafonnée à 10 000 $.</div>
+        </div>
+      </div>
+     </section>
 
-     <button class="btn" type="submit">Ajouter la prestation</button>
+     <button class="btn partner-add-service" type="submit">+ Ajouter cette prestation</button>
     </form>
     <div class="partner-config-divider"></div>
-    <div class="partner-inline-heading"><div><span class="tag">PRESTATIONS</span><h3>Prestations configurées</h3></div><small>Les actions sur le partenaire sont dans la liste à gauche.</small></div>
+    <div class="partner-inline-heading"><div><span class="tag">PRESTATIONS</span><h3>Tarifs configurés</h3></div><small>Les tarifs sont classés automatiquement par usage.</small></div>
     <div id="managerPartnerCatalog">Sélectionnez un partenaire.</div>
    </div>
   </div>
