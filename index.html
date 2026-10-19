@@ -1575,6 +1575,76 @@ body.light .news-card .btn.secondary{
 .partner-directory-menu-actions .partner-directory-danger{color:#e66d77;border-color:rgba(230,109,119,.28)}
 .partner-directory-empty{padding:18px 10px;text-align:center;font-size:11px;color:var(--muted)}
 @media(max-width:900px){.partner-directory-list{max-height:300px}}
+
+/* Partner admin cleanup */
+.partner-config-editor{overflow:visible!important}
+.partner-config-divider{height:1px;background:var(--line);margin:24px 0 18px}
+.partner-inline-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:10px}
+.partner-inline-heading h3{margin:7px 0 0!important}
+.partner-inline-heading>small{color:var(--muted);font-size:9px;text-align:right}
+#partnerCustomModeWrap{display:grid;gap:10px}
+#partnerCustomModeWrap.hidden{display:none!important}
+#partnerFixedModeNote{margin:0!important}
+.partner-service-list{margin-top:4px!important}
+.selected-partner-config{padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+.selected-partner-config:after{display:none!important}
+.selected-partner-config>.partner-catalog-head{display:none!important}
+.partner-service-row{grid-template-columns:minmax(0,1fr) auto auto auto!important}
+.partner-service-row>.btn{min-height:34px!important;padding:7px 10px!important;font-size:9px!important}
+
+/* Real checkboxes: several groups can be selected at once. */
+.partner-access-option{
+  padding:12px!important;
+  display:grid!important;
+  grid-template-columns:22px minmax(0,1fr)!important;
+  min-height:62px!important
+}
+.partner-access-option input{
+  position:static!important;
+  opacity:1!important;
+  pointer-events:auto!important;
+  width:20px!important;height:20px!important;
+  margin:0!important;padding:0!important;
+  appearance:none!important;
+  border:1px solid rgba(116,190,205,.38)!important;
+  border-radius:6px!important;
+  background:var(--panel)!important;
+  cursor:pointer
+}
+.partner-access-option input:checked{background:var(--cyan)!important;border-color:var(--cyan)!important}
+.partner-access-option input:checked:after{content:"✓";display:grid;place-items:center;width:100%;height:100%;color:#041216;font-size:12px;font-weight:1000}
+.partner-checkmark{display:none!important}
+.partner-access-copy{min-width:0}
+.partner-access-copy strong,.partner-access-copy small{display:block}
+.partner-access-copy small{margin-top:3px;color:var(--muted);font-size:8px}
+
+/* Light journal: no black cards when no cover is set. */
+body.light .news-card:not(.has-cover){
+  background:linear-gradient(145deg,#ffffff,#edf5f6)!important;
+  color:#17323b!important;
+  border-color:rgba(31,87,100,.14)!important
+}
+body.light .news-card:not(.has-cover) .muted{color:#698089!important}
+body.light .news-card:not(.has-cover) .btn.secondary{
+  background:#f7fafb!important;color:#17323b!important;border-color:rgba(35,89,101,.15)!important
+}
+
+/* Orders stay compact instead of becoming long cards. */
+.compact-order-card,.manager-order-compact{margin:0!important}
+.compact-order-card>summary,.manager-order-compact>summary{min-height:58px!important;padding:11px 14px!important}
+.compact-order-body{padding:12px 14px!important}
+.compact-order-body .timeline{margin:4px 0 10px!important}
+.manager-order-meta{grid-template-columns:repeat(4,minmax(0,1fr))!important;margin-top:2px!important}
+body.light .compact-order-card,body.light .manager-order-compact{
+  background:linear-gradient(145deg,#fff,#f5f9fa)!important;
+  border-color:rgba(31,87,100,.13)!important
+}
+@media(max-width:720px){
+  .partner-inline-heading{align-items:flex-start;flex-direction:column}
+  .partner-inline-heading>small{text-align:left}
+  .partner-service-row{grid-template-columns:1fr!important}
+  .manager-order-meta{grid-template-columns:1fr 1fr!important}
+}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
@@ -1844,6 +1914,7 @@ body.light .news-card .btn.secondary{
   <button type="button" class="partner-admin-tab active" data-partner-tab="summary" aria-selected="true">Résumé hebdomadaire</button>
   <button type="button" class="partner-admin-tab" data-partner-tab="configure" aria-selected="false">Configurer les partenaires</button>
   <button type="button" class="partner-admin-tab" data-partner-tab="history" aria-selected="false">Historique des prestations</button>
+ <button type="button" class="partner-admin-tab" data-partner-tab="requests" aria-selected="false">Demandes reçues</button>
  </div>
  <div class="partner-tab-panel" data-partner-panel="summary">
  <div class="partner-summary-intro"><strong>Bilan de la semaine</strong><p class="muted">Montants à facturer par partenaire, calculés à partir des prestations déclarées par les employés.</p></div>
@@ -1851,8 +1922,6 @@ body.light .news-card .btn.secondary{
  <div id="partnerWeeklyCards" class="partner-weekly-grid"></div>
  </div>
  <div class="partner-tab-panel hidden" data-partner-panel="configure">
- <div class="partner-config-intro"><strong>Gestion des contrats</strong><p class="muted">1. Créez un partenaire dans la colonne de gauche. 2. Sélectionnez-le. 3. Configurez ses prestations et les groupes autorisés.</p></div>
-
  <div id="partnerConfigZone" class="partner-admin-workspace">
   <aside class="card partner-directory-card">
    <div class="panel-heading"><div><span class="tag">PARTENAIRES</span><h3>Annuaire partenaires</h3></div></div>
@@ -1869,50 +1938,52 @@ body.light .news-card .btn.secondary{
    </div>
   </aside>
   <div class="partner-admin-main">
-   <div class="card">
-    <div class="panel-heading"><div><span class="tag">TARIFS</span><h3>Configurer les prestations</h3></div></div>
+   <div class="card partner-config-editor">
+    <div class="panel-heading"><div><span class="tag">CONTRAT</span><h3>Configurer le partenaire</h3></div></div>
     <div id="partnerServiceSelectedPartner" class="partner-selected-banner">Sélectionnez un partenaire dans la liste à gauche.</div>
     <form id="partnerServiceForm" class="form">
      <select id="partnerServicePartner" class="hidden" required><option value="">Choisir le partenaire</option></select>
-    <label>Type de prestation</label>
-    <div id="partnerServiceTypePicker" class="partner-type-picker" role="radiogroup" aria-label="Type de prestation">
-      <label><input type="radio" name="partnerServiceType" value="totale" checked/><span>Totale</span></label>
-      <label><input type="radio" name="partnerServiceType" value="moteur"/><span>Moteur</span></label>
-      <label><input type="radio" name="partnerServiceType" value="custom"/><span>Custom</span></label>
-    </div>
-    <div id="partnerFixedPriceFields">
-      <label>Prix partenaire</label>
-      <div class="partner-money-input"><input id="partnerServicePartnerPrice" type="number" min="0" step="1" required placeholder="Ex. 450"/><span>$</span></div>
-    </div>
-    <div id="partnerCustomConfig" class="hidden partner-custom-config">
-      <label>Réduction partenaire sur le prix d’usine</label>
-      <div class="partner-percent-input"><input id="partnerServiceDiscountPercent" type="number" min="0" max="100" step="1" value="10" inputmode="numeric"/><span>%</span></div>
-      <div class="partner-formula-card">
-        <small>FORMULE CUSTOM</small>
-        <strong>Prix usine remisé + marge</strong>
-        <p>La marge = prix usine remisé × 2,5 avec un plafond de <b>10 000 $</b>.</p>
-        <div class="partner-formula-example">Exemple 4 000 $ à −10 % → <b id="partnerCustomExample">12 600 $</b></div>
-      </div>
-    </div>
-    <div class="partner-access-heading"><label>À qui s’applique ce tarif ?</label><small id="partnerAccessCount">0 groupe sélectionné</small></div>
-    <div id="partnerAccessGroups" class="partner-access-grid">
-      <label class="partner-access-option"><input type="checkbox" value="all_staff"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Tous les employés</strong><small>Tous les grades</small></span></label>
-      <label class="partner-access-option"><input type="checkbox" value="mecanos"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Mécanos</strong><small>Novice · Intermédiaire · Expérimenté</small></span></label>
-      <label class="partner-access-option"><input type="checkbox" value="chef_equipe"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Chef d’équipe</strong><small>Chef d’équipe uniquement</small></span></label>
-      <label class="partner-access-option"><input type="checkbox" value="gestion"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Gestion</strong><small>RH · DRH</small></span></label>
-      <label class="partner-access-option"><input type="checkbox" value="direction"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Direction</strong><small>Assistante · Co-patron · Patron</small></span></label>
-    </div>
-    <label>Fonctionnement</label>
-    <select id="partnerServiceBillingMode" required>
-      <option value="weekly_invoice">À déclarer — règlement fin de semaine</option>
-      <option value="direct_discount">Fiche mémo — payé directement</option>
-    </select>
-    <div id="partnerServiceModeHelp" class="notice">Cette prestation devra être déclarée. Son prix sera ajouté au total du partenaire pour la facture de fin de semaine.</div>
-    <button class="btn" type="submit">Ajouter la prestation</button>
-   </form>
-   </div>
-   <div class="card partner-selected-services">
-    <div class="panel-heading"><div><span class="tag">CONFIGURATION</span><h3>Prestations du partenaire</h3></div></div>
+     <label>Type de prestation</label>
+     <div id="partnerServiceTypePicker" class="partner-type-picker" role="radiogroup" aria-label="Type de prestation">
+       <label><input type="radio" name="partnerServiceType" value="totale" checked/><span>Totale</span></label>
+       <label><input type="radio" name="partnerServiceType" value="moteur"/><span>Moteur</span></label>
+       <label><input type="radio" name="partnerServiceType" value="custom"/><span>Custom</span></label>
+     </div>
+     <div id="partnerFixedPriceFields">
+       <label>Prix partenaire</label>
+       <div class="partner-money-input"><input id="partnerServicePartnerPrice" type="number" min="0" step="1" required placeholder="Ex. 450"/><span>$</span></div>
+     </div>
+     <div id="partnerCustomConfig" class="hidden partner-custom-config">
+       <label>Réduction partenaire sur le prix d’usine</label>
+       <div class="partner-percent-input"><input id="partnerServiceDiscountPercent" type="number" min="0" max="100" step="1" value="10" inputmode="numeric"/><span>%</span></div>
+       <div class="partner-formula-card">
+         <small>FORMULE CUSTOM</small>
+         <strong>Prix usine remisé + marge</strong>
+         <p>La marge = prix usine remisé × 2,5 avec un plafond de <b>10 000 $</b>.</p>
+         <div class="partner-formula-example">Exemple 4 000 $ à −10 % → <b id="partnerCustomExample">12 600 $</b></div>
+       </div>
+     </div>
+     <div class="partner-access-heading"><label>À qui s’applique ce tarif ?</label><small id="partnerAccessCount">0 groupe sélectionné</small></div>
+     <div id="partnerAccessGroups" class="partner-access-grid">
+       <label class="partner-access-option"><input type="checkbox" value="all_staff"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Tous les employés</strong><small>Tous les grades</small></span></label>
+       <label class="partner-access-option"><input type="checkbox" value="mecanos"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Mécanos</strong><small>Novice · Intermédiaire · Expérimenté</small></span></label>
+       <label class="partner-access-option"><input type="checkbox" value="chef_equipe"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Chef d’équipe</strong><small>Chef d’équipe uniquement</small></span></label>
+       <label class="partner-access-option"><input type="checkbox" value="gestion"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Gestion</strong><small>RH · DRH</small></span></label>
+       <label class="partner-access-option"><input type="checkbox" value="direction"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Direction</strong><small>Assistante · Co-patron · Patron</small></span></label>
+     </div>
+     <div id="partnerFixedModeNote" class="notice">Totale et Moteur sont toujours à déclarer pour le règlement de fin de semaine.</div>
+     <div id="partnerCustomModeWrap" class="hidden">
+       <label>Utilisation du Custom</label>
+       <select id="partnerServiceBillingMode" required>
+         <option value="weekly_invoice">À déclarer — règlement fin de semaine</option>
+         <option value="direct_discount">Tarifs mémo — payé directement</option>
+       </select>
+       <div id="partnerServiceModeHelp" class="notice">Choisissez si ce Custom doit être déclaré en fin de semaine ou seulement servir de calcul dans Tarifs mémo.</div>
+     </div>
+     <button class="btn" type="submit">Ajouter la prestation</button>
+    </form>
+    <div class="partner-config-divider"></div>
+    <div class="partner-inline-heading"><div><span class="tag">PRESTATIONS</span><h3>Prestations configurées</h3></div><small>Les actions sur le partenaire sont dans la liste à gauche.</small></div>
     <div id="managerPartnerCatalog">Sélectionnez un partenaire.</div>
    </div>
   </div>
@@ -1924,9 +1995,11 @@ body.light .news-card .btn.secondary{
   <div id="managerPartnerDeclarations">Chargement...</div>
  </div>
  </div>
- <div class="card">
-  <div class="panel-heading"><div><span class="tag">DEMANDES</span><h3>Demandes de partenariat reçues</h3></div></div>
-  <div id="managerRequests">Chargement...</div>
+ <div class="partner-tab-panel hidden" data-partner-panel="requests">
+  <div class="card">
+   <div class="panel-heading"><div><span class="tag">DEMANDES</span><h3>Demandes de partenariat reçues</h3></div></div>
+   <div id="managerRequests">Chargement...</div>
+  </div>
  </div>
  </div>
 
