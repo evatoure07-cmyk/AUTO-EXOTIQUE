@@ -2047,7 +2047,7 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
  .partner-service-row>.btn{width:100%}
  .partner-directory-card{position:static!important}
 }
-</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js?v=20261019-7" defer></script></head><body>
+</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js?v=20261019-8" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
  <button id="theme" class="theme-toggle sidebar-theme-top" type="button" data-label="Changer de thème" aria-label="Passer en mode clair" aria-pressed="false"><span class="theme-icon sun">☀</span><span class="theme-track"><span class="theme-knob"></span></span><span class="theme-icon moon">◐</span></button>
@@ -2223,7 +2223,7 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
           </tbody>
         </table>
       </div>
-      <p class="muted mo-help">Une ligne par entreprise : réparations personnelles et customisations personnelles ont un tarif Employés et un tarif Direction séparés. Les véhicules entreprise restent dans Déclaration partenaires.</p>
+      <p class="muted mo-help">Une ligne par entreprise : réparations personnelles et customisations personnelles ont un tarif Employés et un tarif Direction séparés. Pour les Customisations, la réduction s’applique uniquement sur la marge. Elles sont toujours payées immédiatement.</p>
     </div>
   </div>
 </div></section>
@@ -2373,16 +2373,7 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
      </div>
 
      <div id="partnerCustomConfig" class="hidden partner-custom-config">
-       <div id="partnerCustomGenericRate">
-         <label>Réduction Custom entreprise</label>
-         <div class="partner-percent-input"><input id="partnerServiceDiscountPercent" type="number" min="0" max="100" step="1" value="10" inputmode="numeric"/><span>%</span></div>
-         <div class="partner-formula-card">
-           <small>VÉHICULE ENTREPRISE</small>
-           <strong>Custom déclaré en fin de semaine</strong>
-           <p>La réduction est appliquée au tarif Custom avant la facturation partenaire.</p>
-           <div class="partner-formula-example">Exemple 4 000 $ à −10 % → <b id="partnerCustomExample">12 600 $</b></div>
-         </div>
-       </div>
+       <div id="partnerCustomGenericRate" class="hidden"></div>
 
        <div id="partnerPersonalCustomRates" class="hidden partner-personal-rates">
          <div>
@@ -2393,7 +2384,7 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
            <label>Custom perso — Direction</label>
            <div class="partner-percent-input"><input id="partnerServiceDirectionDiscountPercent" type="number" min="0" max="100" step="1" inputmode="numeric" placeholder="Ex. 20"/><span>%</span></div>
          </div>
-         <small>Les remises perso peuvent être différentes entre Employés et Direction.</small>
+         <small>La remise s’applique uniquement sur la marge : marge = prix usine × 2,5, plafonnée à 10 000 $, puis réduction sur cette marge. Les Customisations sont toujours payées immédiatement.</small>
        </div>
      </div>
 
