@@ -850,7 +850,7 @@ let selectedAdminPartnerId=null;
 
 const partnerGroupLabels={
  all_staff:'Tous les employés',
- mecanos:'Mécanos',
+ mecanos:'Employés',
  chef_equipe:'Chef d’équipe',
  gestion:'Gestion',
  direction:'Direction'
@@ -1507,7 +1507,7 @@ async function loadManagerPartners(){
              await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
            }catch(err){remove.disabled=false;siteToast('Suppression impossible : '+err.message,'error')}
          };
-         row.append(toggle,remove);
+         const serviceActions=document.createElement('div');serviceActions.className='partner-service-actions';serviceActions.append(toggle,remove);row.append(serviceActions);
        }
        list.append(row);
      }
