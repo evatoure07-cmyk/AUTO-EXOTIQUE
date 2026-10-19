@@ -111,7 +111,7 @@ async function refresh(){
   if(el('orderLogin'))el('orderLogin').parentElement.style.display=connected?'none':'flex';
   if(el('signOut'))el('signOut').style.display=connected?'inline-flex':'none';
   if(!connected&&el('authFeedback'))el('authFeedback').textContent='';
-  await Promise.all([loadOrders(),loadNotifications(),loadStaff(),loadNews(),loadMyProfile(),managerRefresh()]);
+  await Promise.all([loadOrders(),loadNotifications(),loadStaff(),loadNews(),loadMyProfile(),loadStaffDashboard(),managerRefresh()]);
 }
 
 function initials(name){
@@ -125,9 +125,13 @@ function avatarNode(profile,className='profile-avatar-large'){
 }
 function updateSidebarProfile(){
   const connected=!!account;
+  const employeeConnected=connected&&account.role!=='client';
   const quick=el('quickLogin'),user=el('sidebarUser');
   if(quick)quick.classList.toggle('hidden',connected);
   if(user)user.classList.toggle('hidden',!connected);
+  el('staffSidebarNav')?.classList.toggle('hidden',!employeeConnected);
+  el('staffAdminLink')?.classList.toggle('hidden',!employeeConnected||!managerRoles.includes(account?.role));
+  el('staffDashboardAdminLink')?.classList.toggle('hidden',!employeeConnected||!managerRoles.includes(account?.role));
   if(!connected)return;
   const full=(myProfile?.first_name||account.first_name||'')+' '+(myProfile?.last_name||account.last_name||'');
   if(el('sidebarUserName'))el('sidebarUserName').textContent=full.trim()||'Mon profil';
@@ -354,6 +358,66 @@ function renderNotifications(){
     item.append(kindTag,title,body,date);list.append(item);
   }
 }
+async function loadStaffDashboard(){
+  const statsBox=el('staffDashboardStats'),ordersBox=el('staffPendingOrders'),countBox=el('staffPendingCount'),badge=el('staffPendingBadge');
+  if(!statsBox||!ordersBox)return;
+  if(!account||account.role==='client'){
+    statsBox.replaceChildren();ordersBox.replaceChildren();
+    if(countBox)countBox.textContent='0';
+    badge?.classList.add('hidden');
+    if(location.hash.startsWith('#/dashboard'))location.hash='#/espace';
+    return;
+  }
+  try{
+    const data=await rpc('ae_staff_dashboard',{p_token:token});
+    const full=((myProfile?.first_name||account.first_name||'')+' '+(myProfile?.last_name||account.last_name||'')).trim();
+    if(el('staffDashboardIdentity'))el('staffDashboardIdentity').textContent=full+' · '+(roleLabels[account.role]||account.role);
+
+    statsBox.replaceChildren();
+    [['Commandes à prendre',data.pending_count],['Livrées aujourd’hui',data.delivered_today],['Employés en service',data.on_duty]].forEach(([label,value])=>{
+      const card=document.createElement('div');card.className='stat-card';
+      const strong=document.createElement('strong');strong.textContent=String(value||0);
+      const span=document.createElement('span');span.textContent=label;
+      card.append(strong,span);statsBox.append(card);
+    });
+
+    const pending=Number(data.pending_count||0);
+    if(countBox)countBox.textContent=String(pending);
+    if(badge){badge.textContent=String(pending);badge.classList.toggle('hidden',pending===0)}
+
+    ordersBox.replaceChildren();
+    if(!data.orders?.length){
+      const empty=document.createElement('div');empty.className='news-empty';
+      const copy=document.createElement('div');copy.className='news-empty-copy';
+      const kicker=document.createElement('span');kicker.className='news-empty-kicker';kicker.textContent='À jour';
+      const title=document.createElement('h3');title.textContent='Aucune commande en attente.';
+      copy.append(kicker,title);empty.append(copy);ordersBox.append(empty);
+      return;
+    }
+
+    for(const order of data.orders){
+      const row=document.createElement('div');row.className='staff-order-row';
+      const id=document.createElement('div');id.className='staff-order-id';id.textContent='AE-'+String(order.id).padStart(4,'0');
+      const main=document.createElement('div');main.className='staff-order-main';
+      const strong=document.createElement('strong');strong.textContent=order.customer;
+      const small=document.createElement('small');small.textContent=(order.phone||'sans téléphone')+' · '+order.quantity+' kit(s) · '+new Date(order.created_at).toLocaleString('fr-FR');
+      main.append(strong,small);
+      const side=document.createElement('div');
+      const total=document.createElement('div');total.className='staff-order-total';total.textContent=money(order.quantity*order.unit_price);
+      side.append(total);
+      if(managerRoles.includes(account.role)){
+        const manage=document.createElement('button');manage.type='button';manage.className='btn secondary';manage.style.marginTop='8px';manage.textContent='Gérer';
+        manage.onclick=()=>{location.hash='#/dashboard';activateAdminTab('orders')};
+        side.append(manage);
+      }
+      row.append(id,main,side);ordersBox.append(row);
+    }
+  }catch(err){
+    ordersBox.textContent='Tableau de bord indisponible : '+err.message;
+    badge?.classList.add('hidden');
+  }
+}
+
 async function loadNotifications(){
   const list=el('notificationsList'),badge=el('notificationBadge');if(!list||!badge)return;
   if(!token||!account){
@@ -451,7 +515,14 @@ async function loadNews(){
   const box=el('newsList');if(!box)return;
   try{
     const news=await rpc('ae_public_news');box.replaceChildren();
-    if(!news?.length){const c=document.createElement('article');c.className='card';c.innerHTML='<span class="tag">JOURNAL</span><h3>Le journal arrive bientôt</h3><p class="muted">La direction pourra publier ici les annonces, événements et nouveautés.</p>';box.append(c);return}
+    if(!news?.length){
+      const empty=document.createElement('div');empty.className='news-empty';
+      const copy=document.createElement('div');copy.className='news-empty-copy';
+      const kicker=document.createElement('span');kicker.className='news-empty-kicker';kicker.textContent='Aucune publication';
+      const title=document.createElement('h3');title.textContent='Le journal est à jour.';
+      const mark=document.createElement('div');mark.className='news-empty-mark';mark.textContent='AE';
+      copy.append(kicker,title);empty.append(copy,mark);box.append(empty);return
+    }
     for(const n of news){
       const card=document.createElement('article');card.className='card news-card reveal'+(n.cover_url?' has-cover':'');
       if(n.cover_url)card.style.backgroundImage='url("'+String(n.cover_url).replaceAll('"','')+'")';
@@ -471,7 +542,7 @@ async function loadNews(){
 
 el('loginForm')?.addEventListener('submit',async e=>{
   e.preventDefault();const i=e.currentTarget.querySelectorAll('input');
-  try{const result=await rpc('ae_login',{p_login:i[0].value,p_password:i[1].value});saveSession(result);feedback('Connexion réussie.');await refresh();location.hash=account?.must_change_password?'#/profil':(account?.role==='client'?'#/commander':'#/direction')}
+  try{const result=await rpc('ae_login',{p_login:i[0].value,p_password:i[1].value});saveSession(result);feedback('Connexion réussie.');await refresh();location.hash=account?.must_change_password?'#/profil':(account?.role==='client'?'#/commander':'#/dashboard')}
   catch(err){feedback('Connexion impossible : '+err.message)}
 });
 
@@ -748,7 +819,7 @@ async function managerRefresh(){
       box.append(title,p);
       if(item.status==='En attente de préparation'){
         const delivered=document.createElement('button');delivered.className='btn secondary';delivered.textContent='Livrée';
-        delivered.onclick=async()=>{try{await rpc('ae_manager_update_order',{p_token:token,p_id:item.id,p_status:'Livrée',p_reason:null});triggerDiscordSync(false).catch(()=>{});await Promise.all([managerRefresh(),loadNotifications()])}catch(err){siteToast(err.message)}};
+        delivered.onclick=async()=>{try{await rpc('ae_manager_update_order',{p_token:token,p_id:item.id,p_status:'Livrée',p_reason:null});triggerDiscordSync(false).catch(()=>{});await Promise.all([managerRefresh(),loadNotifications(),loadStaffDashboard()])}catch(err){siteToast(err.message)}};
         const cancel=document.createElement('button');cancel.className='btn secondary';cancel.textContent='Annuler';
         cancel.onclick=async()=>{const reason=await sitePrompt('Indiquez pourquoi cette commande est annulée.',{title:'Annuler AE-'+String(item.id).padStart(4,'0'),label:'Motif d’annulation',required:true,confirmText:'Annuler la commande'});if(!reason)return;try{await rpc('ae_manager_update_order',{p_token:token,p_id:item.id,p_status:'Annulée',p_reason:reason});siteToast('Commande annulée.','success');triggerDiscordSync(false).catch(()=>{});await Promise.all([managerRefresh(),loadNotifications()])}catch(err){siteToast(err.message,'error')}};
         box.append(delivered,cancel);
