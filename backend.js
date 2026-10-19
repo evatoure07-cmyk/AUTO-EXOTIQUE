@@ -334,56 +334,57 @@ async function loadOrders(){
  const box=el('ordersList');if(!box)return;
  box.replaceChildren();
  if(!token||!account){
- const c=document.createElement('div');c.className='card';c.textContent='Connectez-vous pour retrouver vos commandes.';box.append(c);return;
+   const card=document.createElement('div');card.className='card';card.textContent='Connectez-vous pour retrouver vos commandes.';box.append(card);return;
  }
  try{
- const data=await rpc('ae_list_my_orders',{p_token:token});
- if(!data?.length){const c=document.createElement('div');c.className='card';c.textContent='Aucune commande pour le moment.';box.append(c);return}
- for(const o of data){
- const card=document.createElement('article');card.className='order-card reveal';
- const top=document.createElement('div');top.className='order-top';
- const left=document.createElement('div');
- const tag=document.createElement('span');tag.className='tag';tag.textContent=o.status;
- const title=document.createElement('h3');title.textContent='Commande AE-'+String(o.id).padStart(4,'0');
- const meta=document.createElement('p');meta.className='muted';meta.textContent=o.quantity+' kit(s) moteur standard · '+new Date(o.created_at).toLocaleString('fr-FR');
- left.append(tag,title,meta);
- const total=document.createElement('div');total.className='order-total';total.textContent=money(o.quantity*o.unit_price);
- top.append(left,total);
+   const data=await rpc('ae_list_my_orders',{p_token:token});
+   if(!data?.length){const card=document.createElement('div');card.className='card';card.textContent='Aucune commande pour le moment.';box.append(card);return}
+   for(const o of data){
+     const details=document.createElement('details');details.className='compact-order-card';
+     const summary=document.createElement('summary');
+     const main=document.createElement('div');main.className='compact-order-main';
+     const title=document.createElement('strong');title.textContent='AE-'+String(o.id).padStart(4,'0');
+     const meta=document.createElement('small');meta.textContent=o.quantity+' kit(s) moteur · '+new Date(o.created_at).toLocaleString('fr-FR');
+     main.append(title,meta);
+     const status=document.createElement('span');status.className='compact-order-status';status.textContent=o.status;
+     const total=document.createElement('div');total.className='compact-order-total';total.textContent=money(o.quantity*o.unit_price);
+     const chevron=document.createElement('span');chevron.className='order-chevron';chevron.textContent='⌄';
+     summary.append(main,status,total,chevron);
 
- const timeline=document.createElement('div');timeline.className='timeline';
- const steps=[
- ['Commande reçue',true],
- ['En attente de préparation',o.status!=='Annulée' || true],
- [o.status==='Annulée'?'Annulée':'Livrée',o.status==='Livrée'||o.status==='Annulée']
- ];
- steps.forEach((s,i)=>{
- const st=document.createElement('div');st.className='timeline-step';
- if(i===0|| (i===1 && o.status!=='Annulée') || (i===2&&s[1]))st.classList.add('done');
- if(i===2&&o.status==='Annulée')st.classList.add('cancelled');
- st.textContent=s[0];timeline.append(st);
- });
+     const body=document.createElement('div');body.className='compact-order-body';
+     const timeline=document.createElement('div');timeline.className='timeline';
+     const steps=[
+       ['Commande reçue',true],
+       ['En attente de préparation',o.status!=='Annulée'],
+       [o.status==='Annulée'?'Annulée':'Livrée',o.status==='Livrée'||o.status==='Annulée']
+     ];
+     steps.forEach((step,index)=>{
+       const node=document.createElement('div');node.className='timeline-step';
+       if(index===0||(index===1&&step[1])||(index===2&&step[1]))node.classList.add('done');
+       if(index===2&&o.status==='Annulée')node.classList.add('cancelled');
+       node.textContent=step[0];timeline.append(node);
+     });
+     body.append(timeline);
 
- card.append(top,timeline);
- if(o.contact_phone||o.billing_iban){
- const billing=document.createElement('p');billing.className='small muted';
- billing.textContent='Facturation : '+(o.contact_phone||'—')+' · IBAN '+(o.billing_iban||'—');
- card.append(billing);
- }
- if(o.status==='En attente de préparation'){
- const payment=document.createElement('p');payment.className='notice';
- payment.textContent='La préparation commence après règlement de la facture reçue.';
- card.append(payment);
- }
- if(o.cancel_reason){const reason=document.createElement('p');reason.className='notice';reason.textContent='Motif d’annulation : '+o.cancel_reason;card.append(reason)}
- const actions=document.createElement('div');actions.className='auth-actions';
- const reorder=document.createElement('button');reorder.className='btn secondary';reorder.type='button';reorder.textContent='Recommander';
- reorder.onclick=()=>{if(window.setOrderQty)window.setOrderQty(o.quantity);cartQuantity=o.quantity;saveCart();renderCart();location.hash='#/commander'};
- actions.append(reorder);card.append(actions);box.append(card);
- }
- revealNow();
- }catch(err){const c=document.createElement('div');c.className='card';c.textContent='Impossible de charger les commandes : '+err.message;box.append(c)}
+     if(o.contact_phone||o.billing_iban){
+       const billing=document.createElement('p');billing.className='small muted';
+       billing.textContent='Facturation : '+(o.contact_phone||'—')+' · IBAN '+(o.billing_iban||'—');body.append(billing);
+     }
+     if(o.status==='En attente de préparation'){
+       const payment=document.createElement('p');payment.className='notice';payment.textContent='La préparation commence après règlement de la facture reçue.';body.append(payment);
+     }
+     if(o.cancel_reason){
+       const reason=document.createElement('p');reason.className='notice';reason.textContent='Motif d’annulation : '+o.cancel_reason;body.append(reason);
+     }
+     const actions=document.createElement('div');actions.className='auth-actions';
+     const reorder=document.createElement('button');reorder.className='btn secondary';reorder.type='button';reorder.textContent='Recommander';
+     reorder.onclick=()=>{if(window.setOrderQty)window.setOrderQty(o.quantity);cartQuantity=o.quantity;saveCart();renderCart();location.hash='#/commander'};
+     actions.append(reorder);body.append(actions);
+
+     details.append(summary,body);box.append(details);
+   }
+ }catch(err){const card=document.createElement('div');card.className='card';card.textContent='Impossible de charger les commandes : '+err.message;box.append(card)}
 }
-
 
 let notificationCache=[];
 let notificationFilter='all';
@@ -844,6 +845,7 @@ el('newsForm')?.addEventListener('submit',async e=>{
 
 let partnerCatalog=[];
 let partnerMemoCatalog=[];
+let selectedAdminPartnerId=null;
 
 const partnerGroupLabels={
  all_staff:'Tous les employés',
@@ -1231,6 +1233,14 @@ function updatePartnerServiceTypeUI(){
  el('partnerCustomConfig')?.classList.toggle('hidden',!custom);
  if(el('partnerServicePartnerPrice'))el('partnerServicePartnerPrice').required=!custom;
  if(el('partnerServiceDiscountPercent'))el('partnerServiceDiscountPercent').required=custom;
+ const mode=el('partnerServiceBillingMode');
+ if(mode){
+   const memoOption=[...mode.options].find(o=>o.value==='direct_discount');
+   if(memoOption)memoOption.disabled=!custom;
+   if(!custom&&mode.value==='direct_discount')mode.value='weekly_invoice';
+ }
+ const help=el('partnerServiceModeHelp');
+ if(help&&!custom)help.textContent='Totale et Moteur sont uniquement des prestations à déclarer pour le règlement de fin de semaine.';
  renderPartnerAdminCustomExample();
 }
 
@@ -1252,102 +1262,60 @@ async function loadManagerPartners(){
  const catalogBox=el('managerPartnerCatalog'),declarationsBox=el('managerPartnerDeclarations');
  if(!catalogBox||!declarationsBox)return;
  if(!account||!managerRoles.includes(account.role)){
-   catalogBox.replaceChildren();declarationsBox.replaceChildren();return;
- }
-
- const weekStart=ensurePartnerWeek();
- el('partnerConfigZone')?.classList.toggle('hidden',!canConfigurePartners());
-
- try{
-   const [catalog,summary,rows]=await Promise.all([
-     rpc('ae_manager_partner_catalog',{p_token:token}),
-     rpc('ae_manager_partner_week_summary',{p_token:token,p_week_start:weekStart}),
-     rpc('ae_manager_partner_declarations',{p_token:token,p_week_start:weekStart,p_limit:1000})
-   ]);
-
-   const servicePartner=el('partnerServicePartner');
-   if(servicePartner){
-     const current=servicePartner.value;
-     servicePartner.replaceChildren();
-     const first=document.createElement('option');first.value='';first.textContent='Choisir le partenaire';servicePartner.append(first);
-     for(const partner of (catalog||[]).filter(p=>p.active)){
-       const option=document.createElement('option');option.value=String(partner.id);option.textContent=partner.name;servicePartner.append(option);
-     }
-     if([...servicePartner.options].some(o=>o.value===current))servicePartner.value=current;
-   }
-
-   const stats=el('partnerWeekStats');
-   if(stats){
-     stats.replaceChildren();
-     [
-       ['Prestations déclarées',Number(summary?.declaration_count||0).toLocaleString('fr-FR')],
-       ['À facturer fin de semaine',money(summary?.weekly_due_total||0)],
-       ['Partenaires concernés',String((summary?.partners||[]).length)]
-     ].forEach(([label,value])=>{
-       const card=document.createElement('div');card.className='stat-card';
-       const strong=document.createElement('strong');strong.textContent=value;
-       const span=document.createElement('span');span.textContent=label;card.append(strong,span);stats.append(card);
-     });
-   }
-
-   const weekly=el('partnerWeeklyCards');
-   if(weekly){
-     weekly.replaceChildren();
-     if(!(summary?.partners||[]).length){
-       const empty=document.createElement('div');empty.className='card';empty.innerHTML='<strong>Aucune prestation cette semaine.</strong><p class="muted">Les déclarations à règlement fin de semaine apparaîtront ici.</p>';weekly.append(empty);
-     }else{
-       for(const partner of summary.partners){
-         const card=document.createElement('article');card.className='partner-week-card';
-         const head=document.createElement('div');head.className='partner-week-card-head';
-         const left=document.createElement('div');const h4=document.createElement('h4');h4.textContent=partner.partner_name;
-         const count=document.createElement('span');count.className='partner-week-count';count.textContent=Number(partner.prestation_count||0)+' prestation(s)';left.append(h4,count);head.append(left);
-         const moneyGrid=document.createElement('div');moneyGrid.className='partner-week-money';
-         const due=document.createElement('div');due.innerHTML='<small>À facturer fin de semaine</small><strong>'+money(partner.weekly_due_total)+'</strong>';
-         moneyGrid.append(due);card.append(head,moneyGrid);weekly.append(card);
-       }
-     }
-   }
-
    catalogBox.replaceChildren();
-   if(!(catalog||[]).length){
-     const p=document.createElement('p');p.className='muted';p.textContent='Aucun partenaire configuré.';catalogBox.append(p);
+   if(!selectedPartner){
+     const p=document.createElement('p');p.className='muted';p.textContent='Sélectionnez un partenaire dans la colonne de gauche.';catalogBox.append(p);
    }else{
-     for(const partner of catalog){
-       const item=document.createElement('article');item.className='partner-catalog-item';
-       const head=document.createElement('div');head.className='partner-catalog-head';
-       const title=document.createElement('div');const h4=document.createElement('h4');h4.textContent=partner.name;
-       const state=document.createElement('small');state.className='muted';state.textContent=partner.active?'Actif':'Inactif';title.append(h4,state);head.append(title);
-       if(canConfigurePartners()){
-         const toggle=document.createElement('button');toggle.type='button';toggle.className='btn secondary';toggle.textContent=partner.active?'Désactiver':'Réactiver';
-         toggle.onclick=async()=>{try{await rpc('ae_manager_set_partner_active',{p_token:token,p_partner_id:partner.id,p_active:!partner.active});siteToast('Partenaire mis à jour.','success');await Promise.all([loadManagerPartners(),loadPartnerDeclarations()])}catch(err){siteToast(err.message,'error')}};
-         head.append(toggle);
-       }
-       const list=document.createElement('div');list.className='partner-service-list';
-       if(!(partner.services||[]).length){const p=document.createElement('p');p.className='muted';p.textContent='Aucune prestation configurée.';list.append(p)}
-       for(const service of partner.services||[]){
-         const row=document.createElement('div');row.className='partner-service-row';
-         const copy=document.createElement('div');
-         const strong=document.createElement('strong');strong.textContent=partnerServiceTypeLabels[service.service_type]||service.name;
-         const small=document.createElement('small');
-         small.textContent=(service.billing_mode==='weekly_invoice'?'À déclarer · règlement fin de semaine':'Fiche mémo · payé directement')+(service.active?'':' · inactive');
-         const audience=document.createElement('div');audience.className='partner-service-audience';
-         for(const group of service.access_groups||[]){const chip=document.createElement('span');chip.textContent=partnerGroupLabels[group]||group;audience.append(chip)}
-         copy.append(strong,small,audience);
-         const price=document.createElement('div');price.className='partner-service-price';
-         price.textContent=service.service_type==='custom'?'−'+Number(service.discount_percent||0)+' %':money(service.partner_price);
-         const mode=document.createElement('span');mode.className='partner-service-mode';mode.textContent=service.billing_mode==='weekly_invoice'?'Fin de semaine':'Mémo direct';
-         row.append(copy,price,mode);
-         if(canConfigurePartners()){
-           const toggle=document.createElement('button');toggle.type='button';toggle.className='btn secondary';toggle.textContent=service.active?'Désactiver':'Réactiver';
-           toggle.onclick=async()=>{try{await rpc('ae_manager_set_partner_service_active',{p_token:token,p_service_id:service.id,p_active:!service.active});siteToast('Prestation mise à jour.','success');await Promise.all([loadManagerPartners(),loadPartnerDeclarations()])}catch(err){siteToast(err.message,'error')}};
-           row.append(toggle);
-         }
-         list.append(row);
-       }
-       item.append(head,list);catalogBox.append(item);
-     }
-   }
+     const item=document.createElement('article');item.className='partner-catalog-item selected-partner-config';
+     const head=document.createElement('div');head.className='partner-catalog-head';
+     const title=document.createElement('div');
+     const h4=document.createElement('h4');h4.textContent=selectedPartner.name;
+     const state=document.createElement('small');state.className='muted';state.textContent=selectedPartner.active?'Partenaire actif':'Partenaire inactif';
+     title.append(h4,state);head.append(title);
 
+     if(canConfigurePartners()){
+       const actions=document.createElement('div');actions.className='partner-config-actions';
+       const disable=document.createElement('button');disable.type='button';disable.className='btn secondary';disable.textContent=selectedPartner.active?'Désactiver':'Réactiver';
+       disable.onclick=async()=>{try{await rpc('ae_manager_set_partner_active',{p_token:token,p_partner_id:selectedPartner.id,p_active:!selectedPartner.active});siteToast('Partenaire mis à jour.','success');await Promise.all([loadManagerPartners(),loadPartnerDeclarations()])}catch(err){siteToast(err.message,'error')}};
+       const remove=document.createElement('button');remove.type='button';remove.className='btn danger';remove.textContent='Supprimer';
+       remove.onclick=async()=>{
+         if(!await siteConfirm('Supprimer définitivement '+selectedPartner.name+' ?',{title:'Supprimer le partenaire',confirmText:'Supprimer'}))return;
+         try{
+           await rpc('ae_manager_delete_partner',{p_token:token,p_partner_id:selectedPartner.id});
+           selectedAdminPartnerId=null;
+           siteToast('Partenaire supprimé.','success');
+           await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
+         }catch(err){siteToast('Suppression impossible : '+err.message,'error')}
+       };
+       actions.append(disable,remove);head.append(actions);
+     }
+
+     const list=document.createElement('div');list.className='partner-service-list';
+     if(!(selectedPartner.services||[]).length){
+       const p=document.createElement('p');p.className='muted';p.textContent='Aucune prestation configurée pour ce partenaire.';list.append(p);
+     }
+     for(const service of selectedPartner.services||[]){
+       const row=document.createElement('div');row.className='partner-service-row';
+       const copy=document.createElement('div');
+       const strong=document.createElement('strong');strong.textContent=partnerServiceTypeLabels[service.service_type]||service.name;
+       const small=document.createElement('small');
+       small.textContent=(service.billing_mode==='weekly_invoice'?'À déclarer · règlement fin de semaine':'Custom mémo · payé directement')+(service.active?'':' · inactive');
+       const audience=document.createElement('div');audience.className='partner-service-audience';
+       for(const group of service.access_groups||[]){const chip=document.createElement('span');chip.textContent=partnerGroupLabels[group]||group;audience.append(chip)}
+       copy.append(strong,small,audience);
+       const price=document.createElement('div');price.className='partner-service-price';
+       price.textContent=service.service_type==='custom'?'−'+Number(service.discount_percent||0)+' %':money(service.partner_price);
+       const mode=document.createElement('span');mode.className='partner-service-mode';mode.textContent=service.billing_mode==='weekly_invoice'?'Fin de semaine':'Mémo Custom';
+       row.append(copy,price,mode);
+       if(canConfigurePartners()){
+         const toggle=document.createElement('button');toggle.type='button';toggle.className='btn secondary';toggle.textContent=service.active?'Désactiver':'Réactiver';
+         toggle.onclick=async()=>{try{await rpc('ae_manager_set_partner_service_active',{p_token:token,p_service_id:service.id,p_active:!service.active});siteToast('Prestation mise à jour.','success');await Promise.all([loadManagerPartners(),loadPartnerDeclarations()])}catch(err){siteToast(err.message,'error')}};
+         row.append(toggle);
+       }
+       list.append(row);
+     }
+     item.append(head,list);catalogBox.append(item);
+   }
    declarationsBox.replaceChildren();
    if(!rows?.length){
      const p=document.createElement('p');p.className='muted';p.textContent='Aucune prestation à règlement fin de semaine déclarée sur cette semaine.';declarationsBox.append(p);
@@ -1376,13 +1344,14 @@ el('partnerServiceBillingMode')?.addEventListener('change',()=>{
  const help=el('partnerServiceModeHelp');if(!help)return;
  help.textContent=el('partnerServiceBillingMode').value==='weekly_invoice'
    ?'Cette prestation devra être déclarée. Son prix sera ajouté au total du partenaire pour la facture de fin de semaine.'
-   :'Ce tarif sera seulement visible dans la fiche mémo des employés concernés. Ils paient directement et aucune déclaration n’est créée.';
+   :'Ce calcul Custom sera disponible dans Tarifs mémo pour les groupes cochés. Aucun montant n’est ajouté à la facture de fin de semaine.';
 });
 el('partnerCreateForm')?.addEventListener('submit',async e=>{
  e.preventDefault();if(!canConfigurePartners()){siteToast('Accès direction requis.','error');return}
  const button=e.currentTarget.querySelector('[type=submit]');if(button)button.disabled=true;
  try{
-   await rpc('ae_manager_create_partner',{p_token:token,p_name:el('partnerCreateName').value.trim()});
+   const created=await rpc('ae_manager_create_partner',{p_token:token,p_name:el('partnerCreateName').value.trim()});
+   selectedAdminPartnerId=Number(created.id);
    e.currentTarget.reset();siteToast('Partenaire créé.','success');
    await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
  }catch(err){siteToast('Création impossible : '+err.message,'error')}
@@ -1392,6 +1361,7 @@ el('partnerServiceForm')?.addEventListener('submit',async e=>{
  e.preventDefault();if(!canConfigurePartners()){siteToast('Accès direction requis.','error');return}
  const groups=selectedPartnerAccessGroups();
  if(!groups.length){siteToast('Choisissez au moins un groupe concerné.','error');return}
+ if(!selectedAdminPartnerId){siteToast('Sélectionnez un partenaire dans la liste à gauche.','error');return}
  const type=selectedPartnerServiceType();
  const partnerPrice=type==='custom'?0:Math.trunc(Number(el('partnerServicePartnerPrice')?.value));
  const discount=type==='custom'?Math.trunc(Number(el('partnerServiceDiscountPercent')?.value)):0;
@@ -1401,7 +1371,7 @@ el('partnerServiceForm')?.addEventListener('submit',async e=>{
  try{
    await rpc('ae_manager_add_partner_service',{
      p_token:token,
-     p_partner_id:Number(el('partnerServicePartner').value),
+     p_partner_id:Number(selectedAdminPartnerId),
      p_service_type:type,
      p_partner_price:partnerPrice,
      p_discount_percent:discount,
@@ -1628,18 +1598,32 @@ async function managerRefresh(){
  const orders=await rpc('ae_manager_list_orders',{p_token:token});const orderBox=el('managerOrders');orderBox.replaceChildren();
  if(!orders?.length)orderBox.textContent='Aucune commande.';
  for(const item of orders||[]){
- const box=document.createElement('div');box.className='manager-item';
- const title=document.createElement('strong');title.textContent='AE-'+String(item.id).padStart(4,'0')+' — '+item.status;
- const p=document.createElement('p');p.textContent=item.customer+' · '+(item.phone||'sans téléphone')+' · IBAN '+(item.billing_iban||'—')+' · '+item.quantity+' kit(s) · '+money(item.quantity*item.unit_price);
- box.append(title,p);
- if(item.status==='En attente de préparation'){
- const delivered=document.createElement('button');delivered.className='btn secondary';delivered.textContent='Livrée';
- delivered.onclick=async()=>{try{await rpc('ae_manager_update_order',{p_token:token,p_id:item.id,p_status:'Livrée',p_reason:null});triggerDiscordSync(false).catch(()=>{});await Promise.all([managerRefresh(),loadNotifications(),loadStaffSpace()])}catch(err){siteToast(err.message)}};
- const cancel=document.createElement('button');cancel.className='btn secondary';cancel.textContent='Annuler';
- cancel.onclick=async()=>{const reason=await sitePrompt('Indiquez pourquoi cette commande est annulée.',{title:'Annuler AE-'+String(item.id).padStart(4,'0'),label:'Motif d’annulation',required:true,confirmText:'Annuler la commande'});if(!reason)return;try{await rpc('ae_manager_update_order',{p_token:token,p_id:item.id,p_status:'Annulée',p_reason:reason});siteToast('Commande annulée.','success');triggerDiscordSync(false).catch(()=>{});await Promise.all([managerRefresh(),loadNotifications()])}catch(err){siteToast(err.message,'error')}};
- box.append(delivered,cancel);
- }
- orderBox.append(box);
+   const details=document.createElement('details');details.className='manager-order-compact';
+   const summary=document.createElement('summary');
+   const main=document.createElement('div');main.className='compact-order-main';
+   const title=document.createElement('strong');title.textContent='AE-'+String(item.id).padStart(4,'0')+' · '+item.customer;
+   const meta=document.createElement('small');meta.textContent=item.quantity+' kit(s) moteur';
+   main.append(title,meta);
+   const status=document.createElement('span');status.className='compact-order-status';status.textContent=item.status;
+   const total=document.createElement('div');total.className='compact-order-total';total.textContent=money(item.quantity*item.unit_price);
+   const chevron=document.createElement('span');chevron.className='order-chevron';chevron.textContent='⌄';
+   summary.append(main,status,total,chevron);
+
+   const body=document.createElement('div');body.className='compact-order-body';
+   const info=document.createElement('div');info.className='manager-order-meta';
+   const addInfo=(label,value)=>{const div=document.createElement('div');const small=document.createElement('small');small.textContent=label;const strong=document.createElement('strong');strong.textContent=value;div.append(small,strong);info.append(div)};
+   addInfo('Client',item.customer||'—');addInfo('Téléphone',item.phone||'—');addInfo('Quantité',String(item.quantity));addInfo('Total',money(item.quantity*item.unit_price));
+   body.append(info);
+
+   if(item.status==='En attente de préparation'){
+     const actions=document.createElement('div');actions.className='manager-order-actions';
+     const delivered=document.createElement('button');delivered.type='button';delivered.className='btn secondary';delivered.textContent='Marquer livrée';
+     delivered.onclick=async()=>{try{await rpc('ae_manager_update_order',{p_token:token,p_id:item.id,p_status:'Livrée',p_reason:null});triggerDiscordSync(false).catch(()=>{});await Promise.all([managerRefresh(),loadNotifications(),loadStaffSpace()])}catch(err){siteToast(err.message)}};
+     const cancel=document.createElement('button');cancel.type='button';cancel.className='btn danger';cancel.textContent='Annuler';
+     cancel.onclick=async()=>{const reason=await sitePrompt('Indiquez pourquoi cette commande est annulée.',{title:'Annuler AE-'+String(item.id).padStart(4,'0'),label:'Motif d’annulation',required:true,confirmText:'Annuler la commande'});if(!reason)return;try{await rpc('ae_manager_update_order',{p_token:token,p_id:item.id,p_status:'Annulée',p_reason:reason});siteToast('Commande annulée.','success');triggerDiscordSync(false).catch(()=>{});await Promise.all([managerRefresh(),loadNotifications()])}catch(err){siteToast(err.message,'error')}};
+     actions.append(delivered,cancel);body.append(actions);
+   }
+   details.append(summary,body);orderBox.append(details);
  }
  }catch(err){el('managerOrders').textContent='Accès impossible : '+err.message}
 
@@ -1735,7 +1719,17 @@ async function managerRefresh(){
  await Promise.all([managerRefresh(),loadNotifications()]);
  }catch(err){siteToast(err.message,'error')}
  };
- actions.append(select,roleBtn,reset);body.append(actions);
+ const remove=document.createElement('button');remove.type='button';remove.className='btn danger';remove.textContent='Supprimer le compte';
+ remove.onclick=async()=>{
+   const ok=await siteConfirm('Supprimer le compte de '+emp.name+' ? La personne ne pourra plus se connecter mais son historique sera conservé.',{title:'Supprimer le compte employé',confirmText:'Supprimer'});
+   if(!ok)return;
+   try{
+     await rpc('ae_manager_delete_employee',{p_token:token,p_account_id:emp.account_id});
+     siteToast('Compte de '+emp.name+' supprimé.','success');
+     await Promise.all([managerRefresh(),loadStaff(),loadNotifications()]);
+   }catch(err){siteToast('Suppression impossible : '+err.message,'error')}
+ };
+ actions.append(select,roleBtn,reset,remove);body.append(actions);
 
  const historyBtn=document.createElement('button');historyBtn.type='button';historyBtn.className='btn secondary';historyBtn.style.marginTop='10px';historyBtn.textContent='Historique des grades';
  const history=document.createElement('div');history.className='role-history hidden';
@@ -1783,7 +1777,7 @@ async function managerRefresh(){
  try{
  const rows=await rpc('ae_manager_audit_log',{p_token:token,p_limit:100});const box=el('managerAuditLog');box.replaceChildren();
  if(!rows?.length)box.textContent='Aucune action enregistrée.';
- const actionLabels={employee_created:'Compte employé créé',password_reset:'Mot de passe réinitialisé',role_changed:'Grade modifié',profile_updated:'Profil employé modifié',order_status_changed:'Statut de commande modifié',discord_order_delivered:'Commande livrée depuis Discord',discord_order_cancelled:'Commande annulée depuis Discord',internal_announcement_created:'Annonce interne publiée',internal_announcement_deleted:'Annonce interne supprimée'};
+ const actionLabels={employee_created:'Compte employé créé',employee_deleted:'Compte employé supprimé',password_reset:'Mot de passe réinitialisé',role_changed:'Grade modifié',profile_updated:'Profil employé modifié',order_status_changed:'Statut de commande modifié',discord_order_delivered:'Commande livrée depuis Discord',discord_order_cancelled:'Commande annulée depuis Discord',internal_announcement_created:'Annonce interne publiée',internal_announcement_deleted:'Annonce interne supprimée'};
  for(const row of rows||[]){
  const item=document.createElement('div');item.className='audit-item';
  const strong=document.createElement('strong');strong.textContent=actionLabels[row.action]||row.action;
