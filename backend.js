@@ -1365,26 +1365,38 @@ async function loadManagerPartners(){
    const weekly=el('partnerWeeklyCards');
    if(weekly){
      weekly.replaceChildren();
-     if(!(summary?.partners||[]).length){
-       const empty=document.createElement('div');empty.className='card';
-       const strong=document.createElement('strong');strong.textContent='Aucune prestation cette semaine.';
-       const p=document.createElement('p');p.className='muted';p.textContent='Les déclarations à règlement fin de semaine apparaîtront ici.';
-       empty.append(strong,p);weekly.append(empty);
-     }else{
-       for(const partner of summary.partners){
-         const card=document.createElement('article');card.className='partner-week-card';
-         const head=document.createElement('div');head.className='partner-week-card-head';
-         const left=document.createElement('div');
-         const h4=document.createElement('h4');h4.textContent=partner.partner_name;
-         const count=document.createElement('span');count.className='partner-week-count';count.textContent=Number(partner.prestation_count||0)+' prestation(s)';
-         left.append(h4,count);head.append(left);
-         const moneyGrid=document.createElement('div');moneyGrid.className='partner-week-money';
-         const due=document.createElement('div');
-         const small=document.createElement('small');small.textContent='À facturer fin de semaine';
-         const strong=document.createElement('strong');strong.textContent=money(partner.weekly_due_total);
-         due.append(small,strong);moneyGrid.append(due);card.append(head,moneyGrid);weekly.append(card);
-       }
+     const summaries=new Map((summary?.partners||[]).map(p=>[Number(p.partner_id),p]));
+     const allPartners=(catalog||[]).filter(p=>p.active);
+     const table=document.createElement('div');table.className='partner-week-table';
+     const header=document.createElement('div');header.className='partner-week-table-row partner-week-table-header';
+     for(const heading of ['Entreprise','Prestations','Total à facturer']){
+       const cell=document.createElement('span');cell.textContent=heading;header.append(cell);
      }
+     table.append(header);
+     let grandTotal=0;
+     for(const partner of allPartners){
+       const entry=summaries.get(Number(partner.id))||
+         (summary?.partners||[]).find(p=>p.partner_name===partner.name);
+       const count=Number(entry?.prestation_count||0);
+       const due=Number(entry?.weekly_due_total||0);
+       grandTotal+=due;
+       const row=document.createElement('div');row.className='partner-week-table-row';
+       const name=document.createElement('strong');name.textContent=partner.name;
+       const quantity=document.createElement('span');quantity.textContent=String(count);
+       const amount=document.createElement('strong');amount.textContent=money(due);
+       if(count===0){row.classList.add('partner-week-zero');amount.classList.add('muted')}
+       row.append(name,quantity,amount);table.append(row);
+     }
+     if(!allPartners.length){
+       const empty=document.createElement('p');empty.className='muted';empty.textContent='Aucun partenaire actif à afficher.';table.append(empty);
+     }else{
+       const totalRow=document.createElement('div');totalRow.className='partner-week-table-row partner-week-table-total';
+       const label=document.createElement('strong');label.textContent='TOTAL DE LA SEMAINE';
+       const count=document.createElement('span');count.textContent=String(summary?.declaration_count||0);
+       const total=document.createElement('strong');total.textContent=money(grandTotal);
+       totalRow.append(label,count,total);table.append(totalRow);
+     }
+     weekly.append(table);
    }
 
    catalogBox.replaceChildren();
