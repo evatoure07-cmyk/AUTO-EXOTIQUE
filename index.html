@@ -1090,9 +1090,9 @@ body.light .footer{
 .partner-service-list{display:grid;gap:8px;margin-top:12px}.partner-service-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:12px;align-items:center;padding:12px;border-radius:13px;background:var(--soft);border:1px solid transparent}.partner-service-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.partner-service-actions .btn{white-space:nowrap}
 .partner-service-row small{display:block;color:var(--muted);margin-top:3px}.partner-service-price{font:800 18px Rajdhani,sans-serif;color:var(--cyan);white-space:nowrap}
 .partner-service-mode{font-size:9px;font-weight:900;padding:6px 8px;border-radius:999px;background:var(--panel);border:1px solid var(--line);white-space:nowrap}
-.partner-admin-declaration{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}.partner-admin-declaration:last-child{border-bottom:0}.partner-admin-declaration small{display:block;color:var(--muted);margin-top:4px}.partner-admin-amount{text-align:right}.partner-admin-amount strong{display:block;font:800 19px Rajdhani,sans-serif;color:var(--cyan)}.partner-admin-amount small{font-size:9px}
+.partner-admin-declaration{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}.partner-admin-declaration:last-child{border-bottom:0}.partner-admin-declaration small{display:block;color:var(--muted);margin-top:4px}.partner-admin-amount{text-align:right}.partner-admin-amount strong{display:block;font:800 19px Rajdhani,sans-serif;color:var(--cyan)}.partner-admin-amount small{font-size:9px}.partner-history-actions{display:flex;justify-content:flex-end;gap:8px}.partner-history-actions .btn{white-space:nowrap}.partner-clear-history{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding:13px 14px;border:1px solid rgba(245,91,91,.18);border-radius:14px;background:rgba(245,91,91,.04)}.partner-clear-history-copy strong{display:block;font-size:11px}.partner-clear-history-copy small{display:block;margin-top:3px;color:var(--muted);font-size:9px}
 @media(max-width:900px){.partner-declaration-layout,.partner-admin-config{grid-template-columns:1fr}.partner-declare-card{position:static}.partner-weekly-grid{grid-template-columns:1fr 1fr}.partner-admin-hero{align-items:flex-start;flex-direction:column}}
-@media(max-width:650px){.partner-weekly-grid{grid-template-columns:1fr}.partner-service-row,.partner-admin-declaration{grid-template-columns:1fr}.partner-service-actions{width:100%}.partner-service-actions .btn{flex:1}.partner-service-price,.partner-admin-amount{text-align:left}.partner-week-control{width:100%}.partner-week-control label{width:100%}.partner-week-control input{width:100%}}
+@media(max-width:650px){.partner-weekly-grid{grid-template-columns:1fr}.partner-service-row,.partner-admin-declaration{grid-template-columns:1fr}.partner-service-actions{width:100%}.partner-service-actions .btn{flex:1}.partner-history-actions{justify-content:flex-start}.partner-history-actions .btn{width:100%}.partner-clear-history{align-items:stretch;flex-direction:column}.partner-service-price,.partner-admin-amount{text-align:left}.partner-week-control{width:100%}.partner-week-control label{width:100%}.partner-week-control input{width:100%}}
 
 .checkout-login-notice{
   display:grid;
@@ -2047,7 +2047,7 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
  .partner-service-row>.btn{width:100%}
  .partner-directory-card{position:static!important}
 }
-</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js?v=20261019-2" defer></script></head><body>
+</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js?v=20261019-3" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
  <button id="theme" class="theme-toggle sidebar-theme-top" type="button" data-label="Changer de thème" aria-label="Passer en mode clair" aria-pressed="false"><span class="theme-icon sun">☀</span><span class="theme-track"><span class="theme-knob"></span></span><span class="theme-icon moon">◐</span></button>
@@ -2379,9 +2379,9 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
        <label>Utilisation du Custom</label>
        <select id="partnerServiceBillingMode" required>
          <option value="weekly_invoice">À déclarer — règlement fin de semaine</option>
-         <option value="direct_discount">Tarifs mémo — payé directement</option>
+         <option value="direct_discount">Tarifs MO — payé directement</option>
        </select>
-       <div id="partnerServiceModeHelp" class="notice">Choisissez si ce Custom doit être déclaré en fin de semaine ou seulement servir de calcul dans Tarifs mémo.</div>
+       <div id="partnerServiceModeHelp" class="notice">Choisissez si ce Custom doit être déclaré en fin de semaine ou seulement servir de calcul dans Tarifs MO.</div>
      </div>
      <button class="btn" type="submit">Ajouter la prestation</button>
     </form>
