@@ -1172,7 +1172,7 @@ function updatePartnerServiceTypeUI(){
  }
  const help=el('partnerServiceModeHelp');
  if(help)help.textContent=mode?.value==='direct_discount'
-   ?'Ce Custom sera uniquement disponible dans Tarifs mémo pour les groupes cochés.'
+   ?'Ce Custom sera uniquement disponible dans Tarifs MO pour les groupes cochés.'
    :'Ce Custom devra être déclaré et sera ajouté au règlement de fin de semaine.';
  renderPartnerAdminCustomExample();
 }
@@ -1399,7 +1399,7 @@ async function loadManagerPartners(){
        const copy=document.createElement('div');
        const strong=document.createElement('strong');strong.textContent=partnerServiceTypeLabels[service.service_type]||service.name;
        const small=document.createElement('small');
-       small.textContent=(service.billing_mode==='weekly_invoice'?'À déclarer · règlement fin de semaine':'Custom mémo · payé directement')+(service.active?'':' · inactive');
+       small.textContent=(service.billing_mode==='weekly_invoice'?'À déclarer · règlement fin de semaine':'Tarif MO · payé directement')+(service.active?'':' · inactive');
        const audience=document.createElement('div');audience.className='partner-service-audience';
        for(const group of service.access_groups||[]){
          const chip=document.createElement('span');chip.textContent=partnerGroupLabels[group]||group;audience.append(chip);
@@ -1436,6 +1436,25 @@ async function loadManagerPartners(){
      }
 
      item.append(list);
+     if(canConfigurePartners()){
+       const clearWrap=document.createElement('div');clearWrap.className='partner-clear-history';
+       const clearCopy=document.createElement('div');clearCopy.className='partner-clear-history-copy';
+       const clearTitle=document.createElement('strong');clearTitle.textContent='Historique du partenaire';
+       const clearHelp=document.createElement('small');clearHelp.textContent='Supprime définitivement toutes les prestations enregistrées pour '+selectedPartner.name+'.';
+       clearCopy.append(clearTitle,clearHelp);
+       const clearButton=document.createElement('button');clearButton.type='button';clearButton.className='btn danger';clearButton.textContent='Vider l’historique';
+       clearButton.onclick=async()=>{
+         const ok=await siteConfirm('Supprimer définitivement tout l’historique de prestations de '+selectedPartner.name+' ? Cette action est irréversible.',{title:'Vider l’historique',confirmText:'Tout supprimer'});
+         if(!ok)return;
+         clearButton.disabled=true;
+         try{
+           const count=await rpc('ae_manager_clear_partner_history',{p_token:token,p_partner_id:selectedPartner.id});
+           siteToast(Number(count||0)+' prestation(s) supprimée(s) de l’historique.','success');
+           await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
+         }catch(err){clearButton.disabled=false;siteToast('Suppression impossible : '+err.message,'error')}
+       };
+       clearWrap.append(clearCopy,clearButton);item.append(clearWrap);
+     }
      catalogBox.append(item);
    }
 
@@ -1454,7 +1473,23 @@ async function loadManagerPartners(){
        const due=document.createElement('div');due.className='partner-admin-amount';
        const dueLabel=document.createElement('small');dueLabel.textContent='À facturer';
        const dueValue=document.createElement('strong');dueValue.textContent=money(row.weekly_due_total);
-       due.append(dueLabel,dueValue);item.append(copy,due);declarationsBox.append(item);
+       due.append(dueLabel,dueValue);item.append(copy,due);
+       if(canConfigurePartners()){
+         const actions=document.createElement('div');actions.className='partner-history-actions';
+         const remove=document.createElement('button');remove.type='button';remove.className='btn danger';remove.textContent='Supprimer';
+         remove.onclick=async()=>{
+           const ok=await siteConfirm('Supprimer cette prestation de l’historique de '+row.partner_name+' ? Cette action est irréversible.',{title:'Supprimer de l’historique',confirmText:'Supprimer'});
+           if(!ok)return;
+           remove.disabled=true;
+           try{
+             await rpc('ae_manager_delete_partner_declaration',{p_token:token,p_declaration_id:row.id});
+             siteToast('Prestation supprimée de l’historique.','success');
+             await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
+           }catch(err){remove.disabled=false;siteToast('Suppression impossible : '+err.message,'error')}
+         };
+         actions.append(remove);item.append(actions);
+       }
+       declarationsBox.append(item);
      }
    }
  }catch(err){
@@ -1470,7 +1505,7 @@ el('partnerServiceBillingMode')?.addEventListener('change',()=>{
  const help=el('partnerServiceModeHelp');if(!help)return;
  help.textContent=el('partnerServiceBillingMode').value==='weekly_invoice'
    ?'Ce Custom devra être déclaré et sera ajouté au règlement de fin de semaine.'
-   :'Ce Custom sera uniquement disponible dans Tarifs mémo pour les groupes cochés.';
+   :'Ce Custom sera uniquement disponible dans Tarifs MO pour les groupes cochés.';
 });
 el('partnerCreateForm')?.addEventListener('submit',async e=>{
  e.preventDefault();if(!canConfigurePartners()){siteToast('Accès direction requis.','error');return}
