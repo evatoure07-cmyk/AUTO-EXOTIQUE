@@ -621,7 +621,7 @@ async function loadStaff(){
     }
 
     for(const s of staff){
-      const card=document.createElement('article');card.className='team-face-card reveal';
+      const card=document.createElement('article');card.className='team-face-card';
       const photo=document.createElement('div');photo.className='team-face-photo';
       if(s.avatar_url){
         const img=document.createElement('img');img.src=s.avatar_url;img.alt='Photo de '+s.name;photo.append(img);
