@@ -1282,6 +1282,9 @@ document.querySelectorAll('[data-partner-tab]').forEach(button=>{
 });
 setPartnerAdminTab('configure');
 
+el('partnerDirectorySearch')?.addEventListener('input',()=>loadManagerPartners());
+el('partnerShowInactive')?.addEventListener('change',()=>loadManagerPartners());
+
 async function loadManagerPartners(){
  const catalogBox=el('managerPartnerCatalog');
  const declarationsBox=el('managerPartnerDeclarations');
@@ -1316,42 +1319,63 @@ async function loadManagerPartners(){
    }
    const selectedPartner=allPartners.find(partner=>Number(partner.id)===Number(selectedAdminPartnerId))||null;
 
+
    if(partnerList){
      partnerList.replaceChildren();
-     if(!activePartners.length){
-       const empty=document.createElement('p');empty.className='muted small';empty.textContent='Aucun partenaire. Créez-en un ci-dessous.';partnerList.append(empty);
+     const term=String(el('partnerDirectorySearch')?.value||'').trim().toLocaleLowerCase('fr');
+     const showInactive=el('partnerShowInactive')?.checked!==false;
+     const visible=allPartners.filter(partner=>
+       (!term||String(partner.name||'').toLocaleLowerCase('fr').includes(term)) &&
+       (showInactive||partner.active)
+     );
+     if(!visible.length){
+       const empty=document.createElement('p');empty.className='partner-directory-empty';
+       empty.textContent=allPartners.length?'Aucun partenaire ne correspond à votre recherche.':'Aucun partenaire. Créez-en un ci-dessous.';
+       partnerList.append(empty);
      }
-     for(const partner of allPartners){
+     for(const partner of visible){
        const row=document.createElement('div');
        row.className='partner-directory-row'+(Number(partner.id)===Number(selectedAdminPartnerId)?' active':'')+(partner.active?'':' is-inactive');
 
        const button=document.createElement('button');
-       button.type='button';
-       button.className='partner-directory-item';
+       button.type='button';button.className='partner-directory-item';
        const name=document.createElement('span');name.textContent=partner.name;
-       const count=document.createElement('small');count.textContent=(partner.active?'Actif':'Inactif')+' · '+(partner.services||[]).filter(service=>service.active).length+' prestation(s)';
+       const count=document.createElement('small');
+       count.textContent=(partner.active?'● Actif':'○ Désactivé')+' · '+(partner.services||[]).filter(service=>service.active).length+' prestation(s)';
        button.append(name,count);
        button.onclick=()=>{selectedAdminPartnerId=Number(partner.id);loadManagerPartners()};
        row.append(button);
 
        if(canConfigurePartners()){
-         const remove=document.createElement('button');
-         remove.type='button';
-         remove.className='partner-directory-delete';
-         remove.title='Supprimer '+partner.name;
-         remove.setAttribute('aria-label','Supprimer '+partner.name);
-         remove.textContent='×';
-         remove.onclick=async e=>{
-           e.stopPropagation();
+         const menu=document.createElement('details');menu.className='partner-directory-menu';
+         const trigger=document.createElement('summary');trigger.textContent='⋯';
+         trigger.setAttribute('aria-label','Options pour '+partner.name);
+         const actions=document.createElement('div');actions.className='partner-directory-menu-actions';
+         const toggle=document.createElement('button');toggle.type='button';toggle.className='btn secondary';
+         toggle.textContent=partner.active?'Désactiver ce partenaire':'Réactiver ce partenaire';
+         toggle.onclick=async()=>{
+           toggle.disabled=true;
+           try{
+             await rpc('ae_manager_set_partner_active',{p_token:token,p_partner_id:partner.id,p_active:!partner.active});
+             siteToast(partner.active?'Partenaire désactivé.':'Partenaire réactivé.','success');
+             await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
+           }catch(err){toggle.disabled=false;siteToast('Modification impossible : '+err.message,'error')}
+         };
+         const remove=document.createElement('button');remove.type='button';
+         remove.className='btn secondary partner-directory-danger';remove.textContent='Supprimer définitivement';
+         remove.onclick=async()=>{
            if(!await siteConfirm('Supprimer définitivement '+partner.name+' ?',{title:'Supprimer le partenaire',confirmText:'Supprimer'}))return;
+           remove.disabled=true;
            try{
              await rpc('ae_manager_delete_partner',{p_token:token,p_partner_id:partner.id});
              if(Number(selectedAdminPartnerId)===Number(partner.id))selectedAdminPartnerId=null;
              siteToast('Partenaire supprimé.','success');
              await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
-           }catch(err){siteToast('Suppression impossible : '+err.message,'error')}
+           }catch(err){remove.disabled=false;siteToast('Suppression impossible : '+err.message,'error')}
          };
-         row.append(remove);
+         actions.append(toggle,remove);
+         menu.append(trigger,actions);
+         row.append(menu);
        }
        partnerList.append(row);
      }
