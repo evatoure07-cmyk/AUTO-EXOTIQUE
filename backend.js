@@ -16,6 +16,29 @@ function saveSession(result){token=result?.token||'';account=result?.account||nu
 function money(v){return Number(v||0).toLocaleString('fr-FR')+' $'}
 function esc(v){return String(v??'')}
 
+function updateConnectedSpace(){
+  const connected=!!account;
+  el('connectedSpaceCard')?.classList.toggle('hidden',!connected);
+  el('disconnectedSpaceGrid')?.classList.toggle('hidden',connected);
+  el('accountStatus')?.classList.toggle('hidden',connected);
+
+  if(!connected)return;
+
+  const full=((myProfile?.first_name||account.first_name||'')+' '+(myProfile?.last_name||account.last_name||'')).trim();
+  if(el('connectedSpaceName'))el('connectedSpaceName').textContent=full||'Mon compte';
+  if(el('connectedSpaceMeta'))el('connectedSpaceMeta').textContent=(roleLabels[account.role]||account.role)+' · '+(myProfile?.login||account.login||'Compte Auto Exotic');
+
+  const avatar=el('connectedSpaceAvatar');
+  if(avatar){
+    avatar.replaceChildren();
+    if(myProfile?.avatar_url){const img=document.createElement('img');img.src=myProfile.avatar_url;img.alt='';avatar.append(img)}
+    else avatar.textContent=initials(full);
+  }
+
+  el('connectedOrdersLink')?.classList.toggle('hidden',account.role!=='client');
+  el('connectedAdminLink')?.classList.toggle('hidden',!managerRoles.includes(account.role));
+  if(el('authFeedback'))el('authFeedback').textContent='';
+}
 async function refresh(){
   if(token){
     try{
@@ -30,10 +53,11 @@ async function refresh(){
   document.body.classList.toggle('password-required',forcePassword);
   if(forcePassword&&!location.hash.startsWith('#/profil'))location.hash='#/profil';
   updateSidebarProfile();
+  updateConnectedSpace();
   if(el('submitOrder'))el('submitOrder').style.display=connected&&account.role==='client'?'inline-flex':'none';
   if(el('orderLogin'))el('orderLogin').parentElement.style.display=connected?'none':'flex';
   if(el('signOut'))el('signOut').style.display=connected?'inline-flex':'none';
-  if(connected)feedback('Connecté : '+account.first_name+' '+account.last_name+' — '+(roleLabels[account.role]||account.role));
+  if(!connected&&el('authFeedback'))el('authFeedback').textContent='';
   await Promise.all([loadOrders(),loadNotifications(),loadStaff(),loadNews(),loadMyProfile(),managerRefresh()]);
 }
 
@@ -306,13 +330,14 @@ async function loadStaff(){
       reviewSelect.replaceChildren();
       const first=document.createElement('option');first.value='';first.textContent='Choisir un employé';reviewSelect.append(first);
       for(const person of staff||[]){
+        if(account&&person.account_id===account.id)continue;
         const opt=document.createElement('option');opt.value=person.account_id;opt.textContent=person.name+' — '+(roleLabels[person.role]||person.role);reviewSelect.append(opt);
       }
       if([...reviewSelect.options].some(o=>o.value===current))reviewSelect.value=current;
     }
 
     const hint=el('reviewHint');
-    if(hint)hint.textContent=account?.role==='client'?'Choisissez un employé et une note de 1 à 5 étoiles.':'Vous devez être connecté avec un compte client pour noter un employé.';
+    if(hint)hint.textContent=account?'Choisissez un membre de l’équipe et une note de 1 à 5 étoiles.':'Connectez-vous avec votre compte pour laisser un avis.';
 
     const totalReviews=(staff||[]).reduce((sum,s)=>sum+Number(s.rating_count||0),0);
     const weighted=(staff||[]).reduce((sum,s)=>sum+Number(s.rating_avg||0)*Number(s.rating_count||0),0);
@@ -510,7 +535,7 @@ document.querySelectorAll('#reviewStars [data-rating]').forEach(button=>button.a
 }));
 el('reviewForm')?.addEventListener('submit',async e=>{
   e.preventDefault();
-  if(!account||account.role!=='client'){location.hash='#/espace';feedback('Connectez-vous avec un compte client pour laisser un avis.');return}
+  if(!account){location.hash='#/espace';feedback('Connectez-vous pour laisser un avis.');return}
   const staffId=el('reviewStaff')?.value;
   if(!staffId||selectedReviewRating<1){alert('Choisissez un employé et une note de 1 à 5 étoiles.');return}
   try{
