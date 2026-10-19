@@ -1074,7 +1074,7 @@ el('partnerDeclarationForm')?.addEventListener('submit',async e=>{
  if(custom&&factoryPrice<=0){siteToast('Indiquez le prix d’usine du custom.','error');return}
  const unitPrice=custom?calcCustomPartnerPrice(factoryPrice,chosen.service.discount_percent).final:Number(chosen.service.partner_price||0);
  const weeklyDue=unitPrice*quantity;
- const detail=custom?'\nPrix d’usine : '+money(factoryPrice)+' · réduction '+Number(chosen.service.discount_percent||0)+' %:'';
+ const detail=custom?'\nPrix d’usine : '+money(factoryPrice)+' · réduction '+Number(chosen.service.discount_percent||0)+' %':'';
  const message=chosen.partner.name+' — '+(partnerServiceTypeLabels[chosen.service.service_type]||chosen.service.name)+' × '+quantity+detail+'\nMontant ajouté à la facture de fin de semaine : '+money(weeklyDue);
  const ok=await siteConfirm(message,{title:'Confirmer la déclaration partenaire',confirmText:'Déclarer'});
  if(!ok)return;
