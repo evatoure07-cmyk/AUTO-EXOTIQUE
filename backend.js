@@ -1259,9 +1259,117 @@ el('partnerServiceDiscountPercent')?.addEventListener('input',renderPartnerAdmin
 updatePartnerServiceTypeUI();
 
 async function loadManagerPartners(){
- const catalogBox=el('managerPartnerCatalog'),declarationsBox=el('managerPartnerDeclarations');
+ const catalogBox=el('managerPartnerCatalog');
+ const declarationsBox=el('managerPartnerDeclarations');
+ const partnerList=el('managerPartnerList');
  if(!catalogBox||!declarationsBox)return;
- if(!account||!managerRoles.includes(account.role)){
+
+ const manager=!!account&&managerRoles.includes(account.role);
+ if(!manager){
+   catalogBox.replaceChildren();
+   declarationsBox.replaceChildren();
+   partnerList?.replaceChildren();
+   return;
+ }
+
+ const weekStart=ensurePartnerWeek();
+ el('partnerConfigZone')?.classList.toggle('hidden',!canConfigurePartners());
+
+ try{
+   const [catalog,summary,rows]=await Promise.all([
+     rpc('ae_manager_partner_catalog',{p_token:token}),
+     rpc('ae_manager_partner_week_summary',{p_token:token,p_week_start:weekStart}),
+     rpc('ae_manager_partner_declarations',{p_token:token,p_week_start:weekStart,p_limit:1000})
+   ]);
+
+   const activePartners=(catalog||[]).filter(partner=>partner.active);
+   if(selectedAdminPartnerId&&!activePartners.some(partner=>Number(partner.id)===Number(selectedAdminPartnerId))){
+     selectedAdminPartnerId=null;
+   }
+   if(!selectedAdminPartnerId&&activePartners.length){
+     selectedAdminPartnerId=Number(activePartners[0].id);
+   }
+   const selectedPartner=(catalog||[]).find(partner=>Number(partner.id)===Number(selectedAdminPartnerId))||null;
+
+   if(partnerList){
+     partnerList.replaceChildren();
+     if(!activePartners.length){
+       const empty=document.createElement('p');empty.className='muted small';empty.textContent='Aucun partenaire. Créez-en un ci-dessous.';partnerList.append(empty);
+     }
+     for(const partner of activePartners){
+       const button=document.createElement('button');
+       button.type='button';
+       button.className='partner-directory-item'+(Number(partner.id)===Number(selectedAdminPartnerId)?' active':'');
+       const name=document.createElement('span');name.textContent=partner.name;
+       const count=document.createElement('small');count.textContent=(partner.services||[]).filter(service=>service.active).length+' prestation(s)';
+       button.append(name,count);
+       button.onclick=()=>{selectedAdminPartnerId=Number(partner.id);loadManagerPartners()};
+       partnerList.append(button);
+     }
+   }
+
+   const servicePartner=el('partnerServicePartner');
+   if(servicePartner){
+     servicePartner.replaceChildren();
+     const first=document.createElement('option');first.value='';first.textContent='Choisir le partenaire';servicePartner.append(first);
+     for(const partner of activePartners){
+       const option=document.createElement('option');option.value=String(partner.id);option.textContent=partner.name;servicePartner.append(option);
+     }
+     if(selectedPartner)servicePartner.value=String(selectedPartner.id);
+   }
+
+   const selectedBanner=el('partnerServiceSelectedPartner');
+   if(selectedBanner){
+     selectedBanner.replaceChildren();
+     if(selectedPartner){
+       const label=document.createElement('span');label.textContent='Partenaire sélectionné : ';
+       const strong=document.createElement('strong');strong.textContent=selectedPartner.name;
+       selectedBanner.append(label,strong);
+     }else{
+       selectedBanner.textContent='Sélectionnez ou créez un partenaire.';
+     }
+   }
+
+   const stats=el('partnerWeekStats');
+   if(stats){
+     stats.replaceChildren();
+     [
+       ['Prestations déclarées',Number(summary?.declaration_count||0).toLocaleString('fr-FR')],
+       ['À facturer fin de semaine',money(summary?.weekly_due_total||0)],
+       ['Partenaires concernés',String((summary?.partners||[]).length)]
+     ].forEach(([label,value])=>{
+       const card=document.createElement('div');card.className='stat-card';
+       const strong=document.createElement('strong');strong.textContent=value;
+       const span=document.createElement('span');span.textContent=label;
+       card.append(strong,span);stats.append(card);
+     });
+   }
+
+   const weekly=el('partnerWeeklyCards');
+   if(weekly){
+     weekly.replaceChildren();
+     if(!(summary?.partners||[]).length){
+       const empty=document.createElement('div');empty.className='card';
+       const strong=document.createElement('strong');strong.textContent='Aucune prestation cette semaine.';
+       const p=document.createElement('p');p.className='muted';p.textContent='Les déclarations à règlement fin de semaine apparaîtront ici.';
+       empty.append(strong,p);weekly.append(empty);
+     }else{
+       for(const partner of summary.partners){
+         const card=document.createElement('article');card.className='partner-week-card';
+         const head=document.createElement('div');head.className='partner-week-card-head';
+         const left=document.createElement('div');
+         const h4=document.createElement('h4');h4.textContent=partner.partner_name;
+         const count=document.createElement('span');count.className='partner-week-count';count.textContent=Number(partner.prestation_count||0)+' prestation(s)';
+         left.append(h4,count);head.append(left);
+         const moneyGrid=document.createElement('div');moneyGrid.className='partner-week-money';
+         const due=document.createElement('div');
+         const small=document.createElement('small');small.textContent='À facturer fin de semaine';
+         const strong=document.createElement('strong');strong.textContent=money(partner.weekly_due_total);
+         due.append(small,strong);moneyGrid.append(due);card.append(head,moneyGrid);weekly.append(card);
+       }
+     }
+   }
+
    catalogBox.replaceChildren();
    if(!selectedPartner){
      const p=document.createElement('p');p.className='muted';p.textContent='Sélectionnez un partenaire dans la colonne de gauche.';catalogBox.append(p);
@@ -1276,7 +1384,14 @@ async function loadManagerPartners(){
      if(canConfigurePartners()){
        const actions=document.createElement('div');actions.className='partner-config-actions';
        const disable=document.createElement('button');disable.type='button';disable.className='btn secondary';disable.textContent=selectedPartner.active?'Désactiver':'Réactiver';
-       disable.onclick=async()=>{try{await rpc('ae_manager_set_partner_active',{p_token:token,p_partner_id:selectedPartner.id,p_active:!selectedPartner.active});siteToast('Partenaire mis à jour.','success');await Promise.all([loadManagerPartners(),loadPartnerDeclarations()])}catch(err){siteToast(err.message,'error')}};
+       disable.onclick=async()=>{
+         try{
+           await rpc('ae_manager_set_partner_active',{p_token:token,p_partner_id:selectedPartner.id,p_active:!selectedPartner.active});
+           if(selectedPartner.active)selectedAdminPartnerId=null;
+           siteToast('Partenaire mis à jour.','success');
+           await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
+         }catch(err){siteToast(err.message,'error')}
+       };
        const remove=document.createElement('button');remove.type='button';remove.className='btn danger';remove.textContent='Supprimer';
        remove.onclick=async()=>{
          if(!await siteConfirm('Supprimer définitivement '+selectedPartner.name+' ?',{title:'Supprimer le partenaire',confirmText:'Supprimer'}))return;
@@ -1301,21 +1416,34 @@ async function loadManagerPartners(){
        const small=document.createElement('small');
        small.textContent=(service.billing_mode==='weekly_invoice'?'À déclarer · règlement fin de semaine':'Custom mémo · payé directement')+(service.active?'':' · inactive');
        const audience=document.createElement('div');audience.className='partner-service-audience';
-       for(const group of service.access_groups||[]){const chip=document.createElement('span');chip.textContent=partnerGroupLabels[group]||group;audience.append(chip)}
+       for(const group of service.access_groups||[]){
+         const chip=document.createElement('span');chip.textContent=partnerGroupLabels[group]||group;audience.append(chip);
+       }
        copy.append(strong,small,audience);
+
        const price=document.createElement('div');price.className='partner-service-price';
        price.textContent=service.service_type==='custom'?'−'+Number(service.discount_percent||0)+' %':money(service.partner_price);
        const mode=document.createElement('span');mode.className='partner-service-mode';mode.textContent=service.billing_mode==='weekly_invoice'?'Fin de semaine':'Mémo Custom';
        row.append(copy,price,mode);
+
        if(canConfigurePartners()){
          const toggle=document.createElement('button');toggle.type='button';toggle.className='btn secondary';toggle.textContent=service.active?'Désactiver':'Réactiver';
-         toggle.onclick=async()=>{try{await rpc('ae_manager_set_partner_service_active',{p_token:token,p_service_id:service.id,p_active:!service.active});siteToast('Prestation mise à jour.','success');await Promise.all([loadManagerPartners(),loadPartnerDeclarations()])}catch(err){siteToast(err.message,'error')}};
+         toggle.onclick=async()=>{
+           try{
+             await rpc('ae_manager_set_partner_service_active',{p_token:token,p_service_id:service.id,p_active:!service.active});
+             siteToast('Prestation mise à jour.','success');
+             await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
+           }catch(err){siteToast(err.message,'error')}
+         };
          row.append(toggle);
        }
        list.append(row);
      }
-     item.append(head,list);catalogBox.append(item);
+
+     item.append(head,list);
+     catalogBox.append(item);
    }
+
    declarationsBox.replaceChildren();
    if(!rows?.length){
      const p=document.createElement('p');p.className='muted';p.textContent='Aucune prestation à règlement fin de semaine déclarée sur cette semaine.';declarationsBox.append(p);
@@ -1328,13 +1456,16 @@ async function loadManagerPartners(){
        let details=row.employee+' · '+(roleLabels[row.role]||row.role)+' · '+new Date(row.created_at).toLocaleString('fr-FR')+' · × '+Number(row.quantity||0).toLocaleString('fr-FR');
        if(row.service_type==='custom')details+=' · usine '+money(row.factory_price)+' · −'+Number(row.discount_percent||0)+' % · marge '+money(row.margin);
        small.textContent=details;copy.append(strong,small);
-       const due=document.createElement('div');due.className='partner-admin-amount';due.innerHTML='<small>À facturer</small><strong>'+money(row.weekly_due_total)+'</strong>';
-       item.append(copy,due);declarationsBox.append(item);
+       const due=document.createElement('div');due.className='partner-admin-amount';
+       const dueLabel=document.createElement('small');dueLabel.textContent='À facturer';
+       const dueValue=document.createElement('strong');dueValue.textContent=money(row.weekly_due_total);
+       due.append(dueLabel,dueValue);item.append(copy,due);declarationsBox.append(item);
      }
    }
  }catch(err){
    catalogBox.textContent='Partenaires indisponibles : '+err.message;
    declarationsBox.textContent='';
+   if(partnerList)partnerList.textContent='Liste indisponible.';
  }
 }
 
