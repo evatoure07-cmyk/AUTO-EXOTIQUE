@@ -1363,6 +1363,69 @@ body.light .employee-manage-toggle:hover{background:#eaf5f6}
 body.light .partner-memo-result-card,body.light .partner-memo-form-card{background:linear-gradient(145deg,#fff,#f4f8f9)!important}
 @media(max-width:850px){.partner-memo-calculator{grid-template-columns:1fr}.partner-memo-form-card{position:static}}
 @media(max-width:560px){.memo-result-grid{grid-template-columns:1fr}.memo-result-total{grid-column:auto}}
+
+/* Partner admin workspace */
+.partner-admin-workspace{display:grid;grid-template-columns:280px minmax(0,1fr);gap:18px;align-items:start;margin-bottom:18px}
+.partner-directory-card{position:sticky;top:28px;padding:18px!important}
+.partner-directory-list{display:grid;gap:7px;margin-top:12px}
+.partner-directory-item{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--soft);color:var(--text);font-weight:800;font-size:11px}
+.partner-directory-item small{color:var(--muted);font-size:8px;font-weight:800;text-transform:uppercase}
+.partner-directory-item:hover,.partner-directory-item.active{border-color:rgba(40,217,229,.38);background:rgba(40,217,229,.12)}
+.partner-directory-item.active{box-shadow:inset 3px 0 0 var(--cyan)}
+.partner-directory-create{border-top:1px solid var(--line);margin-top:16px;padding-top:16px}
+.partner-directory-label{display:block;margin-bottom:9px;color:var(--muted);font-size:8px;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+.partner-directory-create .form{gap:8px}
+.partner-admin-main{display:grid;gap:18px;min-width:0}
+.partner-selected-banner{padding:11px 13px;margin-bottom:13px;border-radius:12px;border:1px solid var(--line);background:var(--soft);font-size:11px;font-weight:800}
+.partner-selected-banner strong{color:var(--cyan)}
+.partner-selected-services{min-height:150px}
+
+/* Explicit multi-select access cards */
+.partner-access-heading{display:flex;align-items:end;justify-content:space-between;gap:10px}
+.partner-access-heading small{color:var(--muted);font-size:9px}
+.partner-access-option{position:relative;padding-left:42px!important;min-height:48px}
+.partner-access-option input{position:absolute!important;left:12px;top:50%;transform:translateY(-50%);width:19px!important;height:19px!important;appearance:none!important;border:1px solid rgba(116,190,205,.32)!important;border-radius:6px!important;background:var(--panel)!important;padding:0!important}
+.partner-access-option input:checked{background:var(--cyan)!important;border-color:var(--cyan)!important}
+.partner-access-option input:checked:after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;color:#041216;font-size:12px;font-weight:1000}
+.partner-access-option:has(input:checked){border-color:rgba(40,217,229,.42)!important;background:rgba(40,217,229,.12)!important}
+
+/* Compact orders */
+.order-history{display:grid;gap:10px}
+.compact-order-card,.manager-order-compact{border:1px solid var(--line);border-radius:16px;background:linear-gradient(145deg,var(--panel),rgba(12,31,40,.68));overflow:hidden}
+.compact-order-card>summary,.manager-order-compact>summary{list-style:none;cursor:pointer;padding:14px 16px;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center}
+.compact-order-card>summary::-webkit-details-marker,.manager-order-compact>summary::-webkit-details-marker{display:none}
+.compact-order-main{min-width:0}.compact-order-main strong{display:block;font-size:13px}.compact-order-main small{display:block;margin-top:3px;color:var(--muted);font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.compact-order-status{padding:6px 9px;border-radius:999px;border:1px solid var(--line);background:var(--soft);color:var(--cyan);font-size:9px;font-weight:900;white-space:nowrap}
+.compact-order-total{font:800 22px Rajdhani,sans-serif;white-space:nowrap}
+.compact-order-body{padding:0 16px 15px;border-top:1px solid var(--line)}
+.compact-order-card[open]>summary,.manager-order-compact[open]>summary{background:var(--soft)}
+.compact-order-body .timeline{margin-top:15px}
+.compact-order-body .notice{margin:10px 0}
+.compact-order-body .auth-actions{margin:12px 0 0}
+.order-chevron{color:var(--muted);font-size:16px;transition:.2s}
+details[open] .order-chevron{transform:rotate(180deg)}
+.manager-order-compact>summary{grid-template-columns:minmax(0,1fr) auto auto auto}
+.manager-order-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.manager-order-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.manager-order-meta div{padding:10px;border-radius:11px;background:var(--soft)}
+.manager-order-meta small{display:block;color:var(--muted);font-size:8px;text-transform:uppercase}.manager-order-meta strong{display:block;margin-top:3px;font-size:11px}
+
+/* Destructive actions */
+.btn.danger{background:rgba(245,91,91,.10)!important;color:#ff8f8f!important;border:1px solid rgba(245,91,91,.24)!important;box-shadow:none!important}
+.btn.danger:hover{background:rgba(245,91,91,.16)!important;border-color:rgba(245,91,91,.42)!important}
+
+@media(max-width:900px){
+ .partner-admin-workspace{grid-template-columns:1fr}
+ .partner-directory-card{position:static}
+ .partner-directory-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:650px){
+ .partner-directory-list{grid-template-columns:1fr}
+ .compact-order-card>summary,.manager-order-compact>summary{grid-template-columns:minmax(0,1fr) auto;gap:8px}
+ .compact-order-status{grid-row:2;grid-column:1;justify-self:start}
+ .compact-order-total{grid-column:2;grid-row:1/3}
+ .manager-order-meta{grid-template-columns:1fr}
+}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
@@ -1520,7 +1583,7 @@ body.light .partner-memo-result-card,body.light .partner-memo-form-card{backgrou
         <div class="panel-heading">
           <div><span class="tag">CALCUL PARTENAIRE</span><h3>Préparer un tarif</h3></div>
         </div>
-        <p class="muted">Choisissez le partenaire et la prestation. Le montant à facturer se calcule automatiquement.</p>
+        <p class="muted">Cette fiche sert uniquement aux customisations partenaires. Entrez le prix d’usine et le tarif final se calcule automatiquement.</p>
         <div class="form">
           <label>Partenaire</label>
           <select id="memoPartnerSelect"><option value="">Choisir un partenaire</option></select>
@@ -1631,18 +1694,24 @@ body.light .partner-memo-result-card,body.light .partner-memo-form-card{backgrou
  <div id="partnerWeekStats" class="stats-grid compact-stats"></div>
  <div id="partnerWeeklyCards" class="partner-weekly-grid"></div>
 
- <div id="partnerConfigZone" class="partner-admin-config">
-  <div class="card">
-   <div class="panel-heading"><div><span class="tag">NOUVEAU PARTENAIRE</span><h3>Créer un partenaire</h3></div></div>
-   <form id="partnerCreateForm" class="form">
-    <input id="partnerCreateName" required maxlength="80" placeholder="Nom du partenaire"/>
-    <button class="btn" type="submit">Créer le partenaire</button>
-   </form>
-  </div>
-  <div class="card">
-   <div class="panel-heading"><div><span class="tag">TARIFS</span><h3>Ajouter une prestation</h3></div></div>
-   <form id="partnerServiceForm" class="form">
-    <select id="partnerServicePartner" required><option value="">Choisir le partenaire</option></select>
+ <div id="partnerConfigZone" class="partner-admin-workspace">
+  <aside class="card partner-directory-card">
+   <div class="panel-heading"><div><span class="tag">PARTENAIRES</span><h3>Liste des partenaires</h3></div></div>
+   <div id="managerPartnerList" class="partner-directory-list">Chargement...</div>
+   <div class="partner-directory-create">
+    <span class="partner-directory-label">Nouveau partenaire</span>
+    <form id="partnerCreateForm" class="form">
+     <input id="partnerCreateName" required maxlength="80" placeholder="Nom du partenaire"/>
+     <button class="btn" type="submit">Créer</button>
+    </form>
+   </div>
+  </aside>
+  <div class="partner-admin-main">
+   <div class="card">
+    <div class="panel-heading"><div><span class="tag">TARIFS</span><h3>Configurer les prestations</h3></div></div>
+    <div id="partnerServiceSelectedPartner" class="partner-selected-banner">Sélectionnez un partenaire dans la liste à gauche.</div>
+    <form id="partnerServiceForm" class="form">
+     <select id="partnerServicePartner" class="hidden" required><option value="">Choisir le partenaire</option></select>
     <label>Type de prestation</label>
     <div id="partnerServiceTypePicker" class="partner-type-picker" role="radiogroup" aria-label="Type de prestation">
       <label><input type="radio" name="partnerServiceType" value="totale" checked/><span>Totale</span></label>
@@ -1663,7 +1732,7 @@ body.light .partner-memo-result-card,body.light .partner-memo-form-card{backgrou
         <div class="partner-formula-example">Exemple 4 000 $ à −10 % → <b id="partnerCustomExample">12 600 $</b></div>
       </div>
     </div>
-    <label>À qui s’applique ce tarif ?</label>
+    <div class="partner-access-heading"><label>À qui s’applique ce tarif ?</label><small>Plusieurs choix possibles</small></div>
     <div id="partnerAccessGroups" class="partner-access-grid">
       <label class="partner-access-option"><input type="checkbox" value="all_staff"/> Tous les employés</label>
       <label class="partner-access-option"><input type="checkbox" value="mecanos"/> Mécanos</label>
@@ -1679,12 +1748,12 @@ body.light .partner-memo-result-card,body.light .partner-memo-form-card{backgrou
     <div id="partnerServiceModeHelp" class="notice">Cette prestation devra être déclarée. Son prix sera ajouté au total du partenaire pour la facture de fin de semaine.</div>
     <button class="btn" type="submit">Ajouter la prestation</button>
    </form>
+   </div>
+   <div class="card partner-selected-services">
+    <div class="panel-heading"><div><span class="tag">CONFIGURATION</span><h3>Prestations du partenaire</h3></div></div>
+    <div id="managerPartnerCatalog">Sélectionnez un partenaire.</div>
+   </div>
   </div>
- </div>
-
- <div class="card">
-  <div class="panel-heading"><div><span class="tag">CONFIGURATION</span><h3>Partenaires & prestations</h3></div></div>
-  <div id="managerPartnerCatalog">Chargement...</div>
  </div>
  <div class="card">
   <div class="panel-heading"><div><span class="tag">SEMAINE SÉLECTIONNÉE</span><h3>Historique des prestations</h3></div></div>
