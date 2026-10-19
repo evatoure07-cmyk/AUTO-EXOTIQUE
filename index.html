@@ -2047,7 +2047,7 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
  .partner-service-row>.btn{width:100%}
  .partner-directory-card{position:static!important}
 }
-</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js?v=20261019-5" defer></script></head><body>
+</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js?v=20261019-6" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
  <button id="theme" class="theme-toggle sidebar-theme-top" type="button" data-label="Changer de thème" aria-label="Passer en mode clair" aria-pressed="false"><span class="theme-icon sun">☀</span><span class="theme-track"><span class="theme-knob"></span></span><span class="theme-icon moon">◐</span></button>
@@ -2212,7 +2212,7 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
           <thead>
             <tr>
               <th>Entreprise</th>
-              <th>Prestation perso</th>
+              <th>Réparation perso</th>
               <th>Employés</th>
               <th>Direction</th>
             </tr>
@@ -2222,7 +2222,7 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
           </tbody>
         </table>
       </div>
-      <p class="muted mo-help">Les véhicules personnels sont payés immédiatement. Les véhicules entreprise restent dans Déclaration partenaires pour la facturation de fin de semaine.</p>
+      <p class="muted mo-help">Les tarifs personnels peuvent être différents pour les Employés et la Direction. Les véhicules entreprise restent dans Déclaration partenaires et sont réglés en fin de semaine.</p>
     </div>
   </div>
 </div></section>
@@ -2339,27 +2339,50 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
     <div id="partnerServiceSelectedPartner" class="partner-selected-banner">Sélectionnez un partenaire dans la liste à gauche.</div>
     <form id="partnerServiceForm" class="form">
      <select id="partnerServicePartner" class="hidden" required><option value="">Choisir le partenaire</option></select>
+
      <label>Type de prestation</label>
      <div id="partnerServiceTypePicker" class="partner-type-picker" role="radiogroup" aria-label="Type de prestation">
-       <label><input type="radio" name="partnerServiceType" value="totale" checked/><span>Totale</span></label>
-       <label><input type="radio" name="partnerServiceType" value="moteur"/><span>Moteur</span></label>
-       <label><input type="radio" name="partnerServiceType" value="custom"/><span>Custom</span></label>
+       <label><input type="radio" name="partnerServiceType" value="totale" checked/><span>Réparation totale</span></label>
+       <label><input type="radio" name="partnerServiceType" value="moteur"/><span>Réparation moteur</span></label>
+       <label><input type="radio" name="partnerServiceType" value="custom"/><span>Customisation</span></label>
      </div>
-     <div id="partnerFixedPriceFields">
-       <label>Prix partenaire</label>
-       <div class="partner-money-input"><input id="partnerServicePartnerPrice" type="number" min="0" step="1" required placeholder="Ex. 450"/><span>$</span></div>
+
+     <label>Type de véhicule / règlement</label>
+     <select id="partnerServiceBillingMode" required>
+       <option value="weekly_invoice">Véhicule entreprise — déclaration / fin de semaine</option>
+       <option value="direct_discount">Véhicule personnel — tarif direct</option>
+     </select>
+     <div id="partnerServiceModeHelp" class="notice">Véhicule entreprise : la prestation est déclarée et réglée en fin de semaine.</div>
+
+     <div id="partnerCompanyFixedPrice">
+       <label>Tarif réparation entreprise</label>
+       <div class="partner-money-input"><input id="partnerServicePartnerPrice" type="number" min="0" step="1" placeholder="Ex. 600"/><span>$</span></div>
      </div>
+
+     <div id="partnerPersonalFixedPrices" class="hidden partner-personal-rates">
+       <div>
+         <label>Réparation perso — Employés</label>
+         <div class="partner-money-input"><input id="partnerServiceEmployeePrice" type="number" min="0" step="1" inputmode="numeric" placeholder="Ex. 500"/><span>$</span></div>
+       </div>
+       <div>
+         <label>Réparation perso — Direction</label>
+         <div class="partner-money-input"><input id="partnerServiceDirectionPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="Ex. 1"/><span>$</span></div>
+       </div>
+       <small>Les deux tarifs peuvent être différents. Laissez vide si un groupe n’a pas de tarif personnel.</small>
+     </div>
+
      <div id="partnerCustomConfig" class="hidden partner-custom-config">
        <div id="partnerCustomGenericRate">
-         <label>Réduction partenaire sur le prix d’usine</label>
+         <label>Réduction Custom entreprise</label>
          <div class="partner-percent-input"><input id="partnerServiceDiscountPercent" type="number" min="0" max="100" step="1" value="10" inputmode="numeric"/><span>%</span></div>
          <div class="partner-formula-card">
-           <small>CUSTOM ENTREPRISE</small>
-           <strong>Réduction appliquée avant facturation</strong>
-           <p>Utilisé quand la prestation est réglée en fin de semaine.</p>
+           <small>VÉHICULE ENTREPRISE</small>
+           <strong>Custom déclaré en fin de semaine</strong>
+           <p>La réduction est appliquée au tarif Custom avant la facturation partenaire.</p>
            <div class="partner-formula-example">Exemple 4 000 $ à −10 % → <b id="partnerCustomExample">12 600 $</b></div>
          </div>
        </div>
+
        <div id="partnerPersonalCustomRates" class="hidden partner-personal-rates">
          <div>
            <label>Custom perso — Employés</label>
@@ -2369,25 +2392,10 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
            <label>Custom perso — Direction</label>
            <div class="partner-percent-input"><input id="partnerServiceDirectionDiscountPercent" type="number" min="0" max="100" step="1" inputmode="numeric" placeholder="Ex. 20"/><span>%</span></div>
          </div>
-         <small>Laissez un champ vide si ce groupe n’a pas de tarif Custom perso.</small>
+         <small>Les remises perso peuvent être différentes entre Employés et Direction.</small>
        </div>
      </div>
-     <label>Mode de règlement</label>
-     <select id="partnerServiceBillingMode" required>
-       <option value="weekly_invoice">Fin de semaine — véhicule entreprise</option>
-       <option value="direct_discount">Payé immédiatement — véhicule personnel</option>
-     </select>
-     <div id="partnerServiceModeHelp" class="notice">Fin de semaine = prestation à déclarer. Payé immédiatement = tarif MO appliqué directement au garage.</div>
-     <div id="partnerAccessWrap">
-       <div class="partner-access-heading"><label>À qui s’applique ce tarif ? <em>Plusieurs choix possibles</em></label><small id="partnerAccessCount">0 groupe sélectionné</small></div>
-       <div id="partnerAccessGroups" class="partner-access-grid">
-         <label class="partner-access-option"><input type="checkbox" value="all_staff"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Tous les employés</strong><small>Tous les grades</small></span></label>
-         <label class="partner-access-option"><input type="checkbox" value="mecanos"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Employés</strong><small>Novice · Intermédiaire · Expérimenté</small></span></label>
-         <label class="partner-access-option"><input type="checkbox" value="chef_equipe"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Chef d’équipe</strong><small>Chef d’équipe uniquement</small></span></label>
-         <label class="partner-access-option"><input type="checkbox" value="gestion"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Gestion</strong><small>RH · DRH</small></span></label>
-         <label class="partner-access-option"><input type="checkbox" value="direction"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Direction</strong><small>Assistante · Co-patron · Patron</small></span></label>
-       </div>
-     </div>
+
      <button class="btn" type="submit">Ajouter la prestation</button>
     </form>
     <div class="partner-config-divider"></div>
