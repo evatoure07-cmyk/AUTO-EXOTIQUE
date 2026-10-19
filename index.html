@@ -683,7 +683,19 @@ const normalizeQty=(value)=>Math.max(1,Math.min(999,Math.floor(Number(value)||1)
 const draw=()=>{
   qty=normalizeQty(qty);
   if(qtyInput)qtyInput.value=String(qty);
-  document.getElementById('total').textContent=(qty*750).toLocaleString('fr-FR')+' 
+  document.getElementById('total').textContent=(qty*750).toLocaleString('fr-FR')+' $';
+};
+window.setOrderQty=(n)=>{qty=normalizeQty(n);draw();};
+if(qtyInput){
+  qtyInput.addEventListener('input',()=>{
+    qty=normalizeQty(qtyInput.value);
+    document.getElementById('total').textContent=(qty*750).toLocaleString('fr-FR')+' $';
+  });
+  qtyInput.addEventListener('change',draw);
+  qtyInput.addEventListener('blur',draw);
+}
+document.getElementById('minus').onclick=()=>{qty=normalizeQty(qty-1);draw();};
+document.getElementById('plus').onclick=()=>{qty=normalizeQty(qty+1);draw();};
 
 const validPages=['accueil','prestations','commander','commandes','actualites','partenaires','equipe','avis','apropos','espace','profil','espace-employe','direction'];
 function showPage(){
