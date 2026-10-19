@@ -2,6 +2,7 @@
 const db=window.supabase?.createClient('https://gkljzpwfmthzjgfzzeoy.supabase.co','sb_publishable_x6NB71lEqcvtxODHt-cdKQ_BMLVLA3o');
 if(!db)return;
 const el=id=>document.getElementById(id);
+const safeReset=form=>{if(form&&typeof form.reset==='function')form.reset()};
 let token=localStorage.getItem('ae_session')||'';
 let account=null;
 let myProfile=null;
@@ -307,7 +308,7 @@ async function loadMyProfile(){
  changePwd.disabled=true;
  try{
  await rpc('ae_change_password',{p_token:token,p_old:oldPwd.value,p_new:newPwd.value});
- security.reset();
+ safeReset(security);
  siteToast('Mot de passe modifié.');
  }catch(err){siteToast('Modification impossible : '+err.message)}
  finally{changePwd.disabled=false}
@@ -680,7 +681,7 @@ el('forcedPasswordForm')?.addEventListener('submit',async e=>{
  try{
  await rpc('ae_set_initial_password',{p_token:token,p_new:newPassword});
  account=await rpc('ae_me',{p_token:token});
- form.reset();
+ safeReset(form);
  document.body.classList.remove('password-required');
  el('forcedPasswordCard')?.classList.add('hidden');
  siteToast('Votre mot de passe est enregistré.');
@@ -694,7 +695,7 @@ el('registerForm')?.addEventListener('submit',async e=>{
  e.preventDefault();const form=e.currentTarget;const a=[...form.querySelectorAll('input')].map(x=>x.value.trim());
  try{
  const result=await rpc('ae_register_client',{p_first_name:a[0],p_last_name:a[1],p_phone:a[2],p_iban_rp:a[3],p_civil_id_rp:a[4],p_password:a[5]});
- saveSession(result);form.reset();feedback('Compte créé ! Vous êtes connecté.');await refresh();location.hash='#/commander';
+ saveSession(result);safeReset(form);feedback('Compte créé ! Vous êtes connecté.');await refresh();location.hash='#/commander';
  }catch(err){feedback('Inscription impossible : '+err.message)}
 });
 
@@ -758,7 +759,7 @@ for(const [form,kind] of requestForms){
  e.preventDefault();const payload={};
  [...form.querySelectorAll('input,textarea')].forEach((input,i)=>{const key=input.placeholder||input.previousElementSibling?.textContent||('champ_'+(i+1));payload[key]=input.value.trim()});
  const button=form.querySelector('[type=submit]');button.disabled=true;
- try{const result=await rpc('ae_submit_request',{p_kind:kind,p_payload:payload});form.reset();siteToast('Demande envoyée ! Numéro #'+result.id)}
+ try{const result=await rpc('ae_submit_request',{p_kind:kind,p_payload:payload});safeReset(form);siteToast('Demande envoyée ! Numéro #'+result.id)}
  catch(err){siteToast('Envoi impossible : '+err.message)}
  finally{button.disabled=false}
  });
@@ -804,7 +805,7 @@ el('employeeAccountForm')?.addEventListener('submit',async e=>{
  p_login:fields[2].value.trim().toLowerCase(),
  p_role:fields[3].value
  });
- form.reset();
+ safeReset(form);
  showTemporaryCredential(result.login,result.temporary_password);
  await Promise.all([managerRefresh(),loadStaff(),loadNotifications()]);
  }catch(err){siteToast('Création impossible : '+err.message)}
@@ -837,7 +838,7 @@ el('newsForm')?.addEventListener('submit',async e=>{
  const fields=form.querySelectorAll('input,select,textarea');
  try{
  await rpc('ae_manager_create_news',{p_token:token,p_title:fields[0].value,p_category:fields[1].value,p_cover_url:fields[2].value,p_body:fields[3].value});
- form.reset();siteToast('Publication ajoutée au journal.');await loadNews();
+ safeReset(form);siteToast('Publication ajoutée au journal.');await loadNews();
  }catch(err){siteToast('Publication impossible : '+err.message)}
 });
 
@@ -1538,14 +1539,14 @@ el('partnerServiceBillingMode')?.addEventListener('change',()=>{
 });
 el('partnerCreateForm')?.addEventListener('submit',async e=>{
  e.preventDefault();if(!canConfigurePartners()){siteToast('Accès direction requis.','error');return}
- const form=el('partnerCreateForm');
+ const form=e.currentTarget;
  if(!form)return;
  const button=form.querySelector('[type=submit]');if(button)button.disabled=true;
  const name=el('partnerCreateName')?.value.trim()||'';
  try{
    const created=await rpc('ae_manager_create_partner',{p_token:token,p_name:name});
    selectedAdminPartnerId=Number(created.id);
-   form.reset();
+   safeReset(form);
    siteToast('Partenaire créé.','success');
    await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
  }catch(err){siteToast('Création impossible : '+err.message,'error')}
@@ -1574,7 +1575,7 @@ el('partnerServiceForm')?.addEventListener('submit',async e=>{
      p_billing_mode:billingMode,
      p_access_groups:groups
    });
-   form.reset();
+   safeReset(form);
    document.querySelector('input[name="partnerServiceType"][value="totale"]')?.click();
    const mode=el('partnerServiceBillingMode');if(mode)mode.value='weekly_invoice';
    document.querySelectorAll('#partnerAccessGroups input[type=checkbox]').forEach(input=>input.checked=false);
@@ -1726,7 +1727,7 @@ el('internalAnnouncementForm')?.addEventListener('submit',async e=>{
  const button=form.querySelector('[type=submit]');button.disabled=true;
  try{
  await rpc('ae_manager_create_internal_announcement',{p_token:token,p_title:title,p_body:body,p_pinned:pinned});
- form.reset();
+ safeReset(form);
  siteToast('Annonce interne publiée.','success');
  await Promise.all([loadManagerInternalAnnouncements(),loadStaffSpace(),loadNotifications()]);
  }catch(err){siteToast('Publication impossible : '+err.message,'error')}
