@@ -1553,6 +1553,28 @@ body.light .news-card .btn.secondary{
 .partner-directory-delete:hover{background:rgba(245,91,91,.15);border-color:rgba(245,91,91,.38)}
 .client-file-actions{display:flex;justify-content:flex-end;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
 .client-file-actions .btn{min-height:34px;padding:8px 11px;font-size:10px}
+
+/* Searchable, collapsible partner directory */
+.partner-directory-card{min-width:0!important}
+.partner-search-label{display:block;margin-top:14px;font-size:10px;font-weight:800;color:var(--muted)}
+.partner-directory-search{width:100%;margin-top:7px;padding:12px 13px!important;border-radius:12px!important}
+.partner-inactive-filter{display:flex;align-items:center;gap:9px;margin-top:10px;color:var(--muted);font-size:10px;cursor:pointer}
+.partner-inactive-filter input{width:16px!important;height:16px!important;accent-color:var(--cyan)}
+.partner-directory-list{max-height:420px;overflow-y:auto;overscroll-behavior:contain;padding-right:4px}
+.partner-directory-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px;align-items:center;border:1px solid var(--line);border-radius:13px;padding:5px;background:var(--panel)}
+.partner-directory-row.active{border-color:var(--cyan);background:rgba(40,217,229,.08)}
+.partner-directory-row.is-inactive{opacity:.7}
+.partner-directory-row .partner-directory-item{min-width:0;border:0!important;background:transparent!important;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.partner-directory-row .partner-directory-item span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.partner-directory-menu{position:relative}
+.partner-directory-menu>summary{display:grid;place-items:center;width:32px;height:36px;border-radius:9px;cursor:pointer;list-style:none;font-size:18px;font-weight:900;color:var(--text);background:var(--soft)}
+.partner-directory-menu>summary::-webkit-details-marker{display:none}
+.partner-directory-menu[open]>summary{color:var(--cyan);border:1px solid var(--cyan)}
+.partner-directory-menu-actions{grid-column:1/-1;display:grid;gap:6px;padding:6px 2px 2px}
+.partner-directory-menu-actions button{width:100%;text-align:left;justify-content:flex-start;font-size:10px}
+.partner-directory-menu-actions .partner-directory-danger{color:#e66d77;border-color:rgba(230,109,119,.28)}
+.partner-directory-empty{padding:18px 10px;text-align:center;font-size:11px;color:var(--muted)}
+@media(max-width:900px){.partner-directory-list{max-height:300px}}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
@@ -1833,7 +1855,10 @@ body.light .news-card .btn.secondary{
 
  <div id="partnerConfigZone" class="partner-admin-workspace">
   <aside class="card partner-directory-card">
-   <div class="panel-heading"><div><span class="tag">PARTENAIRES</span><h3>Liste des partenaires</h3></div></div>
+   <div class="panel-heading"><div><span class="tag">PARTENAIRES</span><h3>Annuaire partenaires</h3></div></div>
+   <label class="partner-search-label" for="partnerDirectorySearch">Rechercher une entreprise</label>
+   <input id="partnerDirectorySearch" class="partner-directory-search" type="search" autocomplete="off" placeholder="Nom de l’entreprise…"/>
+   <label class="partner-inactive-filter"><input type="checkbox" id="partnerShowInactive" checked/> Afficher les partenaires désactivés</label>
    <div id="managerPartnerList" class="partner-directory-list">Chargement...</div>
    <div class="partner-directory-create">
     <span class="partner-directory-label">Nouveau partenaire</span>
