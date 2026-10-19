@@ -1215,6 +1215,12 @@ function selectedPartnerAccessGroups(){
  const values=[...document.querySelectorAll('#partnerAccessGroups input[type=checkbox]:checked')].map(input=>input.value);
  return values.includes('all_staff')?['all_staff']:values;
 }
+function updatePartnerAccessCount(){
+ const count=selectedPartnerAccessGroups().length;
+ const target=el('partnerAccessCount');
+ if(!target)return;
+ target.textContent=count===0?'0 groupe sélectionné':count===1?'1 groupe sélectionné':count+' groupes sélectionnés';
+}
 function selectedPartnerServiceType(){
  return document.querySelector('input[name="partnerServiceType"]:checked')?.value||'totale';
 }
@@ -1252,8 +1258,10 @@ document.querySelectorAll('#partnerAccessGroups input[type=checkbox]').forEach(i
    }else if(input.checked&&all){
      all.checked=false;
    }
+   updatePartnerAccessCount();
  });
 });
+updatePartnerAccessCount();
 document.querySelectorAll('input[name="partnerServiceType"]').forEach(input=>input.addEventListener('change',updatePartnerServiceTypeUI));
 el('partnerServiceDiscountPercent')?.addEventListener('input',renderPartnerAdminCustomExample);
 updatePartnerServiceTypeUI();
@@ -1314,14 +1322,38 @@ async function loadManagerPartners(){
        const empty=document.createElement('p');empty.className='muted small';empty.textContent='Aucun partenaire. Créez-en un ci-dessous.';partnerList.append(empty);
      }
      for(const partner of allPartners){
+       const row=document.createElement('div');
+       row.className='partner-directory-row'+(Number(partner.id)===Number(selectedAdminPartnerId)?' active':'')+(partner.active?'':' is-inactive');
+
        const button=document.createElement('button');
        button.type='button';
-       button.className='partner-directory-item'+(Number(partner.id)===Number(selectedAdminPartnerId)?' active':'')+(partner.active?'':' is-inactive');
+       button.className='partner-directory-item';
        const name=document.createElement('span');name.textContent=partner.name;
        const count=document.createElement('small');count.textContent=(partner.active?'Actif':'Inactif')+' · '+(partner.services||[]).filter(service=>service.active).length+' prestation(s)';
        button.append(name,count);
        button.onclick=()=>{selectedAdminPartnerId=Number(partner.id);loadManagerPartners()};
-       partnerList.append(button);
+       row.append(button);
+
+       if(canConfigurePartners()){
+         const remove=document.createElement('button');
+         remove.type='button';
+         remove.className='partner-directory-delete';
+         remove.title='Supprimer '+partner.name;
+         remove.setAttribute('aria-label','Supprimer '+partner.name);
+         remove.textContent='×';
+         remove.onclick=async e=>{
+           e.stopPropagation();
+           if(!await siteConfirm('Supprimer définitivement '+partner.name+' ?',{title:'Supprimer le partenaire',confirmText:'Supprimer'}))return;
+           try{
+             await rpc('ae_manager_delete_partner',{p_token:token,p_partner_id:partner.id});
+             if(Number(selectedAdminPartnerId)===Number(partner.id))selectedAdminPartnerId=null;
+             siteToast('Partenaire supprimé.','success');
+             await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
+           }catch(err){siteToast('Suppression impossible : '+err.message,'error')}
+         };
+         row.append(remove);
+       }
+       partnerList.append(row);
      }
    }
 
@@ -1542,6 +1574,7 @@ el('partnerServiceForm')?.addEventListener('submit',async e=>{
    e.currentTarget.reset();
    el('partnerServicePartner').value=partnerValue;
    updatePartnerServiceTypeUI();
+   updatePartnerAccessCount();
    siteToast('Prestation partenaire ajoutée.','success');
    await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
  }catch(err){siteToast('Ajout impossible : '+err.message,'error')}
