@@ -1258,6 +1258,22 @@ document.querySelectorAll('input[name="partnerServiceType"]').forEach(input=>inp
 el('partnerServiceDiscountPercent')?.addEventListener('input',renderPartnerAdminCustomExample);
 updatePartnerServiceTypeUI();
 
+function setPartnerAdminTab(tab){
+ const chosen=['summary','configure','history'].includes(tab)?tab:'summary';
+ document.querySelectorAll('[data-partner-tab]').forEach(button=>{
+   const active=button.dataset.partnerTab===chosen;
+   button.classList.toggle('active',active);
+   button.setAttribute('aria-selected',String(active));
+ });
+ document.querySelectorAll('[data-partner-panel]').forEach(panel=>{
+   panel.classList.toggle('hidden',panel.dataset.partnerPanel!==chosen);
+ });
+}
+document.querySelectorAll('[data-partner-tab]').forEach(button=>{
+ button.addEventListener('click',()=>setPartnerAdminTab(button.dataset.partnerTab));
+});
+setPartnerAdminTab('summary');
+
 async function loadManagerPartners(){
  const catalogBox=el('managerPartnerCatalog');
  const declarationsBox=el('managerPartnerDeclarations');
