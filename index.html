@@ -1615,7 +1615,7 @@ body.light .news-card .btn.secondary{
 
 /* Configured tariffs grouped by purpose */
 .partner-config-groups{display:grid;gap:14px}
-.partner-config-section{border:1px solid var(--line);border-radius:16px;background:var(--panel);overflow:hidden}
+.partner-config-section{border:1px solid var(--line);border-radius:16px;background:var(--panel);overflow:visible}
 .partner-config-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;background:var(--soft);border-bottom:1px solid var(--line)}
 .partner-config-section-head strong{font-size:12px}
 .partner-config-section-head small{color:var(--muted);font-size:8px}
@@ -1627,12 +1627,9 @@ body.light .news-card .btn.secondary{
 .partner-config-value{font:900 17px Rajdhani,sans-serif;color:var(--cyan)}
 .partner-config-value.muted{color:var(--muted)}
 .partner-config-cell{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
-.partner-service-menu{position:relative}
-.partner-service-menu>summary{list-style:none;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);border-radius:9px;background:var(--soft);font-weight:1000;font-size:16px}
-.partner-service-menu>summary::-webkit-details-marker{display:none}
-.partner-service-menu[open]>summary{border-color:rgba(40,217,229,.35);color:var(--cyan)}
-.partner-service-menu-panel{position:absolute;right:0;top:35px;z-index:12;min-width:145px;padding:6px;border:1px solid var(--line);border-radius:11px;background:var(--panel);box-shadow:0 14px 35px rgba(0,0,0,.16)}
-.partner-service-menu-panel button{width:100%;justify-content:flex-start;min-height:32px;padding:7px 9px!important;font-size:9px!important}
+.partner-service-actions-inline{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.partner-service-actions-inline .btn{min-height:30px!important;padding:6px 9px!important;font-size:8px!important;white-space:nowrap}
+.partner-service-actions-inline .btn.secondary{background:var(--soft)!important}
 .partner-config-empty{padding:18px;color:var(--muted);font-size:9px;text-align:center}
 .partner-danger-zone{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:16px;padding:14px;border:1px solid rgba(245,91,91,.20);border-radius:14px;background:rgba(245,91,91,.04)}
 .partner-danger-zone strong{display:block;font-size:10px}
@@ -2094,7 +2091,7 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
  .partner-service-row>.btn{width:100%}
  .partner-directory-card{position:static!important}
 }
-</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend-admin-v10.js" defer></script></head><body>
+</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend-admin-v11.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
  <button id="theme" class="theme-toggle sidebar-theme-top" type="button" data-label="Changer de thème" aria-label="Passer en mode clair" aria-pressed="false"><span class="theme-icon sun">☀</span><span class="theme-track"><span class="theme-knob"></span></span><span class="theme-icon moon">◐</span></button>
