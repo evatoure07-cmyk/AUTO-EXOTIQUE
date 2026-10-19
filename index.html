@@ -1955,6 +1955,29 @@ body.light .manager-order-compact{
   .order-chevron{grid-column:3!important;grid-row:1!important}
   .manager-order-meta{grid-template-columns:1fr 1fr!important}
 }
+
+/* Final light journal cleanup */
+body.light #actualites .news-card:not(.has-cover){
+  background-image:
+    radial-gradient(circle at 92% 8%,rgba(18,183,199,.08),transparent 32%),
+    linear-gradient(145deg,#ffffff 0%,#f8fbfc 62%,#edf4f6 100%)!important;
+  background-color:#ffffff!important;
+  color:#17313a!important;
+  border-color:rgba(31,87,100,.12)!important;
+  box-shadow:0 12px 34px rgba(43,83,94,.08)!important;
+}
+body.light #actualites .news-card:not(.has-cover):after{
+  background:radial-gradient(circle,rgba(18,183,199,.08),transparent 70%)!important;
+  opacity:.35!important;
+}
+body.light #actualites .news-card:not(.has-cover) h3{color:#17313a!important}
+body.light #actualites .news-card:not(.has-cover) p,
+body.light #actualites .news-card:not(.has-cover) small{color:#6b8189!important}
+body.light #actualites .news-card:not(.has-cover) .btn.secondary{
+  background:#f8fbfc!important;
+  color:#17313a!important;
+  border-color:rgba(35,89,101,.14)!important;
+}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
