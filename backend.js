@@ -947,13 +947,22 @@ const moAudienceColumns=[
 function moGroupAllowsAudience(groups,audience){
  const set=new Set(groups||[]);
  if(set.has('all_staff'))return true;
- if(audience==='employee'){
-   return set.has('mecanos')||set.has('chef_equipe')||set.has('gestion');
- }
- if(audience==='direction'){
-   return set.has('direction');
- }
+ if(audience==='employee')return set.has('mecanos')||set.has('chef_equipe')||set.has('gestion');
+ if(audience==='direction')return set.has('direction');
  return false;
+}
+
+function moServiceLabel(serviceType){
+ if(serviceType==='custom')return 'Customisation perso';
+ if(serviceType==='totale')return 'Réparation totale perso';
+ if(serviceType==='moteur')return 'Réparation moteur perso';
+ return 'Prestation perso';
+}
+
+function moServiceValue(service){
+ return service.service_type==='custom'
+   ?'−'+Number(service.discount_percent||0)+' %'
+   :money(service.partner_price);
 }
 
 function renderPartnerMemo(){
@@ -962,40 +971,53 @@ function renderPartnerMemo(){
  const term=String(el('memoCompanySearch')?.value||'').trim().toLocaleLowerCase('fr');
  body.replaceChildren();
 
- const rows=(partnerMemoCatalog||[]).filter(partner=>!term||String(partner.name||'').toLocaleLowerCase('fr').includes(term));
- if(!rows.length){
-   const tr=document.createElement('tr');
-   const td=document.createElement('td');td.colSpan=4;td.className='mo-empty';td.textContent=term?'Aucune entreprise trouvée.':'Aucun tarif MO partenaire configuré.';
-   tr.append(td);body.append(tr);return;
+ const partners=(partnerMemoCatalog||[]).filter(partner=>!term||String(partner.name||'').toLocaleLowerCase('fr').includes(term));
+ let rendered=0;
+
+ for(const partner of partners){
+   const grouped=new Map();
+   for(const service of partner.services||[]){
+     const key=service.service_type||service.name||String(service.id);
+     if(!grouped.has(key))grouped.set(key,[]);
+     grouped.get(key).push(service);
+   }
+
+   for(const [serviceType,services] of grouped){
+     const employee=services.filter(service=>moGroupAllowsAudience(service.access_groups,'employee'));
+     const direction=services.filter(service=>moGroupAllowsAudience(service.access_groups,'direction'));
+     if(!employee.length&&!direction.length)continue;
+
+     const uniqueValues=list=>[...new Set(list.map(moServiceValue))];
+     const tr=document.createElement('tr');
+
+     const company=document.createElement('td');
+     const name=document.createElement('span');name.className='mo-company';name.textContent=partner.name;
+     company.append(name);tr.append(company);
+
+     const serviceTd=document.createElement('td');
+     serviceTd.textContent=moServiceLabel(serviceType);
+     tr.append(serviceTd);
+
+     for(const list of [employee,direction]){
+       const td=document.createElement('td');
+       const values=uniqueValues(list);
+       if(values.length){
+         const badge=document.createElement('span');badge.className='mo-discount';badge.textContent=values.join(' / ');
+         td.append(badge);
+       }else{
+         const dash=document.createElement('span');dash.className='mo-no';dash.textContent='—';td.append(dash);
+       }
+       tr.append(td);
+     }
+
+     body.append(tr);rendered++;
+   }
  }
 
- for(const partner of rows){
-   const custom=(partner.services||[]).find(service=>service.service_type==='custom');
+ if(!rendered){
    const tr=document.createElement('tr');
-
-   const company=document.createElement('td');
-   const name=document.createElement('span');name.className='mo-company';name.textContent=partner.name;
-   company.append(name);tr.append(company);
-
-   const customTd=document.createElement('td');
-   if(custom){
-     const badge=document.createElement('span');badge.className='mo-discount';badge.textContent='−'+Number(custom.discount_percent||0)+' %';
-     customTd.append(badge);
-   }else{
-     const dash=document.createElement('span');dash.className='mo-no';dash.textContent='—';customTd.append(dash);
-   }
-   tr.append(customTd);
-
-   for(const [audience] of moAudienceColumns){
-     const td=document.createElement('td');
-     const allowed=!!custom&&moGroupAllowsAudience(custom.access_groups,audience);
-     const mark=document.createElement('span');
-     mark.className=allowed?'mo-yes':'mo-no';
-     mark.textContent=allowed?'✓':'—';
-     td.append(mark);tr.append(td);
-   }
-
-   body.append(tr);
+   const td=document.createElement('td');td.colSpan=4;td.className='mo-empty';td.textContent=term?'Aucune entreprise trouvée.':'Aucun tarif MO personnel configuré.';
+   tr.append(td);body.append(tr);
  }
 }
 
@@ -1154,21 +1176,23 @@ function renderPartnerAdminCustomExample(){
 function updatePartnerServiceTypeUI(){
  const type=selectedPartnerServiceType();
  const custom=type==='custom';
+ const mode=el('partnerServiceBillingMode');
+ const immediate=mode?.value==='direct_discount';
+
  el('partnerFixedPriceFields')?.classList.toggle('hidden',custom);
  el('partnerCustomConfig')?.classList.toggle('hidden',!custom);
- el('partnerFixedModeNote')?.classList.toggle('hidden',custom);
- el('partnerCustomModeWrap')?.classList.toggle('hidden',!custom);
+ el('partnerCustomGenericRate')?.classList.toggle('hidden',!custom||immediate);
+ el('partnerPersonalCustomRates')?.classList.toggle('hidden',!custom||!immediate);
+ el('partnerAccessWrap')?.classList.toggle('hidden',custom&&immediate);
+
  if(el('partnerServicePartnerPrice'))el('partnerServicePartnerPrice').required=!custom;
- if(el('partnerServiceDiscountPercent'))el('partnerServiceDiscountPercent').required=custom;
- const mode=el('partnerServiceBillingMode');
- if(mode){
-   if(!custom)mode.value='weekly_invoice';
-   mode.disabled=!custom;
- }
+ if(el('partnerServiceDiscountPercent'))el('partnerServiceDiscountPercent').required=custom&&!immediate;
+
  const help=el('partnerServiceModeHelp');
- if(help)help.textContent=mode?.value==='direct_discount'
-   ?'Ce Custom sera uniquement disponible dans Tarifs MO pour les groupes cochés.'
-   :'Ce Custom devra être déclaré et sera ajouté au règlement de fin de semaine.';
+ if(help)help.textContent=immediate
+   ?'Véhicule personnel : paiement immédiat au garage. Le tarif apparaît dans Tarifs MO.'
+   :'Véhicule entreprise : la prestation est déclarée puis réglée en fin de semaine.';
+
  renderPartnerAdminCustomExample();
 }
 
@@ -1403,7 +1427,7 @@ async function loadManagerPartners(){
 
        const price=document.createElement('div');price.className='partner-service-price';
        price.textContent=service.service_type==='custom'?'−'+Number(service.discount_percent||0)+' %':money(service.partner_price);
-       const mode=document.createElement('span');mode.className='partner-service-mode';mode.textContent=service.billing_mode==='weekly_invoice'?'Fin de semaine':'Mémo Custom';
+       const mode=document.createElement('span');mode.className='partner-service-mode';mode.textContent=service.billing_mode==='weekly_invoice'?'Fin de semaine':'Payé maintenant';
        row.append(copy,price,mode);
 
        if(canConfigurePartners()){
@@ -1496,12 +1520,7 @@ async function loadManagerPartners(){
 
 el('partnerWeekPicker')?.addEventListener('change',loadManagerPartners);
 el('partnerCurrentWeek')?.addEventListener('click',()=>{if(el('partnerWeekPicker'))el('partnerWeekPicker').value=currentIsoWeekValue();loadManagerPartners()});
-el('partnerServiceBillingMode')?.addEventListener('change',()=>{
- const help=el('partnerServiceModeHelp');if(!help)return;
- help.textContent=el('partnerServiceBillingMode').value==='weekly_invoice'
-   ?'Ce Custom devra être déclaré et sera ajouté au règlement de fin de semaine.'
-   :'Ce Custom sera uniquement disponible dans Tarifs MO pour les groupes cochés.';
-});
+el('partnerServiceBillingMode')?.addEventListener('change',updatePartnerServiceTypeUI);
 el('partnerCreateForm')?.addEventListener('submit',async e=>{
  e.preventDefault();if(!canConfigurePartners()){siteToast('Accès direction requis.','error');return}
  const form=e.currentTarget;
@@ -1518,38 +1537,85 @@ el('partnerCreateForm')?.addEventListener('submit',async e=>{
  finally{if(button)button.disabled=false}
 });
 el('partnerServiceForm')?.addEventListener('submit',async e=>{
- e.preventDefault();if(!canConfigurePartners()){siteToast('Accès direction requis.','error');return}
+ e.preventDefault();
+ if(!canConfigurePartners()){siteToast('Accès direction requis.','error');return}
+
  const form=e.currentTarget;
- const groups=selectedPartnerAccessGroups();
- if(!groups.length){siteToast('Choisissez au moins un groupe concerné.','error');return}
  if(!selectedAdminPartnerId){siteToast('Sélectionnez un partenaire dans la liste à gauche.','error');return}
+
  const type=selectedPartnerServiceType();
- const partnerPrice=type==='custom'?0:Math.trunc(Number(el('partnerServicePartnerPrice')?.value));
- const discount=type==='custom'?Math.trunc(Number(el('partnerServiceDiscountPercent')?.value)):0;
  const billingMode=el('partnerServiceBillingMode')?.value||'weekly_invoice';
- if(type!=='custom'&&(!Number.isFinite(partnerPrice)||partnerPrice<0)){siteToast('Indiquez un prix partenaire valide.','error');return}
- if(type==='custom'&&(!Number.isFinite(discount)||discount<0||discount>100)){siteToast('Indiquez une réduction entre 0 et 100 %.','error');return}
- const button=form.querySelector('[type=submit]');if(button)button.disabled=true;
+ const button=form.querySelector('[type=submit]');
+ if(button)button.disabled=true;
+
  try{
-   await rpc('ae_manager_add_partner_service',{
-     p_token:token,
-     p_partner_id:Number(selectedAdminPartnerId),
-     p_service_type:type,
-     p_partner_price:partnerPrice,
-     p_discount_percent:discount,
-     p_billing_mode:billingMode,
-     p_access_groups:groups
-   });
+   if(type==='custom'&&billingMode==='direct_discount'){
+     const employeeRaw=String(el('partnerServiceEmployeeDiscountPercent')?.value||'').trim();
+     const directionRaw=String(el('partnerServiceDirectionDiscountPercent')?.value||'').trim();
+
+     if(!employeeRaw&&!directionRaw){
+       throw new Error('Indiquez au moins un pourcentage Employés ou Direction.');
+     }
+
+     const payloads=[];
+     if(employeeRaw){
+       const value=Math.trunc(Number(employeeRaw));
+       if(!Number.isFinite(value)||value<0||value>100)throw new Error('La réduction Employés doit être comprise entre 0 et 100 %.');
+       payloads.push({discount:value,groups:['mecanos','chef_equipe','gestion']});
+     }
+     if(directionRaw){
+       const value=Math.trunc(Number(directionRaw));
+       if(!Number.isFinite(value)||value<0||value>100)throw new Error('La réduction Direction doit être comprise entre 0 et 100 %.');
+       payloads.push({discount:value,groups:['direction']});
+     }
+
+     for(const payload of payloads){
+       await rpc('ae_manager_add_partner_service',{
+         p_token:token,
+         p_partner_id:Number(selectedAdminPartnerId),
+         p_service_type:'custom',
+         p_partner_price:0,
+         p_discount_percent:payload.discount,
+         p_billing_mode:'direct_discount',
+         p_access_groups:payload.groups
+       });
+     }
+   }else{
+     const groups=selectedPartnerAccessGroups();
+     if(!groups.length)throw new Error('Choisissez au moins un groupe concerné.');
+
+     const partnerPrice=type==='custom'?0:Math.trunc(Number(el('partnerServicePartnerPrice')?.value));
+     const discount=type==='custom'?Math.trunc(Number(el('partnerServiceDiscountPercent')?.value)):0;
+
+     if(type!=='custom'&&(!Number.isFinite(partnerPrice)||partnerPrice<0))throw new Error('Indiquez un prix partenaire valide.');
+     if(type==='custom'&&(!Number.isFinite(discount)||discount<0||discount>100))throw new Error('Indiquez une réduction entre 0 et 100 %.');
+
+     await rpc('ae_manager_add_partner_service',{
+       p_token:token,
+       p_partner_id:Number(selectedAdminPartnerId),
+       p_service_type:type,
+       p_partner_price:partnerPrice,
+       p_discount_percent:discount,
+       p_billing_mode:billingMode,
+       p_access_groups:groups
+     });
+   }
+
    safeReset(form);
    document.querySelector('input[name="partnerServiceType"][value="totale"]')?.click();
    const mode=el('partnerServiceBillingMode');if(mode)mode.value='weekly_invoice';
+   if(el('partnerServiceEmployeeDiscountPercent'))el('partnerServiceEmployeeDiscountPercent').value='';
+   if(el('partnerServiceDirectionDiscountPercent'))el('partnerServiceDirectionDiscountPercent').value='';
    document.querySelectorAll('#partnerAccessGroups input[type=checkbox]').forEach(input=>input.checked=false);
    updatePartnerServiceTypeUI();
    updatePartnerAccessCount();
    siteToast('Prestation partenaire ajoutée.','success');
    await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
- }catch(err){siteToast('Ajout impossible : '+err.message,'error')}
- finally{if(button)button.disabled=false}
+ }catch(err){
+   siteToast('Ajout impossible : '+err.message,'error');
+ }finally{
+   if(button)button.disabled=false;
+ }
 });
 
 function activateAdminTab(name){
