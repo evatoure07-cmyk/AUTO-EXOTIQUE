@@ -800,8 +800,7 @@ function showTemporaryCredential(login,password,label='Mot de passe temporaire')
 
 function canAssignRoleUI(role){
  if(!account)return false;
- if(['patron','copatron'].includes(account.role))return employeeRoles.includes(role);
- if(account.role==='assistant_direction')return ['mecano_novice','mecano_intermediaire','mecano_experimente','chef_equipe','rh','drh'].includes(role);
+ if(['assistant_direction','copatron','patron'].includes(account.role))return employeeRoles.includes(role);
  if(account.role==='drh')return ['mecano_novice','mecano_intermediaire','mecano_experimente','chef_equipe','rh'].includes(role);
  if(account.role==='rh')return ['mecano_novice','mecano_intermediaire','mecano_experimente','chef_equipe'].includes(role);
  return false;
@@ -1038,7 +1037,7 @@ async function managerRefresh(){
  :account.role==='assistant_direction'
  ?['Voir les profils','Créer les comptes','Gérer RH & DRH','Clients & commandes','Partenariats','Journal']
  :['Accès complet','Tous les grades','Clients & commandes','Partenariats','Journal','Historique','Discord'];
- p.textContent=account.role==='rh'?'Les postes supérieurs restent en lecture seule.':account.role==='drh'?'Vous gérez l’équipe RH et les grades opérationnels.':account.role==='assistant_direction'?'Les grades Assistante, Co-patron et Patron restent protégés.':'Vous pouvez gérer l’ensemble des comptes et grades.';
+ p.textContent=account.role==='rh'?'Les postes supérieurs restent en lecture seule.':account.role==='drh'?'Vous gérez l’équipe RH et les grades opérationnels.':'Vous pouvez créer et gérer les comptes de direction ainsi que les autres grades.';
  permissions.forEach(label=>{const chip=document.createElement('span');chip.className='permission-chip';chip.textContent=label;chips.append(chip)});
  permissionCard.append(h,p,chips);
  }
