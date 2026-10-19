@@ -1978,6 +1978,55 @@ body.light #actualites .news-card:not(.has-cover) .btn.secondary{
   color:#17313a!important;
   border-color:rgba(35,89,101,.14)!important;
 }
+
+/* Partner deletion actions + clearer directory */
+.partner-directory-row{grid-template-columns:minmax(0,1fr) auto!important}
+.partner-directory-row-actions{display:flex;align-items:center;gap:5px}
+.partner-directory-action{
+  width:32px;height:34px;border-radius:9px;border:1px solid var(--line);
+  background:var(--soft);color:var(--text);display:grid;place-items:center;
+  font-weight:900;font-size:13px;padding:0
+}
+.partner-directory-action:hover{border-color:rgba(40,217,229,.42);color:var(--cyan)}
+.partner-directory-action.danger{background:rgba(245,91,91,.08);border-color:rgba(245,91,91,.22);color:#e66d77}
+.partner-directory-action.danger:hover{background:rgba(245,91,91,.16);border-color:rgba(245,91,91,.42)}
+.partner-access-heading label em{font-style:normal;font-weight:700;color:var(--cyan);margin-left:6px;font-size:9px}
+.partner-service-row{grid-template-columns:minmax(0,1fr) auto auto auto auto!important}
+.partner-service-delete{min-width:78px!important}
+
+/* Light mode: never turn journal/order cards into black slabs */
+body.light .news-card{
+  background-color:#f7fbfc!important;
+  color:#15323b!important;
+}
+body.light .news-card.has-cover:before{
+  background:linear-gradient(to top,rgba(247,251,252,.98),rgba(247,251,252,.60),rgba(247,251,252,.30))!important;
+}
+body.light .news-card h3,
+body.light .news-card p,
+body.light .news-card small{color:#17343e!important}
+body.light .news-card p,
+body.light .news-card small{color:#6a8189!important}
+body.light .compact-order-card,
+body.light .manager-order-compact{
+  background:linear-gradient(145deg,#ffffff,#f3f8f9)!important;
+  border-color:rgba(35,89,101,.13)!important;
+  box-shadow:0 10px 28px rgba(42,77,86,.06)
+}
+body.light .compact-order-card[open]>summary,
+body.light .manager-order-compact[open]>summary{background:#eaf5f6!important}
+body.light .partner-directory-card,
+body.light .partner-config-editor{
+  background:linear-gradient(145deg,#fff,#f3f8f9)!important;
+}
+body.light .partner-directory-row{background:#f8fbfc!important}
+body.light .partner-directory-row.active{background:#e6f5f7!important}
+
+@media(max-width:760px){
+ .partner-service-row{grid-template-columns:1fr!important}
+ .partner-service-row>.btn{width:100%}
+ .partner-directory-card{position:static!important}
+}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
@@ -2296,7 +2345,7 @@ body.light #actualites .news-card:not(.has-cover) .btn.secondary{
          <div class="partner-formula-example">Exemple 4 000 $ à −10 % → <b id="partnerCustomExample">12 600 $</b></div>
        </div>
      </div>
-     <div class="partner-access-heading"><label>À qui s’applique ce tarif ?</label><small id="partnerAccessCount">0 groupe sélectionné</small></div>
+     <div class="partner-access-heading"><label>À qui s’applique ce tarif ? <em>Plusieurs choix possibles</em></label><small id="partnerAccessCount">0 groupe sélectionné</small></div>
      <div id="partnerAccessGroups" class="partner-access-grid">
        <label class="partner-access-option"><input type="checkbox" value="all_staff"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Tous les employés</strong><small>Tous les grades</small></span></label>
        <label class="partner-access-option"><input type="checkbox" value="mecanos"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Mécanos</strong><small>Novice · Intermédiaire · Expérimenté</small></span></label>
