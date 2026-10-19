@@ -803,6 +803,269 @@ body.light .footer{
   }
   #direction .shell{width:1280px!important;max-width:1280px!important}
 }
+
+/* Mobile layout cleanup */
+@media(max-width:700px){
+  html,body{max-width:100%;overflow-x:hidden}
+  body{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))!important}
+
+  /* Compact top header */
+  .nav{
+    position:sticky!important;
+    top:0!important;
+    height:76px!important;
+    min-height:76px!important;
+    background:rgba(5,11,15,.95)!important;
+    border-bottom:1px solid var(--line)!important;
+    backdrop-filter:blur(22px) saturate(145%)!important;
+    z-index:140!important;
+  }
+  body.light .nav{background:rgba(249,252,253,.97)!important}
+  .nav .shell{
+    width:100%!important;
+    height:100%!important;
+    padding:0 12px!important;
+  }
+  .nav .bar{
+    position:relative!important;
+    width:100%!important;
+    height:76px!important;
+    min-height:76px!important;
+    padding:0 100px 0 0!important;
+    margin:0!important;
+    display:flex!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    justify-content:flex-start!important;
+    gap:10px!important;
+  }
+  .brand-row{
+    display:flex!important;
+    align-items:center!important;
+    min-width:0!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    flex:0 1 auto!important;
+  }
+  .brand{
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    font-size:18px!important;
+    letter-spacing:.12em!important;
+    line-height:1!important;
+    white-space:nowrap!important;
+  }
+  .brand:after{display:none!important}
+  .sidebar-collapse{display:none!important}
+
+  /* Only the compact theme switch remains in header */
+  .sidebar-theme-top{
+    display:inline-flex!important;
+    position:static!important;
+    order:initial!important;
+    flex:0 0 auto!important;
+    margin:0!important;
+    padding:5px 6px!important;
+    gap:0!important;
+    min-width:0!important;
+    box-shadow:none!important;
+  }
+  .sidebar-theme-top .theme-icon{display:none!important}
+  .sidebar-theme-top .theme-track{width:36px!important;height:20px!important}
+
+  .nav .top-actions,
+  .nav .links,
+  .nav .staff-sidebar-nav,
+  .nav .sidebar-user,
+  .nav .sidebar-signout{display:none!important}
+
+  /* Cart and bell live in their own reserved area */
+  .global-cart-button,
+  .global-notification-button{
+    top:17px!important;
+    width:42px!important;
+    height:42px!important;
+    min-height:42px!important;
+    border-radius:13px!important;
+    z-index:160!important;
+  }
+  .global-cart-button{right:58px!important}
+  .global-notification-button{right:10px!important}
+  .global-cart-button .cart-icon,
+  .global-notification-button .notification-bell{width:18px!important;height:18px!important}
+  .global-cart-button .notification-badge,
+  .global-notification-button .notification-badge{
+    min-width:17px!important;height:17px!important;font-size:9px!important;
+    right:-4px!important;top:-5px!important;
+  }
+
+  /* Hero starts immediately after header instead of being vertically centered */
+  .hero{
+    min-height:0!important;
+    height:auto!important;
+    padding:54px 0 44px!important;
+    align-items:flex-start!important;
+    overflow:hidden!important;
+  }
+  .hero .shell{padding:0 20px!important}
+  .hero:before{
+    font-size:240px!important;
+    right:-105px!important;
+    top:56%!important;
+    opacity:.7!important;
+  }
+  .hero:after{inset:auto -20% 27% 28%!important;opacity:.48!important}
+  .hero .eyebrow{
+    font-size:9px!important;
+    letter-spacing:.19em!important;
+    gap:8px!important;
+  }
+  .hero .eyebrow:before{width:24px!important}
+  .hero h1{
+    margin:34px 0 0!important;
+    max-width:100%!important;
+    font-size:clamp(52px,15vw,68px)!important;
+    line-height:.86!important;
+    letter-spacing:-.045em!important;
+  }
+  .speed{
+    width:100%!important;
+    max-width:360px!important;
+    margin:34px 0 34px!important;
+  }
+  .hero p{
+    max-width:100%!important;
+    margin:0!important;
+    font-size:15px!important;
+    line-height:1.72!important;
+  }
+  .hero-actions{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:10px!important;
+    margin-top:32px!important;
+  }
+  .hero-actions .btn{
+    width:100%!important;
+    min-height:54px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    text-align:center!important;
+  }
+  .performance-strip{
+    width:100%!important;
+    max-width:none!important;
+    margin:38px 0 0!important;
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    border-radius:18px!important;
+  }
+  .performance-strip div{
+    min-width:0!important;
+    padding:17px 14px!important;
+  }
+  .performance-strip div:nth-child(2){border-right:0!important}
+  .performance-strip div:nth-child(3){
+    grid-column:1/-1!important;
+    border-right:0!important;
+  }
+  .performance-strip strong{font-size:25px!important}
+  .performance-strip span{font-size:9px!important;line-height:1.35!important}
+
+  /* General page spacing */
+  .shell{padding-left:18px!important;padding-right:18px!important}
+  .section{padding:48px 0!important}
+  .section h2{font-size:clamp(38px,11vw,50px)!important;line-height:.95!important}
+  .section-intro{margin-bottom:28px!important}
+  .grid2,.cards,.dashboard-grid,.staff-grid,.news-grid,.client-files,.stats-grid{
+    grid-template-columns:1fr!important;
+  }
+  .card,.order-card,.employee-dashboard-card,.employee-welcome-card{
+    border-radius:18px!important;
+  }
+
+  /* Fixed bottom navigation */
+  .mobile-nav{
+    left:8px!important;
+    right:8px!important;
+    bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;
+    width:auto!important;
+    min-width:0!important;
+    grid-template-columns:repeat(6,minmax(0,1fr))!important;
+    gap:2px!important;
+    padding:7px!important;
+    border-radius:22px!important;
+    z-index:180!important;
+  }
+  .mobile-nav a{
+    min-width:0!important;
+    padding:7px 2px!important;
+    gap:4px!important;
+    font-size:16px!important;
+    border-radius:14px!important;
+    overflow:hidden!important;
+  }
+  .mobile-nav small{
+    width:100%!important;
+    font-size:8px!important;
+    line-height:1!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:clip!important;
+    text-align:center!important;
+    letter-spacing:-.02em!important;
+  }
+
+  /* Panels stay clear of top and bottom nav */
+  .notifications-panel{
+    top:68px!important;
+    right:8px!important;
+    left:8px!important;
+    bottom:auto!important;
+    width:auto!important;
+    max-height:calc(100dvh - 170px)!important;
+  }
+  .site-toast-stack{
+    left:12px!important;
+    right:12px!important;
+    bottom:calc(94px + env(safe-area-inset-bottom,0px))!important;
+    width:auto!important;
+  }
+  .cart-overlay,.site-dialog,.profile-modal{padding:12px!important}
+  .cart-card,.site-dialog-card,.profile-modal-card{
+    max-height:calc(100dvh - 28px)!important;
+    border-radius:20px!important;
+  }
+
+  /* Avoid oversized width on shop/admin forms */
+  input,textarea,select,.btn{max-width:100%}
+  .counter{max-width:100%!important}
+  .qty-input,.quantity-input{min-width:0!important}
+  .admin-tabs{max-width:100%!important}
+  .admin-toolbar input,.admin-toolbar select{min-width:0!important;width:100%!important}
+}
+
+/* Extra narrow phones */
+@media(max-width:390px){
+  .nav .bar{padding-right:96px!important;gap:7px!important}
+  .brand{font-size:16px!important;letter-spacing:.10em!important}
+  .sidebar-theme-top{padding:4px!important}
+  .sidebar-theme-top .theme-track{width:32px!important}
+  .global-cart-button,.global-notification-button{
+    width:40px!important;height:40px!important;min-height:40px!important;top:18px!important
+  }
+  .global-cart-button{right:54px!important}
+  .global-notification-button{right:8px!important}
+  .hero{padding-top:44px!important}
+  .hero h1{font-size:clamp(48px,14.5vw,58px)!important}
+  .hero .shell{padding-left:18px!important;padding-right:18px!important}
+  .mobile-nav{left:6px!important;right:6px!important;padding:6px 4px!important}
+  .mobile-nav a{font-size:15px!important}
+  .mobile-nav small{font-size:7.5px!important}
+}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
