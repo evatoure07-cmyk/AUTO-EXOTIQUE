@@ -2,7 +2,7 @@
 const db=window.supabase?.createClient('https://gkljzpwfmthzjgfzzeoy.supabase.co','sb_publishable_x6NB71lEqcvtxODHt-cdKQ_BMLVLA3o');
 if(!db)return;
 const el=id=>document.getElementById(id);
-const safeReset=form=>{if(form&&typeof form.reset==='function')form.reset()};
+const safeReset=form=>{try{if(form&&typeof form.reset==='function')form.reset()}catch(_){}};
 let token=localStorage.getItem('ae_session')||'';
 let account=null;
 let myProfile=null;
