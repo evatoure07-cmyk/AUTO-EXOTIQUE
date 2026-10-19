@@ -1237,16 +1237,19 @@ function updatePartnerServiceTypeUI(){
  const custom=type==='custom';
  el('partnerFixedPriceFields')?.classList.toggle('hidden',custom);
  el('partnerCustomConfig')?.classList.toggle('hidden',!custom);
+ el('partnerFixedModeNote')?.classList.toggle('hidden',custom);
+ el('partnerCustomModeWrap')?.classList.toggle('hidden',!custom);
  if(el('partnerServicePartnerPrice'))el('partnerServicePartnerPrice').required=!custom;
  if(el('partnerServiceDiscountPercent'))el('partnerServiceDiscountPercent').required=custom;
  const mode=el('partnerServiceBillingMode');
  if(mode){
-   const memoOption=[...mode.options].find(o=>o.value==='direct_discount');
-   if(memoOption)memoOption.disabled=!custom;
-   if(!custom&&mode.value==='direct_discount')mode.value='weekly_invoice';
+   if(!custom)mode.value='weekly_invoice';
+   mode.disabled=!custom;
  }
  const help=el('partnerServiceModeHelp');
- if(help&&!custom)help.textContent='Totale et Moteur sont uniquement des prestations à déclarer pour le règlement de fin de semaine.';
+ if(help)help.textContent=mode?.value==='direct_discount'
+   ?'Ce Custom sera uniquement disponible dans Tarifs mémo pour les groupes cochés.'
+   :'Ce Custom devra être déclaré et sera ajouté au règlement de fin de semaine.';
  renderPartnerAdminCustomExample();
 }
 
@@ -1267,7 +1270,7 @@ el('partnerServiceDiscountPercent')?.addEventListener('input',renderPartnerAdmin
 updatePartnerServiceTypeUI();
 
 function setPartnerAdminTab(tab){
- const chosen=['summary','configure','history'].includes(tab)?tab:'summary';
+ const chosen=['summary','configure','history','requests'].includes(tab)?tab:'summary';
  document.querySelectorAll('[data-partner-tab]').forEach(button=>{
    const active=button.dataset.partnerTab===chosen;
    button.classList.toggle('active',active);
@@ -1276,11 +1279,12 @@ function setPartnerAdminTab(tab){
  document.querySelectorAll('[data-partner-panel]').forEach(panel=>{
    panel.classList.toggle('hidden',panel.dataset.partnerPanel!==chosen);
  });
+ localStorage.setItem('ae_partner_admin_tab',chosen);
 }
 document.querySelectorAll('[data-partner-tab]').forEach(button=>{
  button.addEventListener('click',()=>setPartnerAdminTab(button.dataset.partnerTab));
 });
-setPartnerAdminTab('configure');
+setPartnerAdminTab(localStorage.getItem('ae_partner_admin_tab')||'summary');
 
 el('partnerDirectorySearch')?.addEventListener('input',()=>loadManagerPartners());
 el('partnerShowInactive')?.addEventListener('change',()=>loadManagerPartners());
@@ -1460,36 +1464,6 @@ async function loadManagerPartners(){
      const p=document.createElement('p');p.className='muted';p.textContent='Sélectionnez un partenaire dans la colonne de gauche.';catalogBox.append(p);
    }else{
      const item=document.createElement('article');item.className='partner-catalog-item selected-partner-config';
-     const head=document.createElement('div');head.className='partner-catalog-head';
-     const title=document.createElement('div');
-     const h4=document.createElement('h4');h4.textContent=selectedPartner.name;
-     const state=document.createElement('small');state.className='muted';state.textContent=selectedPartner.active?'Partenaire actif':'Partenaire inactif';
-     title.append(h4,state);head.append(title);
-
-     if(canConfigurePartners()){
-       const actions=document.createElement('div');actions.className='partner-config-actions';
-       const disable=document.createElement('button');disable.type='button';disable.className='btn secondary';disable.textContent=selectedPartner.active?'Désactiver':'Réactiver';
-       disable.onclick=async()=>{
-         try{
-           await rpc('ae_manager_set_partner_active',{p_token:token,p_partner_id:selectedPartner.id,p_active:!selectedPartner.active});
-           if(selectedPartner.active)selectedAdminPartnerId=null;
-           siteToast('Partenaire mis à jour.','success');
-           await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
-         }catch(err){siteToast(err.message,'error')}
-       };
-       const remove=document.createElement('button');remove.type='button';remove.className='btn danger';remove.textContent='Supprimer';
-       remove.onclick=async()=>{
-         if(!await siteConfirm('Supprimer définitivement '+selectedPartner.name+' ?',{title:'Supprimer le partenaire',confirmText:'Supprimer'}))return;
-         try{
-           await rpc('ae_manager_delete_partner',{p_token:token,p_partner_id:selectedPartner.id});
-           selectedAdminPartnerId=null;
-           siteToast('Partenaire supprimé.','success');
-           await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
-         }catch(err){siteToast('Suppression impossible : '+err.message,'error')}
-       };
-       actions.append(disable,remove);head.append(actions);
-     }
-
      const list=document.createElement('div');list.className='partner-service-list';
      if(!(selectedPartner.services||[]).length){
        const p=document.createElement('p');p.className='muted';p.textContent='Aucune prestation configurée pour ce partenaire.';list.append(p);
@@ -1525,7 +1499,7 @@ async function loadManagerPartners(){
        list.append(row);
      }
 
-     item.append(head,list);
+     item.append(list);
      catalogBox.append(item);
    }
 
@@ -1559,12 +1533,13 @@ el('partnerCurrentWeek')?.addEventListener('click',()=>{if(el('partnerWeekPicker
 el('partnerServiceBillingMode')?.addEventListener('change',()=>{
  const help=el('partnerServiceModeHelp');if(!help)return;
  help.textContent=el('partnerServiceBillingMode').value==='weekly_invoice'
-   ?'Cette prestation devra être déclarée. Son prix sera ajouté au total du partenaire pour la facture de fin de semaine.'
-   :'Ce calcul Custom sera disponible dans Tarifs mémo pour les groupes cochés. Aucun montant n’est ajouté à la facture de fin de semaine.';
+   ?'Ce Custom devra être déclaré et sera ajouté au règlement de fin de semaine.'
+   :'Ce Custom sera uniquement disponible dans Tarifs mémo pour les groupes cochés.';
 });
 el('partnerCreateForm')?.addEventListener('submit',async e=>{
  e.preventDefault();if(!canConfigurePartners()){siteToast('Accès direction requis.','error');return}
- const form=e.currentTarget;
+ const form=el('partnerCreateForm');
+ if(!form)return;
  const button=form.querySelector('[type=submit]');if(button)button.disabled=true;
  const name=el('partnerCreateName')?.value.trim()||'';
  try{
