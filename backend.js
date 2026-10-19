@@ -75,7 +75,7 @@ function updateConnectedSpace(){
   el('disconnectedSpaceGrid')?.classList.toggle('hidden',connected);
   el('accountStatus')?.classList.toggle('hidden',connected);
 
-  if(!connected){el('staffDashboardLink')?.classList.add('hidden');el('staffRHLink')?.classList.add('hidden');return;}
+  if(!connected)return;
 
   const full=((myProfile?.first_name||account.first_name||'')+' '+(myProfile?.last_name||account.last_name||'')).trim();
   if(el('connectedSpaceName'))el('connectedSpaceName').textContent=full||'Mon compte';
@@ -90,8 +90,6 @@ function updateConnectedSpace(){
 
   el('connectedOrdersLink')?.classList.toggle('hidden',account.role!=='client');
   el('connectedAdminLink')?.classList.toggle('hidden',!managerRoles.includes(account.role));
-  el('staffDashboardLink')?.classList.toggle('hidden',account.role==='client');
-  el('staffRHLink')?.classList.toggle('hidden',!managerRoles.includes(account.role));
   if(el('authFeedback'))el('authFeedback').textContent='';
 }
 async function refresh(){
@@ -129,6 +127,7 @@ function updateSidebarProfile(){
   const connected=!!account;
   const employeeConnected=connected&&account.role!=='client';
   const quick=el('quickLogin'),user=el('sidebarUser');
+  document.body.classList.toggle('employee-session',employeeConnected);
   if(quick)quick.classList.toggle('hidden',connected);
   if(user)user.classList.toggle('hidden',!connected);
   el('staffSidebarNav')?.classList.toggle('hidden',!employeeConnected);
@@ -405,7 +404,7 @@ async function loadStaffDashboard(){
       side.append(total);
       if(managerRoles.includes(account.role)){
         const manage=document.createElement('button');manage.type='button';manage.className='btn secondary';manage.style.marginTop='8px';manage.textContent='Gérer';
-        manage.onclick=()=>{location.hash='#/dashboard';activateAdminTab('orders')};
+        manage.onclick=()=>{location.hash='#/direction';setTimeout(()=>activateAdminTab('orders'),40)};
         side.append(manage);
       }
       row.append(id,main,side);ordersBox.append(row);
@@ -415,6 +414,10 @@ async function loadStaffDashboard(){
     badge?.classList.add('hidden');
   }
 }
+
+el('staffOrdersLink')?.addEventListener('click',()=>{
+  setTimeout(()=>document.querySelector('.staff-orders-card')?.scrollIntoView({behavior:'smooth',block:'start'}),80);
+});
 
 async function loadNotifications(){
   const list=el('notificationsList'),badge=el('notificationBadge');if(!list||!badge)return;
