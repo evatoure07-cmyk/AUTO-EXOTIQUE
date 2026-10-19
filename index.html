@@ -1087,12 +1087,12 @@ body.light .footer{
 .partner-admin-config{display:grid;grid-template-columns:.65fr 1.35fr;gap:18px;margin-bottom:18px}
 .partner-catalog-item{padding:18px 0;border-bottom:1px solid var(--line)}.partner-catalog-item:last-child{border-bottom:0}
 .partner-catalog-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.partner-catalog-head h4{margin:0;font-size:19px}
-.partner-service-list{display:grid;gap:8px;margin-top:12px}.partner-service-row{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:12px;border-radius:13px;background:var(--soft);border:1px solid transparent}
+.partner-service-list{display:grid;gap:8px;margin-top:12px}.partner-service-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:12px;align-items:center;padding:12px;border-radius:13px;background:var(--soft);border:1px solid transparent}.partner-service-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.partner-service-actions .btn{white-space:nowrap}
 .partner-service-row small{display:block;color:var(--muted);margin-top:3px}.partner-service-price{font:800 18px Rajdhani,sans-serif;color:var(--cyan);white-space:nowrap}
 .partner-service-mode{font-size:9px;font-weight:900;padding:6px 8px;border-radius:999px;background:var(--panel);border:1px solid var(--line);white-space:nowrap}
 .partner-admin-declaration{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}.partner-admin-declaration:last-child{border-bottom:0}.partner-admin-declaration small{display:block;color:var(--muted);margin-top:4px}.partner-admin-amount{text-align:right}.partner-admin-amount strong{display:block;font:800 19px Rajdhani,sans-serif;color:var(--cyan)}.partner-admin-amount small{font-size:9px}
 @media(max-width:900px){.partner-declaration-layout,.partner-admin-config{grid-template-columns:1fr}.partner-declare-card{position:static}.partner-weekly-grid{grid-template-columns:1fr 1fr}.partner-admin-hero{align-items:flex-start;flex-direction:column}}
-@media(max-width:650px){.partner-weekly-grid{grid-template-columns:1fr}.partner-service-row,.partner-admin-declaration{grid-template-columns:1fr}.partner-service-price,.partner-admin-amount{text-align:left}.partner-week-control{width:100%}.partner-week-control label{width:100%}.partner-week-control input{width:100%}}
+@media(max-width:650px){.partner-weekly-grid{grid-template-columns:1fr}.partner-service-row,.partner-admin-declaration{grid-template-columns:1fr}.partner-service-actions{width:100%}.partner-service-actions .btn{flex:1}.partner-service-price,.partner-admin-amount{text-align:left}.partner-week-control{width:100%}.partner-week-control label{width:100%}.partner-week-control input{width:100%}}
 
 .checkout-login-notice{
   display:grid;
@@ -2027,7 +2027,7 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
  .partner-service-row>.btn{width:100%}
  .partner-directory-card{position:static!important}
 }
-</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
+</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js?v=20261019-1" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
  <button id="theme" class="theme-toggle sidebar-theme-top" type="button" data-label="Changer de thème" aria-label="Passer en mode clair" aria-pressed="false"><span class="theme-icon sun">☀</span><span class="theme-track"><span class="theme-knob"></span></span><span class="theme-icon moon">◐</span></button>
@@ -2348,7 +2348,7 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
      <div class="partner-access-heading"><label>À qui s’applique ce tarif ? <em>Plusieurs choix possibles</em></label><small id="partnerAccessCount">0 groupe sélectionné</small></div>
      <div id="partnerAccessGroups" class="partner-access-grid">
        <label class="partner-access-option"><input type="checkbox" value="all_staff"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Tous les employés</strong><small>Tous les grades</small></span></label>
-       <label class="partner-access-option"><input type="checkbox" value="mecanos"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Mécanos</strong><small>Novice · Intermédiaire · Expérimenté</small></span></label>
+       <label class="partner-access-option"><input type="checkbox" value="mecanos"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Employés</strong><small>Novice · Intermédiaire · Expérimenté</small></span></label>
        <label class="partner-access-option"><input type="checkbox" value="chef_equipe"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Chef d’équipe</strong><small>Chef d’équipe uniquement</small></span></label>
        <label class="partner-access-option"><input type="checkbox" value="gestion"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Gestion</strong><small>RH · DRH</small></span></label>
        <label class="partner-access-option"><input type="checkbox" value="direction"/><span class="partner-checkmark">✓</span><span class="partner-access-copy"><strong>Direction</strong><small>Assistante · Co-patron · Patron</small></span></label>
