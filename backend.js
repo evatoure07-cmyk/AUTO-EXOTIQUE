@@ -860,6 +860,15 @@ el('newsForm')?.addEventListener('submit',async e=>{
 
 
 let partnerCatalog=[];
+let partnerMemoCatalog=[];
+
+const partnerGroupLabels={
+ all_staff:'Tous les employés',
+ mecanos:'Mécanos',
+ chef_equipe:'Chef d’équipe',
+ gestion:'Gestion',
+ direction:'Direction'
+};
 
 function selectedPartnerService(){
  const serviceId=Number(el('partnerDeclarationService')?.value||0);
@@ -876,20 +885,12 @@ function renderPartnerBillingPreview(){
  const qty=Math.max(1,Math.trunc(Number(el('partnerDeclarationQuantity')?.value||1)));
  box.replaceChildren();
  if(!chosen){
-   const span=document.createElement('span');span.textContent='Sélectionnez une prestation pour afficher la consigne de facturation.';box.append(span);return;
+   const span=document.createElement('span');span.textContent='Sélectionnez une prestation à déclarer pour afficher le montant de fin de semaine.';box.append(span);return;
  }
  const {service}=chosen;
- const title=document.createElement('strong');
- const detail=document.createElement('small');
- const normal=money(Number(service.base_price||0)*qty);
- const partnerPrice=money(Number(service.partner_price||0)*qty);
- if(service.billing_mode==='weekly_invoice'){
-   title.textContent='À facturer maintenant : '+money(qty);
-   detail.textContent='Prix normal : '+normal+' · Prix partenaire : '+partnerPrice+' · '+partnerPrice+' sera ajouté au montant à facturer en fin de semaine.';
- }else{
-   title.textContent='À facturer maintenant : '+partnerPrice;
-   detail.textContent='Prix normal : '+normal+' · Tarif partenaire réduit appliqué immédiatement. Rien ne restera à facturer en fin de semaine.';
- }
+ const total=Number(service.partner_price||0)*qty;
+ const title=document.createElement('strong');title.textContent='À ajouter à la facture de fin de semaine : '+money(total);
+ const detail=document.createElement('small');detail.textContent='Tarif partenaire : '+money(service.partner_price)+' par prestation · quantité '+qty+'.';
  box.append(title,detail);
 }
 
@@ -901,11 +902,30 @@ function populatePartnerServices(){
  const first=document.createElement('option');first.value='';first.textContent='Choisir une prestation';select.append(first);
  const partner=(partnerCatalog||[]).find(p=>Number(p.id)===partnerId);
  for(const service of partner?.services||[]){
-   const option=document.createElement('option');option.value=String(service.id);option.textContent=service.name;select.append(option);
+   const option=document.createElement('option');option.value=String(service.id);option.textContent=service.name+' — '+money(service.partner_price);select.append(option);
  }
  select.disabled=!partnerId||!(partner?.services||[]).length;
  if([...select.options].some(o=>o.value===current))select.value=current;
  renderPartnerBillingPreview();
+}
+
+function renderPartnerMemo(){
+ const box=el('partnerMemoList');if(!box)return;
+ box.replaceChildren();
+ if(!partnerMemoCatalog.length){
+   const p=document.createElement('p');p.className='muted';p.textContent='Aucun tarif partenaire payé directement n’est disponible pour votre grade.';box.append(p);return;
+ }
+ for(const partner of partnerMemoCatalog){
+   const group=document.createElement('section');group.className='partner-memo-group';
+   const title=document.createElement('h4');title.textContent=partner.name;group.append(title);
+   for(const service of partner.services||[]){
+     const row=document.createElement('div');row.className='partner-memo-service';
+     const name=document.createElement('strong');name.textContent=service.name;
+     const price=document.createElement('span');price.textContent=money(service.partner_price);
+     row.append(name,price);group.append(row);
+   }
+   box.append(group);
+ }
 }
 
 async function loadPartnerDeclarations(){
@@ -917,19 +937,21 @@ async function loadPartnerDeclarations(){
  gate.classList.toggle('hidden',staff);
  content.classList.toggle('hidden',!staff);
  if(!staff){
-   partnerCatalog=[];partnerSelect.replaceChildren();
+   partnerCatalog=[];partnerMemoCatalog=[];partnerSelect.replaceChildren();
    const opt=document.createElement('option');opt.value='';opt.textContent='Choisir un partenaire';partnerSelect.append(opt);
-   history.replaceChildren();
+   history.replaceChildren();renderPartnerMemo();
    if(location.hash.startsWith('#/declaration-partenaires'))location.hash='#/espace';
    return;
  }
 
  try{
-   const [catalog,rows]=await Promise.all([
+   const [catalog,memo,rows]=await Promise.all([
      rpc('ae_staff_partner_catalog',{p_token:token}),
+     rpc('ae_staff_partner_memo',{p_token:token}),
      rpc('ae_staff_my_partner_declarations',{p_token:token,p_limit:150})
    ]);
    partnerCatalog=catalog||[];
+   partnerMemoCatalog=memo||[];
 
    const currentPartner=partnerSelect.value;
    partnerSelect.replaceChildren();
@@ -939,25 +961,29 @@ async function loadPartnerDeclarations(){
    }
    if([...partnerSelect.options].some(o=>o.value===currentPartner))partnerSelect.value=currentPartner;
    populatePartnerServices();
+   renderPartnerMemo();
 
    history.replaceChildren();
    if(!rows?.length){
-     const p=document.createElement('p');p.className='muted';p.textContent='Aucune prestation partenaire déclarée pour le moment.';history.append(p);
+     const p=document.createElement('p');p.className='muted';p.textContent='Aucune prestation à règlement fin de semaine déclarée pour le moment.';history.append(p);
    }else{
      for(const row of rows){
        const item=document.createElement('div');item.className='partner-declaration-row';
        const main=document.createElement('div');main.className='partner-declaration-main';
        const strong=document.createElement('strong');strong.textContent=row.partner_name+' — '+row.service_name;
        const meta=document.createElement('small');
-       meta.textContent='× '+Number(row.quantity||0).toLocaleString('fr-FR')+' · '+new Date(row.created_at).toLocaleString('fr-FR')+' · '+(row.billing_mode==='weekly_invoice'?'Facture 1 $ + fin de semaine':'Tarif réduit immédiat');
+       meta.textContent='× '+Number(row.quantity||0).toLocaleString('fr-FR')+' · '+new Date(row.created_at).toLocaleString('fr-FR')+' · Règlement fin de semaine';
        main.append(strong,meta);
        const amount=document.createElement('div');amount.className='partner-declaration-money';
-       const total=document.createElement('strong');total.textContent=money(row.invoice_now_total);
-       const small=document.createElement('small');small.textContent=row.weekly_due_total>0?money(row.weekly_due_total)+' à facturer semaine':'déjà réglé';
+       const total=document.createElement('strong');total.textContent=money(row.weekly_due_total);
+       const small=document.createElement('small');small.textContent='à facturer au partenaire';
        amount.append(total,small);item.append(main,amount);history.append(item);
      }
    }
- }catch(err){history.textContent='Déclarations partenaires indisponibles : '+err.message}
+ }catch(err){
+   history.textContent='Déclarations partenaires indisponibles : '+err.message;
+   const memoBox=el('partnerMemoList');if(memoBox)memoBox.textContent='Fiche mémo indisponible.';
+ }
 }
 
 el('partnerDeclarationPartner')?.addEventListener('change',populatePartnerServices);
@@ -970,13 +996,12 @@ el('partnerDeclarationForm')?.addEventListener('submit',async e=>{
  const button=form.querySelector('[type=submit]');
  const chosen=selectedPartnerService();
  const quantity=Math.max(0,Math.trunc(Number(el('partnerDeclarationQuantity')?.value||0)));
- if(!chosen){siteToast('Choisissez une prestation partenaire.','error');return}
+ if(!chosen){siteToast('Choisissez une prestation à déclarer.','error');return}
  if(quantity<1){siteToast('Indiquez une quantité valide.','error');return}
 
- const invoiceNow=chosen.service.billing_mode==='weekly_invoice'?quantity:Number(chosen.service.partner_price||0)*quantity;
- const weeklyDue=chosen.service.billing_mode==='weekly_invoice'?Number(chosen.service.partner_price||0)*quantity:0;
- const message=chosen.partner.name+' — '+chosen.service.name+' × '+quantity+'\nÀ facturer maintenant : '+money(invoiceNow)+(weeklyDue?'\nÀ ajouter fin de semaine : '+money(weeklyDue):'\nAucun montant restant en fin de semaine.');
- const ok=await siteConfirm(message,{title:'Confirmer la prestation partenaire',confirmText:'Déclarer'});
+ const weeklyDue=Number(chosen.service.partner_price||0)*quantity;
+ const message=chosen.partner.name+' — '+chosen.service.name+' × '+quantity+'\nMontant ajouté à la facture de fin de semaine : '+money(weeklyDue);
+ const ok=await siteConfirm(message,{title:'Confirmer la déclaration partenaire',confirmText:'Déclarer'});
  if(!ok)return;
 
  if(button)button.disabled=true;
@@ -1015,6 +1040,24 @@ function ensurePartnerWeek(){
 function canConfigurePartners(){
  return !!account&&['assistant_direction','copatron','patron'].includes(account.role);
 }
+function selectedPartnerAccessGroups(){
+ const values=[...document.querySelectorAll('#partnerAccessGroups input[type=checkbox]:checked')].map(input=>input.value);
+ return values.includes('all_staff')?['all_staff']:values;
+}
+function accessGroupText(groups){
+ return (groups||[]).map(g=>partnerGroupLabels[g]||g).join(', ')||'—';
+}
+
+document.querySelectorAll('#partnerAccessGroups input[type=checkbox]').forEach(input=>{
+ input.addEventListener('change',()=>{
+   const all=el('partnerAccessGroups')?.querySelector('input[value="all_staff"]');
+   if(input.value==='all_staff'&&input.checked){
+     document.querySelectorAll('#partnerAccessGroups input[type=checkbox]').forEach(other=>{if(other!==input)other.checked=false});
+   }else if(input.checked&&all){
+     all.checked=false;
+   }
+ });
+});
 
 async function loadManagerPartners(){
  const catalogBox=el('managerPartnerCatalog'),declarationsBox=el('managerPartnerDeclarations');
@@ -1048,9 +1091,9 @@ async function loadManagerPartners(){
    if(stats){
      stats.replaceChildren();
      [
-       ['Prestations',Number(summary?.declaration_count||0).toLocaleString('fr-FR')],
-       ['Facturé sur place',money(summary?.invoice_now_total||0)],
-       ['À facturer fin semaine',money(summary?.weekly_due_total||0)]
+       ['Prestations déclarées',Number(summary?.declaration_count||0).toLocaleString('fr-FR')],
+       ['À facturer fin de semaine',money(summary?.weekly_due_total||0)],
+       ['Partenaires concernés',String((summary?.partners||[]).length)]
      ].forEach(([label,value])=>{
        const card=document.createElement('div');card.className='stat-card';
        const strong=document.createElement('strong');strong.textContent=value;
@@ -1062,7 +1105,7 @@ async function loadManagerPartners(){
    if(weekly){
      weekly.replaceChildren();
      if(!(summary?.partners||[]).length){
-       const empty=document.createElement('div');empty.className='card';empty.innerHTML='<strong>Aucune prestation cette semaine.</strong><p class="muted">Les déclarations des employés apparaîtront ici.</p>';weekly.append(empty);
+       const empty=document.createElement('div');empty.className='card';empty.innerHTML='<strong>Aucune prestation cette semaine.</strong><p class="muted">Les déclarations à règlement fin de semaine apparaîtront ici.</p>';weekly.append(empty);
      }else{
        for(const partner of summary.partners){
          const card=document.createElement('article');card.className='partner-week-card';
@@ -1070,9 +1113,8 @@ async function loadManagerPartners(){
          const left=document.createElement('div');const h4=document.createElement('h4');h4.textContent=partner.partner_name;
          const count=document.createElement('span');count.className='partner-week-count';count.textContent=Number(partner.prestation_count||0)+' prestation(s)';left.append(h4,count);head.append(left);
          const moneyGrid=document.createElement('div');moneyGrid.className='partner-week-money';
-         const paid=document.createElement('div');paid.innerHTML='<small>Facturé sur place</small><strong>'+money(partner.invoice_now_total)+'</strong>';
-         const due=document.createElement('div');due.innerHTML='<small>À facturer semaine</small><strong>'+money(partner.weekly_due_total)+'</strong>';
-         moneyGrid.append(paid,due);card.append(head,moneyGrid);weekly.append(card);
+         const due=document.createElement('div');due.innerHTML='<small>À facturer fin de semaine</small><strong>'+money(partner.weekly_due_total)+'</strong>';
+         moneyGrid.append(due);card.append(head,moneyGrid);weekly.append(card);
        }
      }
    }
@@ -1095,10 +1137,14 @@ async function loadManagerPartners(){
        if(!(partner.services||[]).length){const p=document.createElement('p');p.className='muted';p.textContent='Aucune prestation configurée.';list.append(p)}
        for(const service of partner.services||[]){
          const row=document.createElement('div');row.className='partner-service-row';
-         const copy=document.createElement('div');const strong=document.createElement('strong');strong.textContent=service.name;
-         const small=document.createElement('small');small.textContent='Prix normal '+money(service.base_price)+' · '+(service.billing_mode==='weekly_invoice'?'Facture 1 $ + fin de semaine':'Tarif réduit immédiat')+(service.active?'':' · inactive');copy.append(strong,small);
+         const copy=document.createElement('div');
+         const strong=document.createElement('strong');strong.textContent=service.name;
+         const small=document.createElement('small');small.textContent=(service.billing_mode==='weekly_invoice'?'À déclarer · règlement fin de semaine':'Fiche mémo · payé directement')+(service.active?'':' · inactive');
+         const audience=document.createElement('div');audience.className='partner-service-audience';
+         for(const group of service.access_groups||[]){const chip=document.createElement('span');chip.textContent=partnerGroupLabels[group]||group;audience.append(chip)}
+         copy.append(strong,small,audience);
          const price=document.createElement('div');price.className='partner-service-price';price.textContent=money(service.partner_price);
-         const mode=document.createElement('span');mode.className='partner-service-mode';mode.textContent=service.billing_mode==='weekly_invoice'?'1 $ + semaine':'Réduit direct';
+         const mode=document.createElement('span');mode.className='partner-service-mode';mode.textContent=service.billing_mode==='weekly_invoice'?'Fin de semaine':'Mémo direct';
          row.append(copy,price,mode);
          if(canConfigurePartners()){
            const toggle=document.createElement('button');toggle.type='button';toggle.className='btn secondary';toggle.textContent=service.active?'Désactiver':'Réactiver';
@@ -1113,15 +1159,14 @@ async function loadManagerPartners(){
 
    declarationsBox.replaceChildren();
    if(!rows?.length){
-     const p=document.createElement('p');p.className='muted';p.textContent='Aucune prestation déclarée sur cette semaine.';declarationsBox.append(p);
+     const p=document.createElement('p');p.className='muted';p.textContent='Aucune prestation à règlement fin de semaine déclarée sur cette semaine.';declarationsBox.append(p);
    }else{
      for(const row of rows){
        const item=document.createElement('div');item.className='partner-admin-declaration';
        const copy=document.createElement('div');const strong=document.createElement('strong');strong.textContent=row.partner_name+' — '+row.service_name;
        const small=document.createElement('small');small.textContent=row.employee+' · '+(roleLabels[row.role]||row.role)+' · '+new Date(row.created_at).toLocaleString('fr-FR')+' · × '+Number(row.quantity||0).toLocaleString('fr-FR');copy.append(strong,small);
-       const now=document.createElement('div');now.className='partner-admin-amount';now.innerHTML='<small>Facturé sur place</small><strong>'+money(row.invoice_now_total)+'</strong>';
-       const due=document.createElement('div');due.className='partner-admin-amount';due.innerHTML='<small>Fin de semaine</small><strong>'+money(row.weekly_due_total)+'</strong>';
-       item.append(copy,now,due);declarationsBox.append(item);
+       const due=document.createElement('div');due.className='partner-admin-amount';due.innerHTML='<small>À facturer</small><strong>'+money(row.weekly_due_total)+'</strong>';
+       item.append(copy,due);declarationsBox.append(item);
      }
    }
  }catch(err){
@@ -1135,8 +1180,8 @@ el('partnerCurrentWeek')?.addEventListener('click',()=>{if(el('partnerWeekPicker
 el('partnerServiceBillingMode')?.addEventListener('change',()=>{
  const help=el('partnerServiceModeHelp');if(!help)return;
  help.textContent=el('partnerServiceBillingMode').value==='weekly_invoice'
-   ?'L’employé facture 1 $ sur le moment. Le prix partenaire sera ajouté au montant à facturer en fin de semaine.'
-   :'L’employé facture directement le prix partenaire réduit. La prestation reste dans l’historique mais aucun montant ne reste dû en fin de semaine.';
+   ?'Cette prestation devra être déclarée. Son prix sera ajouté au total du partenaire pour la facture de fin de semaine.'
+   :'Ce tarif sera seulement visible dans la fiche mémo des employés concernés. Ils paient directement et aucune déclaration n’est créée.';
 });
 el('partnerCreateForm')?.addEventListener('submit',async e=>{
  e.preventDefault();if(!canConfigurePartners()){siteToast('Accès direction requis.','error');return}
@@ -1150,15 +1195,17 @@ el('partnerCreateForm')?.addEventListener('submit',async e=>{
 });
 el('partnerServiceForm')?.addEventListener('submit',async e=>{
  e.preventDefault();if(!canConfigurePartners()){siteToast('Accès direction requis.','error');return}
+ const groups=selectedPartnerAccessGroups();
+ if(!groups.length){siteToast('Choisissez au moins un groupe concerné.','error');return}
  const button=e.currentTarget.querySelector('[type=submit]');if(button)button.disabled=true;
  try{
    await rpc('ae_manager_add_partner_service',{
      p_token:token,
      p_partner_id:Number(el('partnerServicePartner').value),
      p_service_name:el('partnerServiceName').value.trim(),
-     p_base_price:Math.trunc(Number(el('partnerServiceBasePrice').value)),
      p_partner_price:Math.trunc(Number(el('partnerServicePartnerPrice').value)),
-     p_billing_mode:el('partnerServiceBillingMode').value
+     p_billing_mode:el('partnerServiceBillingMode').value,
+     p_access_groups:groups
    });
    const partnerValue=el('partnerServicePartner').value;
    e.currentTarget.reset();
