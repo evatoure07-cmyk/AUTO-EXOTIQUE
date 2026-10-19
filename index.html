@@ -1339,6 +1339,30 @@ body.light .employee-manage-toggle:hover{background:#eaf5f6}
 .partner-memo-standalone{max-width:980px;margin:0 auto}
 .partner-memo-standalone .panel-heading{margin-bottom:6px}
 .partner-memo-standalone>#partnerMemoList{margin-top:18px}
+
+/* Partner memo calculation sheet */
+.partner-memo-calculator{display:grid;grid-template-columns:minmax(300px,.72fr) minmax(0,1.28fr);gap:18px;align-items:start;max-width:1050px;margin:0 auto}
+.partner-memo-form-card{position:sticky;top:28px}
+.partner-memo-result-card{min-height:360px}
+.partner-memo-empty{min-height:270px;display:grid;place-items:center;align-content:center;text-align:center;gap:7px;color:var(--muted)}
+.partner-memo-empty-icon{width:54px;height:54px;border-radius:17px;display:grid;place-items:center;background:var(--soft);border:1px solid var(--line);font-size:24px;color:var(--cyan)}
+.partner-memo-empty strong{color:var(--text);font:800 20px Rajdhani,sans-serif}
+.partner-memo-empty small{max-width:300px;line-height:1.5}
+.memo-result-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.memo-result-head small{display:block;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+.memo-result-head h4{margin:4px 0 0;font-size:24px}
+.memo-result-price{text-align:right}.memo-result-price small{display:block}.memo-result-price strong{display:block;margin-top:3px;color:var(--cyan);font:900 34px Rajdhani,sans-serif;line-height:1}
+.memo-result-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
+.memo-result-cell{padding:14px;border-radius:14px;background:var(--soft);border:1px solid var(--line)}
+.memo-result-cell small{display:block;color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:.06em}
+.memo-result-cell strong{display:block;margin-top:5px;font:800 20px Rajdhani,sans-serif}
+.memo-result-total{grid-column:1/-1;background:rgba(40,217,229,.08);border-color:rgba(40,217,229,.24)}
+.memo-result-total strong{font-size:28px;color:var(--cyan)}
+.memo-formula{margin-top:15px;padding:14px;border-radius:14px;background:var(--panel);border:1px dashed rgba(40,217,229,.24);font-size:10px;color:var(--muted);line-height:1.55}
+.memo-formula b{color:var(--text)}
+body.light .partner-memo-result-card,body.light .partner-memo-form-card{background:linear-gradient(145deg,#fff,#f4f8f9)!important}
+@media(max-width:850px){.partner-memo-calculator{grid-template-columns:1fr}.partner-memo-form-card{position:static}}
+@media(max-width:560px){.memo-result-grid{grid-template-columns:1fr}.memo-result-total{grid-column:auto}}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
@@ -1488,15 +1512,39 @@ body.light .employee-manage-toggle:hover{background:#eaf5f6}
 </div></section>
 <section class="section page" id="tarifs-memo" data-view="tarifs-memo"><div class="shell">
   <div class="eyebrow">Espace employé</div>
-  <h2>Tarifs <span class="accent">mémo.</span></h2>
-  <div id="partnerMemoGate" class="notice">Connectez-vous avec un compte employé pour consulter les tarifs partenaires.</div>
+  <h2>Fiche de <span class="accent">calcul.</span></h2>
+  <div id="partnerMemoGate" class="notice">Connectez-vous avec un compte employé pour utiliser la fiche de calcul partenaire.</div>
   <div id="partnerMemoContent" class="hidden">
-    <div class="card partner-memo-card partner-memo-standalone">
-      <div class="panel-heading">
-        <div><span class="tag">PARTENAIRES</span><h3>Prix & réductions employés</h3></div>
+    <div class="partner-memo-calculator">
+      <div class="card partner-memo-form-card">
+        <div class="panel-heading">
+          <div><span class="tag">CALCUL PARTENAIRE</span><h3>Préparer un tarif</h3></div>
+        </div>
+        <p class="muted">Choisissez le partenaire et la prestation. Le montant à facturer se calcule automatiquement.</p>
+        <div class="form">
+          <label>Partenaire</label>
+          <select id="memoPartnerSelect"><option value="">Choisir un partenaire</option></select>
+          <label>Prestation</label>
+          <select id="memoServiceSelect" disabled><option value="">Choisir une prestation</option></select>
+          <div id="memoFactoryWrap" class="hidden">
+            <label>Prix d’usine</label>
+            <div class="partner-money-input"><input id="memoFactoryPrice" type="number" min="1" step="1" inputmode="numeric" placeholder="Ex. 4000"/><span>$</span></div>
+          </div>
+          <label>Quantité</label>
+          <input id="memoQuantity" type="number" min="1" max="10000" step="1" value="1" inputmode="numeric"/>
+          <button id="memoReset" class="btn secondary" type="button">Réinitialiser</button>
+        </div>
       </div>
-      <p class="muted">Retrouvez ici uniquement les tarifs partenaires payés directement. Ils ne sont jamais ajoutés aux déclarations de fin de semaine.</p>
-      <div id="partnerMemoList">Chargement...</div>
+      <div class="card partner-memo-result-card">
+        <div class="panel-heading">
+          <div><span class="tag">RÉSULTAT</span><h3>Montant à facturer</h3></div>
+        </div>
+        <div id="partnerMemoResult" class="partner-memo-empty">
+          <span class="partner-memo-empty-icon">⌁</span>
+          <strong>Sélectionnez un partenaire</strong>
+          <small>La fiche affichera automatiquement le calcul ici.</small>
+        </div>
+      </div>
     </div>
   </div>
 </div></section>
