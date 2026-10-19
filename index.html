@@ -748,8 +748,8 @@ if(qtyInput){
   qtyInput.addEventListener('change',draw);
   qtyInput.addEventListener('blur',draw);
 }
-document.getElementById('minus').onclick=()=>{qty=normalizeQty(qty-1);draw();};
-document.getElementById('plus').onclick=()=>{qty=normalizeQty(qty+1);draw();};
+document.getElementById('minus')?.addEventListener('click',()=>{qty=normalizeQty(qty-1);draw();});
+document.getElementById('plus')?.addEventListener('click',()=>{qty=normalizeQty(qty+1);draw();});
 
 const validPages=['accueil','prestations','commander','commandes','actualites','partenaires','equipe','avis','apropos','espace','profil','espace-employe','direction'];
 function showPage(){
@@ -775,11 +775,11 @@ function openAuth(which){
   document.getElementById('registerPanel')?.classList.toggle('hidden',which!=='register');
   document.getElementById('employeeLoginPanel')?.classList.toggle('hidden',which!=='employee');
 }
-document.getElementById('orderLogin').onclick=()=>openAuth('client');
-document.getElementById('orderRegister').onclick=()=>openAuth('register');
-document.getElementById('showLogin').onclick=()=>openAuth('client');
-document.getElementById('showRegister').onclick=()=>openAuth('register');
-document.getElementById('internalLogin').onclick=()=>openAuth('employee');
+document.getElementById('orderLogin')?.addEventListener('click',()=>openAuth('client'));
+document.getElementById('orderRegister')?.addEventListener('click',()=>openAuth('register'));
+document.getElementById('showLogin')?.addEventListener('click',()=>openAuth('client'));
+document.getElementById('showRegister')?.addEventListener('click',()=>openAuth('register'));
+document.getElementById('internalLogin')?.addEventListener('click',()=>openAuth('employee'));
 document.getElementById('employeeLoginForm')?.addEventListener('submit',e=>{
   e.preventDefault();
   const employeeInputs=e.currentTarget.querySelectorAll('input');
