@@ -111,7 +111,7 @@ async function refresh(){
   if(el('orderLogin'))el('orderLogin').parentElement.style.display=connected?'none':'flex';
   if(el('signOut'))el('signOut').style.display=connected?'inline-flex':'none';
   if(!connected&&el('authFeedback'))el('authFeedback').textContent='';
-  await Promise.all([loadOrders(),loadNotifications(),loadStaff(),loadNews(),loadMyProfile(),loadStaffDashboard(),managerRefresh()]);
+  await Promise.all([loadOrders(),loadNotifications(),loadStaff(),loadNews(),loadMyProfile(),loadStaffSpace(),managerRefresh()]);
 }
 
 function initials(name){
@@ -132,7 +132,7 @@ function updateSidebarProfile(){
   if(user)user.classList.toggle('hidden',!connected);
   el('staffSidebarNav')?.classList.toggle('hidden',!employeeConnected);
   el('staffAdminLink')?.classList.toggle('hidden',!employeeConnected||!managerRoles.includes(account?.role));
-  el('staffDashboardAdminLink')?.classList.toggle('hidden',!employeeConnected||!managerRoles.includes(account?.role));
+  el('staffSpaceAdminLink')?.classList.toggle('hidden',!employeeConnected||!managerRoles.includes(account?.role));
   if(!connected)return;
   const full=(myProfile?.first_name||account.first_name||'')+' '+(myProfile?.last_name||account.last_name||'');
   if(el('sidebarUserName'))el('sidebarUserName').textContent=full.trim()||'Mon profil';
@@ -355,69 +355,52 @@ function renderNotifications(){
     item.append(kindTag,title,body,date);list.append(item);
   }
 }
-async function loadStaffDashboard(){
-  const statsBox=el('staffDashboardStats'),ordersBox=el('staffPendingOrders'),countBox=el('staffPendingCount'),badge=el('staffPendingBadge');
-  if(!statsBox||!ordersBox)return;
-  if(!account||account.role==='client'){
-    statsBox.replaceChildren();ordersBox.replaceChildren();
-    if(countBox)countBox.textContent='0';
-    badge?.classList.add('hidden');
-    if(location.hash.startsWith('#/dashboard'))location.hash='#/espace';
+async function loadStaffSpace(){
+  const gate=el('staffSpaceGate'),content=el('staffSpaceContent'),list=el('staffInternalAnnouncements');
+  if(!gate||!content||!list)return;
+
+  const employeeConnected=!!account&&account.role!=='client';
+  gate.classList.toggle('hidden',employeeConnected);
+  content.classList.toggle('hidden',!employeeConnected);
+
+  if(!employeeConnected){
+    list.replaceChildren();
+    if(location.hash.startsWith('#/espace-employe'))location.hash='#/espace';
     return;
   }
+
+  const full=((myProfile?.first_name||account.first_name||'')+' '+(myProfile?.last_name||account.last_name||'')).trim();
+  if(el('staffSpaceName'))el('staffSpaceName').textContent=full||'Compte employé';
+  if(el('staffSpaceRole'))el('staffSpaceRole').textContent=roleLabels[account.role]||account.role;
+  if(el('staffSpaceJob'))el('staffSpaceJob').textContent=roleLabels[account.role]||account.role;
+  el('staffSpaceAdminLink')?.classList.toggle('hidden',!managerRoles.includes(account.role));
+
   try{
-    const data=await rpc('ae_staff_dashboard',{p_token:token});
-    const full=((myProfile?.first_name||account.first_name||'')+' '+(myProfile?.last_name||account.last_name||'')).trim();
-    if(el('staffDashboardIdentity'))el('staffDashboardIdentity').textContent=full+' · '+(roleLabels[account.role]||account.role);
+    const rows=await rpc('ae_staff_internal_announcements',{p_token:token});
+    list.replaceChildren();
 
-    statsBox.replaceChildren();
-    [['Commandes à prendre',data.pending_count],['Livrées aujourd’hui',data.delivered_today],['Employés en service',data.on_duty]].forEach(([label,value])=>{
-      const card=document.createElement('div');card.className='stat-card';
-      const strong=document.createElement('strong');strong.textContent=String(value||0);
-      const span=document.createElement('span');span.textContent=label;
-      card.append(strong,span);statsBox.append(card);
-    });
-
-    const pending=Number(data.pending_count||0);
-    if(countBox)countBox.textContent=String(pending);
-    if(badge){badge.textContent=String(pending);badge.classList.toggle('hidden',pending===0)}
-
-    ordersBox.replaceChildren();
-    if(!data.orders?.length){
+    if(!rows?.length){
       const empty=document.createElement('div');empty.className='news-empty';
       const copy=document.createElement('div');copy.className='news-empty-copy';
-      const kicker=document.createElement('span');kicker.className='news-empty-kicker';kicker.textContent='À jour';
-      const title=document.createElement('h3');title.textContent='Aucune commande en attente.';
-      copy.append(kicker,title);empty.append(copy);ordersBox.append(empty);
-      return;
+      const kicker=document.createElement('span');kicker.className='news-empty-kicker';kicker.textContent='Interne';
+      const title=document.createElement('h3');title.textContent='Aucune annonce pour le moment.';
+      copy.append(kicker,title);empty.append(copy);list.append(empty);return;
     }
 
-    for(const order of data.orders){
-      const row=document.createElement('div');row.className='staff-order-row';
-      const id=document.createElement('div');id.className='staff-order-id';id.textContent='AE-'+String(order.id).padStart(4,'0');
-      const main=document.createElement('div');main.className='staff-order-main';
-      const strong=document.createElement('strong');strong.textContent=order.customer;
-      const small=document.createElement('small');small.textContent=(order.phone||'sans téléphone')+' · '+order.quantity+' kit(s) · '+new Date(order.created_at).toLocaleString('fr-FR');
-      main.append(strong,small);
-      const side=document.createElement('div');
-      const total=document.createElement('div');total.className='staff-order-total';total.textContent=money(order.quantity*order.unit_price);
-      side.append(total);
-      if(managerRoles.includes(account.role)){
-        const manage=document.createElement('button');manage.type='button';manage.className='btn secondary';manage.style.marginTop='8px';manage.textContent='Gérer';
-        manage.onclick=()=>{location.hash='#/direction';setTimeout(()=>activateAdminTab('orders'),40)};
-        side.append(manage);
-      }
-      row.append(id,main,side);ordersBox.append(row);
+    for(const row of rows){
+      const item=document.createElement('article');item.className='internal-announcement';
+      const top=document.createElement('div');top.className='internal-announcement-top';
+      const title=document.createElement('h4');title.textContent=row.title;
+      top.append(title);
+      if(row.pinned){const pin=document.createElement('span');pin.className='internal-pin';pin.textContent='ÉPINGLÉE';top.append(pin)}
+      const body=document.createElement('p');body.className='muted';body.textContent=row.body;
+      const meta=document.createElement('small');meta.textContent=row.author+' · '+new Date(row.created_at).toLocaleString('fr-FR');
+      item.append(top,body,meta);list.append(item);
     }
   }catch(err){
-    ordersBox.textContent='Tableau de bord indisponible : '+err.message;
-    badge?.classList.add('hidden');
+    list.textContent='Annonces internes indisponibles : '+err.message;
   }
 }
-
-el('staffOrdersLink')?.addEventListener('click',()=>{
-  setTimeout(()=>document.querySelector('.staff-orders-card')?.scrollIntoView({behavior:'smooth',block:'start'}),80);
-});
 
 async function loadNotifications(){
   const list=el('notificationsList'),badge=el('notificationBadge');if(!list||!badge)return;
@@ -560,7 +543,7 @@ async function loadNews(){
 
 el('loginForm')?.addEventListener('submit',async e=>{
   e.preventDefault();const i=e.currentTarget.querySelectorAll('input');
-  try{const result=await rpc('ae_login',{p_login:i[0].value,p_password:i[1].value});saveSession(result);feedback('Connexion réussie.');await refresh();location.hash=account?.must_change_password?'#/profil':(account?.role==='client'?'#/commander':'#/dashboard')}
+  try{const result=await rpc('ae_login',{p_login:i[0].value,p_password:i[1].value});saveSession(result);feedback('Connexion réussie.');await refresh();location.hash=account?.must_change_password?'#/profil':(account?.role==='client'?'#/commander':'#/espace-employe')}
   catch(err){feedback('Connexion impossible : '+err.message)}
 });
 
@@ -582,7 +565,7 @@ el('forcedPasswordForm')?.addEventListener('submit',async e=>{
     el('forcedPasswordCard')?.classList.add('hidden');
     siteToast('Votre mot de passe est enregistré.');
     await refresh();
-    location.hash='#/direction';
+    location.hash=account?.role==='client'?'#/commander':'#/espace-employe';
   }catch(err){siteToast('Modification impossible : '+err.message)}
   finally{button.disabled=false}
 });
@@ -766,6 +749,51 @@ el('discordSyncButton')?.addEventListener('click',async e=>{
     siteToast((result?.sent||0)+' événement(s) Discord synchronisé(s).');
     await refreshDiscordAdmin();
   }catch(err){siteToast(err.message)}
+  finally{button.disabled=false}
+});
+
+async function loadManagerInternalAnnouncements(){
+  const box=el('managerInternalAnnouncements');if(!box||!account||!managerRoles.includes(account.role))return;
+  try{
+    const rows=await rpc('ae_staff_internal_announcements',{p_token:token});
+    box.replaceChildren();
+    if(!rows?.length){const p=document.createElement('p');p.className='muted';p.textContent='Aucune annonce interne.';box.append(p);return}
+    for(const row of rows){
+      const item=document.createElement('article');item.className='internal-announcement';
+      const top=document.createElement('div');top.className='internal-announcement-top';
+      const title=document.createElement('h4');title.textContent=row.title;
+      top.append(title);
+      if(row.pinned){const pin=document.createElement('span');pin.className='internal-pin';pin.textContent='ÉPINGLÉE';top.append(pin)}
+      const body=document.createElement('p');body.className='muted';body.textContent=row.body;
+      const meta=document.createElement('small');meta.textContent=row.author+' · '+new Date(row.created_at).toLocaleString('fr-FR');
+      const del=document.createElement('button');del.type='button';del.className='btn secondary';del.style.marginTop='10px';del.textContent='Supprimer';
+      del.onclick=async()=>{
+        if(!await siteConfirm('Supprimer cette annonce interne ?',{title:'Supprimer l’annonce',confirmText:'Supprimer'}))return;
+        try{
+          await rpc('ae_manager_delete_internal_announcement',{p_token:token,p_id:row.id});
+          siteToast('Annonce interne supprimée.','success');
+          await Promise.all([loadManagerInternalAnnouncements(),loadStaffSpace()]);
+        }catch(err){siteToast(err.message,'error')}
+      };
+      item.append(top,body,meta,del);box.append(item);
+    }
+  }catch(err){box.textContent='Annonces internes indisponibles : '+err.message}
+}
+
+el('internalAnnouncementForm')?.addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!account||!managerRoles.includes(account.role))return;
+  const form=e.currentTarget;
+  const title=form.querySelector('input[placeholder="Titre de l\'annonce"]')?.value.trim()||'';
+  const body=form.querySelector('textarea')?.value.trim()||'';
+  const pinned=!!el('internalAnnouncementPinned')?.checked;
+  const button=form.querySelector('[type=submit]');button.disabled=true;
+  try{
+    await rpc('ae_manager_create_internal_announcement',{p_token:token,p_title:title,p_body:body,p_pinned:pinned});
+    form.reset();
+    siteToast('Annonce interne publiée.','success');
+    await Promise.all([loadManagerInternalAnnouncements(),loadStaffSpace(),loadNotifications()]);
+  }catch(err){siteToast('Publication impossible : '+err.message,'error')}
   finally{button.disabled=false}
 });
 
@@ -967,7 +995,7 @@ async function managerRefresh(){
   try{
     const rows=await rpc('ae_manager_audit_log',{p_token:token,p_limit:100});const box=el('managerAuditLog');box.replaceChildren();
     if(!rows?.length)box.textContent='Aucune action enregistrée.';
-    const actionLabels={employee_created:'Compte employé créé',password_reset:'Mot de passe réinitialisé',role_changed:'Grade modifié',profile_updated:'Profil employé modifié',order_status_changed:'Statut de commande modifié',discord_order_delivered:'Commande livrée depuis Discord',discord_order_cancelled:'Commande annulée depuis Discord'};
+    const actionLabels={employee_created:'Compte employé créé',password_reset:'Mot de passe réinitialisé',role_changed:'Grade modifié',profile_updated:'Profil employé modifié',order_status_changed:'Statut de commande modifié',discord_order_delivered:'Commande livrée depuis Discord',discord_order_cancelled:'Commande annulée depuis Discord',internal_announcement_created:'Annonce interne publiée',internal_announcement_deleted:'Annonce interne supprimée'};
     for(const row of rows||[]){
       const item=document.createElement('div');item.className='audit-item';
       const strong=document.createElement('strong');strong.textContent=actionLabels[row.action]||row.action;
@@ -979,7 +1007,7 @@ async function managerRefresh(){
     }
   }catch(err){if(el('managerAuditLog'))el('managerAuditLog').textContent='Historique indisponible : '+err.message}
 
-  await refreshDiscordAdmin();
+  await Promise.all([refreshDiscordAdmin(),loadManagerInternalAnnouncements()]);
   revealNow();
 }
 
