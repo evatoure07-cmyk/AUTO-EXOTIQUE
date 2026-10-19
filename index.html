@@ -1510,6 +1510,41 @@ details[open] .order-chevron{transform:rotate(180deg)}
 @media(max-width:480px){
   .manager-order-meta{grid-template-columns:1fr!important}
 }
+
+/* Journal light-mode polish */
+body.light .news-card{
+  background:
+    radial-gradient(circle at 88% 10%,rgba(18,183,199,.10),transparent 30%),
+    linear-gradient(145deg,#ffffff 0%,#f5f9fa 58%,#edf5f6 100%)!important;
+  border-color:rgba(25,96,109,.12)!important;
+  box-shadow:0 16px 42px rgba(43,83,94,.08)!important;
+  color:#17313a!important;
+}
+body.light .news-card.has-cover{
+  background-color:#f5f9fa!important;
+  background-blend-mode:soft-light!important;
+}
+body.light .news-card.has-cover:before{
+  background:linear-gradient(
+    to top,
+    rgba(247,251,252,.99) 0%,
+    rgba(247,251,252,.92) 42%,
+    rgba(238,247,248,.62) 72%,
+    rgba(238,247,248,.18) 100%
+  )!important;
+}
+body.light .news-card h3{color:#17313a!important}
+body.light .news-card p,
+body.light .news-card small{color:#6b8189!important}
+body.light .news-card .tag{
+  background:#e4f5f7!important;
+  color:#078b9a!important;
+  border-color:rgba(7,139,154,.12)!important;
+}
+body.light .news-card .btn.secondary{
+  background:rgba(255,255,255,.88)!important;
+  border-color:rgba(28,91,104,.12)!important;
+}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
