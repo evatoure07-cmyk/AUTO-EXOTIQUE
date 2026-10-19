@@ -1340,6 +1340,26 @@ body.light .employee-manage-toggle:hover{background:#eaf5f6}
 .partner-memo-standalone .panel-heading{margin-bottom:6px}
 .partner-memo-standalone>#partnerMemoList{margin-top:18px}
 
+/* Partner MO tariff table */
+.mo-tariff-card{padding:20px!important}
+.mo-toolbar{display:flex;gap:10px;margin:12px 0 16px}
+.mo-toolbar input{width:min(440px,100%);min-height:44px}
+.mo-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
+.mo-table{width:100%;min-width:1180px;border-collapse:separate;border-spacing:0}
+.mo-table th,.mo-table td{padding:12px 10px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);text-align:center;font-size:10px}
+.mo-table th:last-child,.mo-table td:last-child{border-right:0}
+.mo-table tr:last-child td{border-bottom:0}
+.mo-table th{position:sticky;top:0;z-index:2;background:var(--soft);font-size:8px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.mo-table th:first-child,.mo-table td:first-child{text-align:left;position:sticky;left:0;z-index:1;background:var(--panel);min-width:190px}
+.mo-table th:first-child{z-index:3;background:var(--soft)}
+.mo-company{font-weight:900;font-size:12px}
+.mo-discount{display:inline-flex;align-items:center;justify-content:center;min-width:58px;padding:7px 9px;border-radius:999px;background:rgba(40,217,229,.10);border:1px solid rgba(40,217,229,.24);color:var(--cyan);font-weight:900}
+.mo-yes{font-weight:900;color:var(--cyan)}
+.mo-no{color:var(--muted)}
+.mo-empty{text-align:center!important;color:var(--muted);padding:28px!important}
+.mo-help{margin:12px 2px 0;font-size:9px}
+@media(max-width:650px){.mo-tariff-card{padding:14px!important}.mo-toolbar{margin-top:10px}}
+
 /* Partner memo calculation sheet */
 .partner-memo-calculator{display:grid;grid-template-columns:minmax(300px,.72fr) minmax(0,1.28fr);gap:18px;align-items:start;max-width:1050px;margin:0 auto}
 .partner-memo-form-card{position:sticky;top:28px}
@@ -2027,7 +2047,7 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
  .partner-service-row>.btn{width:100%}
  .partner-directory-card{position:static!important}
 }
-</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js?v=20261019-1" defer></script></head><body>
+</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js?v=20261019-2" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
  <button id="theme" class="theme-toggle sidebar-theme-top" type="button" data-label="Changer de thème" aria-label="Passer en mode clair" aria-pressed="false"><span class="theme-icon sun">☀</span><span class="theme-track"><span class="theme-knob"></span></span><span class="theme-icon moon">◐</span></button>
@@ -2037,7 +2057,7 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
  <span class="staff-nav-label">ESPACE EMPLOYÉ</span>
  <a href="#/espace-employe" data-page="espace-employe" data-icon="▦"><span>Espace employé</span></a>
  <a href="#/declaration-partenaires" data-page="declaration-partenaires" data-icon="◇"><span>Déclaration partenaires</span></a>
- <a href="#/tarifs-memo" data-page="tarifs-memo" data-icon="$"><span>Tarifs mémo</span></a>
+ <a href="#/tarifs-memo" data-page="tarifs-memo" data-icon="$"><span>Tarifs MO</span></a>
  <a id="staffAdminLink" class="hidden" href="#/direction" data-page="direction" data-icon="⚙"><span>Administration</span></a>
  </div>
  <a href="#/profil" id="sidebarUser" class="sidebar-user hidden" data-page="profil"><span id="sidebarAvatar" class="sidebar-avatar">AE</span><span class="sidebar-user-copy"><strong id="sidebarUserName">Mon profil</strong><small id="sidebarUserRole">Compte Auto Exotic</small></span><span class="sidebar-chevron">›</span></a><button id="sidebarSignOut" class="sidebar-signout hidden" type="button"><span>↪</span><strong>Déconnexion</strong></button>
@@ -2176,39 +2196,40 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
 </div></section>
 <section class="section page" id="tarifs-memo" data-view="tarifs-memo"><div class="shell">
   <div class="eyebrow">Espace employé</div>
-  <h2>Fiche de <span class="accent">calcul.</span></h2>
-  <div id="partnerMemoGate" class="notice">Connectez-vous avec un compte employé pour utiliser la fiche de calcul partenaire.</div>
+  <h2>Tarifs <span class="accent">MO.</span></h2>
+  <div id="partnerMemoGate" class="notice">Connectez-vous avec un compte employé pour consulter les tarifs MO partenaires.</div>
   <div id="partnerMemoContent" class="hidden">
-    <div class="partner-memo-calculator">
-      <div class="card partner-memo-form-card">
-        <div class="panel-heading">
-          <div><span class="tag">CALCUL PARTENAIRE</span><h3>Préparer un tarif</h3></div>
-        </div>
-        <p class="muted">Cette fiche sert uniquement aux customisations partenaires. Entrez le prix d’usine et le tarif final se calcule automatiquement.</p>
-        <div class="form">
-          <label>Partenaire</label>
-          <select id="memoPartnerSelect"><option value="">Choisir un partenaire</option></select>
-          <label>Prestation</label>
-          <select id="memoServiceSelect" disabled><option value="">Choisir une prestation</option></select>
-          <div id="memoFactoryWrap" class="hidden">
-            <label>Prix d’usine</label>
-            <div class="partner-money-input"><input id="memoFactoryPrice" type="number" min="1" step="1" inputmode="numeric" placeholder="Ex. 4000"/><span>$</span></div>
-          </div>
-          <label>Quantité</label>
-          <input id="memoQuantity" type="number" min="1" max="10000" step="1" value="1" inputmode="numeric"/>
-          <button id="memoReset" class="btn secondary" type="button">Réinitialiser</button>
-        </div>
+    <div class="card mo-tariff-card">
+      <div class="panel-heading">
+        <div><span class="tag">TARIFS GARAGE</span><h3>Tarifs partenaires</h3></div>
+        <small class="muted">Prix facturés directement au garage</small>
       </div>
-      <div class="card partner-memo-result-card">
-        <div class="panel-heading">
-          <div><span class="tag">RÉSULTAT</span><h3>Montant à facturer</h3></div>
-        </div>
-        <div id="partnerMemoResult" class="partner-memo-empty">
-          <span class="partner-memo-empty-icon">⌁</span>
-          <strong>Sélectionnez un partenaire</strong>
-          <small>La fiche affichera automatiquement le calcul ici.</small>
-        </div>
+      <div class="mo-toolbar">
+        <input id="memoCompanySearch" type="search" placeholder="Rechercher une entreprise..." aria-label="Rechercher une entreprise"/>
       </div>
+      <div class="mo-table-wrap">
+        <table class="mo-table">
+          <thead>
+            <tr>
+              <th>Entreprise</th>
+              <th>Customisation</th>
+              <th>Novice</th>
+              <th>Intermédiaire</th>
+              <th>Expérimenté</th>
+              <th>Chef d'équipe</th>
+              <th>RH</th>
+              <th>DRH</th>
+              <th>Assistante</th>
+              <th>Co-patron</th>
+              <th>Patron</th>
+            </tr>
+          </thead>
+          <tbody id="partnerMoTableBody">
+            <tr><td colspan="11" class="mo-empty">Chargement...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted mo-help">La remise Custom apparaît uniquement lorsqu'un partenariat Custom existe. Les colonnes de grades indiquent qui peut appliquer ce tarif.</p>
     </div>
   </div>
 </div></section>
