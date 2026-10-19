@@ -1243,6 +1243,142 @@ async function loadManagerPartners(){
  const manager=!!account&&managerRoles.includes(account.role);
  if(!manager){
    catalogBox.replaceChildren();
+   if(!selectedPartner){
+     const p=document.createElement('p');p.className='muted';p.textContent='Sélectionnez un partenaire dans la colonne de gauche.';catalogBox.append(p);
+   }else{
+     const wrapper=document.createElement('div');wrapper.className='partner-config-groups';
+
+     const makeMenu=(service)=>{
+       if(!canConfigurePartners())return null;
+       const details=document.createElement('details');details.className='partner-service-menu';
+       const summary=document.createElement('summary');summary.textContent='⋯';summary.setAttribute('aria-label','Actions');
+       const panel=document.createElement('div');panel.className='partner-service-menu-panel';
+
+       const toggle=document.createElement('button');toggle.type='button';toggle.className='btn secondary';toggle.textContent=service.active?'Désactiver':'Réactiver';
+       toggle.onclick=async()=>{
+         details.open=false;
+         try{
+           await rpc('ae_manager_set_partner_service_active',{p_token:token,p_service_id:service.id,p_active:!service.active});
+           siteToast('Prestation mise à jour.','success');
+           await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
+         }catch(err){siteToast(err.message,'error')}
+       };
+
+       const remove=document.createElement('button');remove.type='button';remove.className='btn danger';remove.textContent='Supprimer';
+       remove.onclick=async()=>{
+         details.open=false;
+         if(!await siteConfirm('Supprimer cette prestation '+(partnerServiceTypeLabels[service.service_type]||service.name)+' ?',{title:'Supprimer la prestation',confirmText:'Supprimer'}))return;
+         remove.disabled=true;
+         try{
+           await rpc('ae_manager_delete_partner_service',{p_token:token,p_service_id:service.id});
+           siteToast('Prestation supprimée.','success');
+           await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
+         }catch(err){remove.disabled=false;siteToast('Suppression impossible : '+err.message,'error')}
+       };
+
+       panel.append(toggle,remove);details.append(summary,panel);return details;
+     };
+
+     const audienceService=(services,audience)=>{
+       return services.find(service=>moGroupAllowsAudience(service.access_groups,audience))||null;
+     };
+
+     const addSection=(title,help,rows)=>{
+       const section=document.createElement('section');section.className='partner-config-section';
+       const head=document.createElement('div');head.className='partner-config-section-head';
+       const strong=document.createElement('strong');strong.textContent=title;
+       const small=document.createElement('small');small.textContent=help;
+       head.append(strong,small);section.append(head);
+
+       if(!rows.length){
+         const empty=document.createElement('div');empty.className='partner-config-empty';empty.textContent='Aucun tarif configuré.';section.append(empty);
+       }else{
+         const table=document.createElement('div');table.className='partner-config-table';
+         for(const rowData of rows)table.append(rowData);
+         section.append(table);
+       }
+       wrapper.append(section);
+     };
+
+     const makeAudienceRow=(label,employeeService,directionService,isCustom=false)=>{
+       const row=document.createElement('div');row.className='partner-config-row';
+       const copy=document.createElement('div');copy.className='partner-config-label';
+       const st=document.createElement('strong');st.textContent=label;
+       const sm=document.createElement('small');sm.textContent=isCustom?'Paiement immédiat · remise sur la marge':'Véhicule personnel · paiement direct';
+       copy.append(st,sm);
+
+       const makeCell=(service,audienceLabel)=>{
+         const cell=document.createElement('div');cell.className='partner-config-cell';
+         const value=document.createElement('div');value.className='partner-config-value'+(service?'':' muted');
+         value.textContent=service?(isCustom?'−'+Number(service.discount_percent||0)+' % marge':money(service.partner_price)):'—';
+         const meta=document.createElement('small');meta.className='muted';meta.textContent=audienceLabel;
+         const valueWrap=document.createElement('div');valueWrap.append(value,meta);
+         cell.append(valueWrap);
+         const menu=service?makeMenu(service):null;if(menu)cell.append(menu);
+         return cell;
+       };
+
+       row.append(copy,makeCell(employeeService,'Employés'),makeCell(directionService,'Direction'));
+       return row;
+     };
+
+     const personal=(selectedPartner.services||[]).filter(s=>s.billing_mode==='direct_discount');
+     const company=(selectedPartner.services||[]).filter(s=>s.billing_mode==='weekly_invoice'&&s.service_type!=='custom');
+
+     const customServices=personal.filter(s=>s.service_type==='custom');
+     addSection(
+       'Customisations personnelles',
+       'Toujours payées immédiatement',
+       customServices.length?[makeAudienceRow('Customisation',audienceService(customServices,'employee'),audienceService(customServices,'direction'),true)]:[]
+     );
+
+     const repairRows=[];
+     for(const type of ['totale','moteur']){
+       const services=personal.filter(s=>s.service_type===type);
+       if(services.length)repairRows.push(makeAudienceRow(partnerServiceTypeLabels[type],audienceService(services,'employee'),audienceService(services,'direction'),false));
+     }
+     addSection('Réparations personnelles','Tarifs Employés / Direction séparés',repairRows);
+
+     const companyRows=[];
+     for(const service of company){
+       const row=document.createElement('div');row.className='partner-config-row';
+       const copy=document.createElement('div');copy.className='partner-config-label';
+       const st=document.createElement('strong');st.textContent=partnerServiceTypeLabels[service.service_type]||service.name;
+       const sm=document.createElement('small');sm.textContent='Véhicule entreprise · déclaration fin de semaine';
+       copy.append(st,sm);
+
+       const price=document.createElement('div');price.className='partner-config-value';price.textContent=money(service.partner_price);
+       const badge=document.createElement('div');badge.className='partner-config-cell';
+       const status=document.createElement('small');status.className='muted';status.textContent=service.active?'Actif':'Désactivé';
+       badge.append(status);
+       const menu=makeMenu(service);if(menu)badge.append(menu);
+       row.append(copy,price,badge);companyRows.push(row);
+     }
+     addSection('Réparations entreprise','Déclaration puis règlement fin de semaine',companyRows);
+
+     if(canConfigurePartners()){
+       const danger=document.createElement('div');danger.className='partner-danger-zone';
+       const copy=document.createElement('div');
+       const title=document.createElement('strong');title.textContent='Zone danger';
+       const help=document.createElement('small');help.textContent='Supprime définitivement tout l’historique de prestations de '+selectedPartner.name+'.';
+       copy.append(title,help);
+
+       const clearButton=document.createElement('button');clearButton.type='button';clearButton.className='btn danger';clearButton.textContent='Vider l’historique';
+       clearButton.onclick=async()=>{
+         const ok=await siteConfirm('Supprimer définitivement tout l’historique de prestations de '+selectedPartner.name+' ? Cette action est irréversible.',{title:'Vider l’historique',confirmText:'Tout supprimer'});
+         if(!ok)return;
+         clearButton.disabled=true;
+         try{
+           const count=await rpc('ae_manager_clear_partner_history',{p_token:token,p_partner_id:selectedPartner.id});
+           siteToast(Number(count||0)+' prestation(s) supprimée(s) de l’historique.','success');
+           await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
+         }catch(err){clearButton.disabled=false;siteToast('Suppression impossible : '+err.message,'error')}
+       };
+       danger.append(copy,clearButton);wrapper.append(danger);
+     }
+
+     catalogBox.append(wrapper);
+   }
    declarationsBox.replaceChildren();
    partnerList?.replaceChildren();
    return;
