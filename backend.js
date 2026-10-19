@@ -609,22 +609,6 @@ async function loadStaff(){
  }
  }
 
- const podium=el('staffPodium');
- if(podium){
- podium.replaceChildren();
- const top=[...all].sort((a,b)=>Number(b.rating_avg||0)-Number(a.rating_avg||0)||Number(b.rating_count||0)-Number(a.rating_count||0)||String(a.name).localeCompare(String(b.name))).slice(0,3);
- top.forEach((person,index)=>{
- const card=document.createElement('article');card.className='podium-card '+(index===0?'first':'');
- const pos=document.createElement('div');pos.className='podium-position';pos.textContent='#'+(index+1);
- const photo=document.createElement('div');photo.className='podium-photo';
- if(person.avatar_url){const img=document.createElement('img');img.src=person.avatar_url;img.alt='Photo de '+person.name;photo.append(img)}
- else photo.textContent=initials(person.name);
- const name=document.createElement('h3');name.textContent=person.name;
- const role=document.createElement('p');role.className='muted';role.textContent=roleLabels[person.role]||person.role;
- const rating=document.createElement('p');rating.className='muted';rating.textContent=(Number(person.rating_avg||0)>0?Number(person.rating_avg).toFixed(1):'—')+' ★ · '+Number(person.rating_count||0)+' avis';
- card.append(pos,photo,name,role,rating);card.onclick=()=>showEmployeeProfile(person);podium.append(card);
- });
- }
 
  if(!staff?.length){
  const card=document.createElement('div');card.className='card';card.innerHTML='<h3>Équipe en préparation</h3><p class="muted">Les membres de l’équipe apparaîtront ici.</p>';box.append(card);return;
@@ -767,7 +751,6 @@ el('sidebarSignOut')?.addEventListener('click',signOutEverywhere);
 
 
 const requestForms=[];
-if(el('recruit'))requestForms.push([el('recruit'),'recrutement']);
 document.querySelectorAll('form.simpleform').forEach((f,i)=>requestForms.push([f,i===0?'partenariat':'evenement']));
 for(const [form,kind] of requestForms){
  form.addEventListener('submit',async e=>{
@@ -1157,7 +1140,6 @@ async function loadPartnerDeclarations(){
    }
  }catch(err){
    history.textContent='Déclarations partenaires indisponibles : '+err.message;
-   const memoBox=el('partnerMemoList');if(memoBox)memoBox.textContent='Fiche mémo indisponible.';
  }
 }
 
