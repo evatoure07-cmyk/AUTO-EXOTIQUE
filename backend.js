@@ -1352,13 +1352,13 @@ async function loadManagerPartners(){
        row.append(button);
 
        if(canConfigurePartners()){
-         const menu=document.createElement('details');menu.className='partner-directory-menu';
-         const trigger=document.createElement('summary');trigger.textContent='⋯';
-         trigger.setAttribute('aria-label','Options pour '+partner.name);
-         const actions=document.createElement('div');actions.className='partner-directory-menu-actions';
-         const toggle=document.createElement('button');toggle.type='button';toggle.className='btn secondary';
-         toggle.textContent=partner.active?'Désactiver ce partenaire':'Réactiver ce partenaire';
-         toggle.onclick=async()=>{
+         const actions=document.createElement('div');actions.className='partner-directory-row-actions';
+         const toggle=document.createElement('button');toggle.type='button';toggle.className='partner-directory-action';
+         toggle.title=partner.active?'Désactiver':'Réactiver';
+         toggle.setAttribute('aria-label',(partner.active?'Désactiver ':'Réactiver ')+partner.name);
+         toggle.textContent=partner.active?'Ⅱ':'✓';
+         toggle.onclick=async event=>{
+           event.stopPropagation();
            toggle.disabled=true;
            try{
              await rpc('ae_manager_set_partner_active',{p_token:token,p_partner_id:partner.id,p_active:!partner.active});
@@ -1367,9 +1367,12 @@ async function loadManagerPartners(){
            }catch(err){toggle.disabled=false;siteToast('Modification impossible : '+err.message,'error')}
          };
          const remove=document.createElement('button');remove.type='button';
-         remove.className='btn secondary partner-directory-danger';remove.textContent='Supprimer définitivement';
-         remove.onclick=async()=>{
-           if(!await siteConfirm('Supprimer définitivement '+partner.name+' ?',{title:'Supprimer le partenaire',confirmText:'Supprimer'}))return;
+         remove.className='partner-directory-action danger';remove.textContent='×';
+         remove.title='Supprimer définitivement';
+         remove.setAttribute('aria-label','Supprimer '+partner.name);
+         remove.onclick=async event=>{
+           event.stopPropagation();
+           if(!await siteConfirm('Supprimer définitivement '+partner.name+' ? Les anciennes déclarations empêchent la suppression afin de conserver l’historique.',{title:'Supprimer le partenaire',confirmText:'Supprimer'}))return;
            remove.disabled=true;
            try{
              await rpc('ae_manager_delete_partner',{p_token:token,p_partner_id:partner.id});
@@ -1379,8 +1382,7 @@ async function loadManagerPartners(){
            }catch(err){remove.disabled=false;siteToast('Suppression impossible : '+err.message,'error')}
          };
          actions.append(toggle,remove);
-         menu.append(trigger,actions);
-         row.append(menu);
+         row.append(actions);
        }
        partnerList.append(row);
      }
@@ -1495,7 +1497,17 @@ async function loadManagerPartners(){
              await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
            }catch(err){siteToast(err.message,'error')}
          };
-         row.append(toggle);
+         const remove=document.createElement('button');remove.type='button';remove.className='btn danger partner-service-delete';remove.textContent='Supprimer';
+         remove.onclick=async()=>{
+           if(!await siteConfirm('Supprimer cette prestation '+(partnerServiceTypeLabels[service.service_type]||service.name)+' ?',{title:'Supprimer la prestation',confirmText:'Supprimer'}))return;
+           remove.disabled=true;
+           try{
+             await rpc('ae_manager_delete_partner_service',{p_token:token,p_service_id:service.id});
+             siteToast('Prestation supprimée.','success');
+             await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
+           }catch(err){remove.disabled=false;siteToast('Suppression impossible : '+err.message,'error')}
+         };
+         row.append(toggle,remove);
        }
        list.append(row);
      }
