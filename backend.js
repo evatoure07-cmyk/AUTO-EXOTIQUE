@@ -499,6 +499,8 @@ async function loadStaffProduction(){
 
 el('productionDeclarationForm')?.addEventListener('submit',async e=>{
   e.preventDefault();
+  const form=e.currentTarget;
+  const button=form?.querySelector('[type=submit]');
   if(!account||account.role==='client'){siteToast('Connexion employé requise.','error');return}
   const productId=Number(el('productionProduct')?.value||0);
   const quantity=Math.trunc(Number(el('productionQuantity')?.value||0));
@@ -512,14 +514,19 @@ el('productionDeclarationForm')?.addEventListener('submit',async e=>{
   );
   if(!ok)return;
 
-  const button=e.currentTarget.querySelector('[type=submit]');button.disabled=true;
+  if(button)button.disabled=true;
   try{
-    await rpc('ae_staff_add_production_declaration',{p_token:token,p_product_id:productId,p_quantity:quantity});
+    const saved=await rpc('ae_staff_add_production_declaration',{p_token:token,p_product_id:productId,p_quantity:quantity});
     el('productionQuantity').value='';
-    siteToast('Fabrication enregistrée.','success');
-    await Promise.all([loadStaffProduction(),loadManagerProductionDeclarations()]);
-  }catch(err){siteToast('Déclaration impossible : '+err.message,'error')}
-  finally{button.disabled=false}
+    siteToast((saved?.product_name||product?.name||'Fabrication')+' × '+quantity.toLocaleString('fr-FR')+' enregistrée.','success');
+    await loadStaffProduction();
+    await loadManagerProductionDeclarations();
+    el('productionHistoryCard')?.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }catch(err){
+    siteToast('Déclaration impossible : '+err.message,'error');
+  }finally{
+    if(button)button.disabled=false;
+  }
 });
 
 async function loadNotifications(){
