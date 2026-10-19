@@ -953,46 +953,149 @@ function populatePartnerServices(){
  renderPartnerBillingPreview();
 }
 
-function renderPartnerMemo(){
- const box=el('partnerMemoList');if(!box)return;
- box.replaceChildren();
- if(!partnerMemoCatalog.length){
-   const p=document.createElement('p');p.className='muted';p.textContent='Aucun tarif partenaire payé directement n’est disponible pour votre grade.';box.append(p);return;
+function selectedMemoService(){
+ const serviceId=Number(el('memoServiceSelect')?.value||0);
+ for(const partner of partnerMemoCatalog||[]){
+   const service=(partner.services||[]).find(s=>Number(s.id)===serviceId);
+   if(service)return {partner,service};
  }
- for(const partner of partnerMemoCatalog){
-   const group=document.createElement('section');group.className='partner-memo-group';
-   const title=document.createElement('h4');title.textContent=partner.name;group.append(title);
-   for(const service of partner.services||[]){
-     if(service.service_type==='custom'){
-       const row=document.createElement('div');row.className='partner-memo-service partner-memo-custom';
-       const head=document.createElement('div');head.className='partner-memo-custom-head';
-       const name=document.createElement('strong');name.textContent='Custom';
-       const discount=document.createElement('span');discount.textContent='−'+Number(service.discount_percent||0)+' %';
-       head.append(name,discount);
-       const calcWrap=document.createElement('div');calcWrap.className='partner-memo-custom-calc';
-       const input=document.createElement('input');input.type='number';input.min='1';input.step='1';input.inputMode='numeric';input.placeholder='Prix d’usine';
-       const result=document.createElement('div');result.className='partner-memo-custom-result';result.textContent='Entrez le prix d’usine pour obtenir le prix partenaire.';
-       const update=()=>{
-         const factory=Math.max(0,Math.trunc(Number(input.value||0)));
-         if(!factory){result.textContent='Entrez le prix d’usine pour obtenir le prix partenaire.';return}
-         const calc=calcCustomPartnerPrice(factory,service.discount_percent);
-         result.replaceChildren();
-         const line=document.createElement('span');
-         line.innerHTML='Usine remisée '+money(calc.discounted)+' + marge '+money(calc.margin)+' = <strong>'+money(calc.final)+'</strong>';
-         result.append(line);
-       };
-       input.addEventListener('input',update);
-       calcWrap.append(input,result);row.append(head,calcWrap);group.append(row);
-     }else{
-       const row=document.createElement('div');row.className='partner-memo-service';
-       const name=document.createElement('strong');name.textContent=partnerServiceTypeLabels[service.service_type]||service.name;
-       const price=document.createElement('span');price.textContent=money(service.partner_price);
-       row.append(name,price);group.append(row);
-     }
+ return null;
+}
+
+function populateMemoServices(){
+ const partnerId=Number(el('memoPartnerSelect')?.value||0);
+ const select=el('memoServiceSelect');if(!select)return;
+ const current=select.value;
+ select.replaceChildren();
+ const first=document.createElement('option');first.value='';first.textContent='Choisir une prestation';select.append(first);
+ const partner=(partnerMemoCatalog||[]).find(p=>Number(p.id)===partnerId);
+ for(const service of partner?.services||[]){
+   const option=document.createElement('option');option.value=String(service.id);
+   option.textContent=service.service_type==='custom'
+     ?'Custom — réduction '+Number(service.discount_percent||0)+' %'
+     :(partnerServiceTypeLabels[service.service_type]||service.name)+' — '+money(service.partner_price);
+   select.append(option);
+ }
+ select.disabled=!partnerId||!(partner?.services||[]).length;
+ if([...select.options].some(o=>o.value===current))select.value=current;
+ renderMemoCalculation();
+}
+
+function renderMemoCalculation(){
+ const result=el('partnerMemoResult');
+ const factoryWrap=el('memoFactoryWrap');
+ const factoryInput=el('memoFactoryPrice');
+ if(!result)return;
+
+ const chosen=selectedMemoService();
+ const qty=Math.max(1,Math.trunc(Number(el('memoQuantity')?.value||1)));
+ const custom=chosen?.service?.service_type==='custom';
+ factoryWrap?.classList.toggle('hidden',!custom);
+ if(factoryInput)factoryInput.required=!!custom;
+
+ result.replaceChildren();
+
+ if(!chosen){
+   const empty=document.createElement('div');empty.className='partner-memo-empty';
+   empty.innerHTML='<span class="partner-memo-empty-icon">⌁</span><strong>Sélectionnez une prestation</strong><small>Le montant à facturer apparaîtra automatiquement ici.</small>';
+   result.append(empty);return;
+ }
+
+ const {partner,service}=chosen;
+ const head=document.createElement('div');head.className='memo-result-head';
+ const left=document.createElement('div');
+ const kicker=document.createElement('small');kicker.textContent=partner.name;
+ const title=document.createElement('h4');title.textContent=partnerServiceTypeLabels[service.service_type]||service.name;
+ left.append(kicker,title);
+ const amount=document.createElement('div');amount.className='memo-result-price';
+ const label=document.createElement('small');label.textContent='À facturer';
+ const value=document.createElement('strong');
+ amount.append(label,value);head.append(left,amount);result.append(head);
+
+ const grid=document.createElement('div');grid.className='memo-result-grid';
+ const cell=(labelText,valueText,extra='')=>{
+   const div=document.createElement('div');div.className='memo-result-cell '+extra;
+   const small=document.createElement('small');small.textContent=labelText;
+   const strong=document.createElement('strong');strong.textContent=valueText;
+   div.append(small,strong);return div;
+ };
+
+ if(custom){
+   const factory=Math.max(0,Math.trunc(Number(factoryInput?.value||0)));
+   if(factory<=0){
+     value.textContent='—';
+     grid.append(
+       cell('Réduction partenaire','−'+Number(service.discount_percent||0)+' %'),
+       cell('Quantité',String(qty))
+     );
+     result.append(grid);
+     const formula=document.createElement('div');formula.className='memo-formula';
+     formula.innerHTML='Entrez le <b>prix d’usine</b> pour calculer automatiquement le tarif final.';
+     result.append(formula);return;
    }
-   box.append(group);
+   const calc=calcCustomPartnerPrice(factory,service.discount_percent);
+   value.textContent=money(calc.final*qty);
+   grid.append(
+     cell('Prix d’usine',money(calc.factory)),
+     cell('Réduction','−'+calc.discount+' %'),
+     cell('Usine remisée',money(calc.discounted)),
+     cell('Marge × 2,5',money(calc.margin)+(calc.margin>=10000?' · MAX':'')),
+     cell('Prix unitaire',money(calc.final)),
+     cell('Quantité',String(qty)),
+     cell('Total à facturer',money(calc.final*qty),'memo-result-total')
+   );
+   result.append(grid);
+   const formula=document.createElement('div');formula.className='memo-formula';
+   formula.innerHTML='<b>'+money(calc.factory)+'</b> → remise '+calc.discount+' % = <b>'+money(calc.discounted)+'</b> → marge × 2,5 = <b>'+money(calc.margin)+'</b>'+(calc.margin>=10000?' (plafond atteint)':'')+' → prix unitaire <b>'+money(calc.final)+'</b>.';
+   result.append(formula);
+ }else{
+   const unit=Number(service.partner_price||0);
+   const total=unit*qty;
+   value.textContent=money(total);
+   grid.append(
+     cell('Tarif partenaire',money(unit)),
+     cell('Quantité',String(qty)),
+     cell('Total à facturer',money(total),'memo-result-total')
+   );
+   result.append(grid);
+   const formula=document.createElement('div');formula.className='memo-formula';
+   formula.innerHTML='<b>'+money(unit)+'</b> × '+qty+' = <b>'+money(total)+'</b>. Tarif payé directement, aucune déclaration de fin de semaine.';
+   result.append(formula);
  }
 }
+
+function renderPartnerMemo(){
+ const partnerSelect=el('memoPartnerSelect');
+ const serviceSelect=el('memoServiceSelect');
+ if(!partnerSelect||!serviceSelect)return;
+
+ const current=partnerSelect.value;
+ partnerSelect.replaceChildren();
+ const first=document.createElement('option');first.value='';first.textContent='Choisir un partenaire';partnerSelect.append(first);
+ for(const partner of partnerMemoCatalog||[]){
+   const option=document.createElement('option');option.value=String(partner.id);option.textContent=partner.name;partnerSelect.append(option);
+ }
+ if([...partnerSelect.options].some(o=>o.value===current))partnerSelect.value=current;
+
+ if(!partnerMemoCatalog.length){
+   serviceSelect.replaceChildren();
+   const option=document.createElement('option');option.value='';option.textContent='Aucun tarif disponible';serviceSelect.append(option);serviceSelect.disabled=true;
+ }
+ populateMemoServices();
+}
+
+el('memoPartnerSelect')?.addEventListener('change',populateMemoServices);
+el('memoServiceSelect')?.addEventListener('change',renderMemoCalculation);
+el('memoFactoryPrice')?.addEventListener('input',renderMemoCalculation);
+el('memoQuantity')?.addEventListener('input',renderMemoCalculation);
+el('memoReset')?.addEventListener('click',()=>{
+ if(el('memoPartnerSelect'))el('memoPartnerSelect').value='';
+ if(el('memoServiceSelect')){el('memoServiceSelect').value='';el('memoServiceSelect').disabled=true}
+ if(el('memoFactoryPrice'))el('memoFactoryPrice').value='';
+ if(el('memoQuantity'))el('memoQuantity').value='1';
+ el('memoFactoryWrap')?.classList.add('hidden');
+ renderMemoCalculation();
+});
 
 async function loadPartnerDeclarations(){
  const gate=el('partnerDeclarationGate'),content=el('partnerDeclarationContent');
