@@ -1155,6 +1155,134 @@ body.light .notification-head{background:linear-gradient(180deg,rgba(248,252,253
  .notification-head .notification-mark-read{padding:7px 8px;font-size:9px}
  .notification-head .notification-close{width:30px;height:30px}
 }
+
+/* Compact RH employee cards */
+.employee-account-card{
+  margin-top:8px!important;
+  padding:11px 12px!important;
+  border-radius:14px!important;
+  transition:.18s ease
+}
+.employee-account-card.is-open{
+  padding:14px!important;
+  background:linear-gradient(145deg,var(--panel),rgba(11,28,36,.62))!important;
+  border-color:rgba(40,217,229,.24)!important;
+  box-shadow:0 14px 34px rgba(0,0,0,.10)
+}
+.employee-account-top{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important
+}
+.employee-account-identity{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  min-width:0
+}
+.employee-account-avatar{
+  width:38px;
+  height:38px;
+  border-radius:11px;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  flex:0 0 auto;
+  background:var(--soft);
+  border:1px solid var(--line);
+  color:var(--cyan);
+  font:800 14px Rajdhani,sans-serif
+}
+.employee-account-avatar img{width:100%;height:100%;object-fit:cover}
+.employee-account-copy{min-width:0}
+.employee-account-copy strong{
+  display:block;
+  font-size:13px;
+  line-height:1.15;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis
+}
+.employee-account-copy small{
+  display:block;
+  margin-top:3px;
+  font-size:9px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis
+}
+.employee-account-controls{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex:0 0 auto
+}
+.employee-account-controls .tag{
+  padding:6px 8px!important;
+  font-size:9px!important
+}
+.employee-manage-toggle{
+  min-height:32px;
+  padding:7px 10px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:transparent;
+  color:var(--text);
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font-size:10px;
+  font-weight:900
+}
+.employee-manage-toggle:hover{background:var(--soft);border-color:rgba(40,217,229,.28)}
+.employee-manage-toggle b{font-size:12px;color:var(--cyan)}
+.employee-account-meta{
+  margin:6px 0 0!important;
+  min-height:0!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important
+}
+.employee-account-meta:empty{display:none!important}
+.employee-joined-compact{
+  color:var(--muted);
+  font-size:9px
+}
+.employee-account-body{
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid var(--line)
+}
+.employee-account-body .employee-role-actions{margin-top:0}
+.employee-account-body details{margin-top:10px!important}
+.employee-account-body summary{
+  cursor:pointer;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:800
+}
+.employee-account-body .btn{
+  min-height:38px;
+  padding:9px 12px
+}
+body.light .employee-account-card.is-open{
+  background:linear-gradient(145deg,#ffffff,#f3f8f9)!important;
+  box-shadow:0 12px 30px rgba(43,79,88,.08)
+}
+body.light .employee-manage-toggle{background:#f8fbfc}
+body.light .employee-manage-toggle:hover{background:#eaf5f6}
+
+@media(max-width:720px){
+  .employee-account-card{padding:10px!important}
+  .employee-account-top{flex-direction:row!important;align-items:center!important}
+  .employee-account-controls{gap:5px}
+  .employee-account-controls .tag{max-width:115px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .employee-manage-toggle span{display:none}
+  .employee-manage-toggle{width:34px;height:34px;padding:0;justify-content:center}
+  .employee-account-meta{padding-left:49px}
+}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
