@@ -996,18 +996,21 @@ function renderPartnerMemo(){
 
 async function loadPartnerDeclarations(){
  const gate=el('partnerDeclarationGate'),content=el('partnerDeclarationContent');
+ const memoGate=el('partnerMemoGate'),memoContent=el('partnerMemoContent');
  const partnerSelect=el('partnerDeclarationPartner'),history=el('partnerDeclarationHistory');
  if(!gate||!content||!partnerSelect||!history)return;
 
  const staff=!!account&&account.role!=='client';
  gate.classList.toggle('hidden',staff);
  content.classList.toggle('hidden',!staff);
+ memoGate?.classList.toggle('hidden',staff);
+ memoContent?.classList.toggle('hidden',!staff);
  if(!staff){
    partnerCatalog=[];partnerMemoCatalog=[];partnerSelect.replaceChildren();
    const opt=document.createElement('option');opt.value='';opt.textContent='Choisir un partenaire';partnerSelect.append(opt);
    history.replaceChildren();renderPartnerMemo();
    el('partnerCustomFactoryWrap')?.classList.add('hidden');
-   if(location.hash.startsWith('#/declaration-partenaires'))location.hash='#/espace';
+   if(location.hash.startsWith('#/declaration-partenaires')||location.hash.startsWith('#/tarifs-memo'))location.hash='#/espace';
    return;
  }
 
