@@ -646,7 +646,7 @@ async function loadNews(){
  }
  for(const n of news){
  const card=document.createElement('article');card.className='card news-card reveal'+(n.cover_url?' has-cover':'');
- if(n.cover_url)card.style.backgroundImage='url("'+String(n.cover_url).replaceAll('"','')+'")';
+ if(n.cover_url)card.style.setProperty('background-image','url("'+String(n.cover_url).replaceAll('"','')+'")','important');
  const tag=document.createElement('span');tag.className='tag';tag.textContent=n.category;
  const title=document.createElement('h3');title.textContent=n.title;
  const body=document.createElement('p');body.className='muted';body.textContent=n.body;
