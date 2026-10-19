@@ -1066,6 +1066,33 @@ body.light .footer{
   .mobile-nav a{font-size:15px!important}
   .mobile-nav small{font-size:7.5px!important}
 }
+
+/* Partner declarations */
+.partner-declaration-layout{display:grid;grid-template-columns:minmax(300px,.75fr) minmax(0,1.25fr);gap:18px;align-items:start}
+.partner-declare-card{position:sticky;top:28px}
+.partner-billing-preview{padding:15px 16px;border-radius:15px;border:1px solid var(--line);background:var(--soft);display:grid;gap:5px;font-size:12px}
+.partner-billing-preview strong{font-size:16px;color:var(--cyan)}
+.partner-billing-preview small{color:var(--muted);line-height:1.45}
+.partner-declaration-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)}
+.partner-declaration-row:last-child{border-bottom:0}
+.partner-declaration-main strong{display:block}.partner-declaration-main small{display:block;color:var(--muted);margin-top:5px;line-height:1.45}
+.partner-declaration-money{text-align:right;white-space:nowrap}.partner-declaration-money strong{display:block;color:var(--cyan);font:800 21px Rajdhani,sans-serif}.partner-declaration-money small{color:var(--muted)}
+.partner-admin-hero{display:flex;align-items:flex-end;justify-content:space-between;gap:22px;margin-bottom:18px}
+.partner-admin-hero h2{font-size:38px;margin:8px 0 3px}
+.partner-week-control{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap}.partner-week-control label{display:grid;gap:6px;color:var(--muted);font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}.partner-week-control input{min-height:44px}
+.partner-weekly-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 18px}
+.partner-week-card{padding:18px;border:1px solid var(--line);border-radius:18px;background:var(--panel)}
+.partner-week-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.partner-week-card h4{margin:0;font-size:18px}.partner-week-card .partner-week-count{color:var(--muted);font-size:10px}
+.partner-week-money{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.partner-week-money div{padding:11px;border-radius:12px;background:var(--soft)}.partner-week-money small{display:block;color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:.05em}.partner-week-money strong{display:block;margin-top:4px;font:800 19px Rajdhani,sans-serif}
+.partner-admin-config{display:grid;grid-template-columns:.65fr 1.35fr;gap:18px;margin-bottom:18px}
+.partner-catalog-item{padding:18px 0;border-bottom:1px solid var(--line)}.partner-catalog-item:last-child{border-bottom:0}
+.partner-catalog-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.partner-catalog-head h4{margin:0;font-size:19px}
+.partner-service-list{display:grid;gap:8px;margin-top:12px}.partner-service-row{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:12px;border-radius:13px;background:var(--soft);border:1px solid transparent}
+.partner-service-row small{display:block;color:var(--muted);margin-top:3px}.partner-service-price{font:800 18px Rajdhani,sans-serif;color:var(--cyan);white-space:nowrap}
+.partner-service-mode{font-size:9px;font-weight:900;padding:6px 8px;border-radius:999px;background:var(--panel);border:1px solid var(--line);white-space:nowrap}
+.partner-admin-declaration{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}.partner-admin-declaration:last-child{border-bottom:0}.partner-admin-declaration small{display:block;color:var(--muted);margin-top:4px}.partner-admin-amount{text-align:right}.partner-admin-amount strong{display:block;font:800 19px Rajdhani,sans-serif;color:var(--cyan)}.partner-admin-amount small{font-size:9px}
+@media(max-width:900px){.partner-declaration-layout,.partner-admin-config{grid-template-columns:1fr}.partner-declare-card{position:static}.partner-weekly-grid{grid-template-columns:1fr 1fr}.partner-admin-hero{align-items:flex-start;flex-direction:column}}
+@media(max-width:650px){.partner-weekly-grid{grid-template-columns:1fr}.partner-service-row,.partner-admin-declaration{grid-template-columns:1fr}.partner-service-price,.partner-admin-amount{text-align:left}.partner-week-control{width:100%}.partner-week-control label{width:100%}.partner-week-control input{width:100%}}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
@@ -1075,6 +1102,7 @@ body.light .footer{
  <div id="staffSidebarNav" class="staff-sidebar-nav hidden">
  <span class="staff-nav-label">ESPACE EMPLOYÉ</span>
  <a href="#/espace-employe" data-page="espace-employe" data-icon="▦"><span>Espace employé</span></a>
+ <a href="#/declaration-partenaires" data-page="declaration-partenaires" data-icon="◇"><span>Déclaration partenaires</span></a>
  <a id="staffAdminLink" class="hidden" href="#/direction" data-page="direction" data-icon="⚙"><span>Administration</span></a>
  </div>
  <a href="#/profil" id="sidebarUser" class="sidebar-user hidden" data-page="profil"><span id="sidebarAvatar" class="sidebar-avatar">AE</span><span class="sidebar-user-copy"><strong id="sidebarUserName">Mon profil</strong><small id="sidebarUserRole">Compte Auto Exotic</small></span><span class="sidebar-chevron">›</span></a><button id="sidebarSignOut" class="sidebar-signout hidden" type="button"><span>↪</span><strong>Déconnexion</strong></button>
@@ -1179,7 +1207,33 @@ body.light .footer{
  <div id="staffInternalAnnouncements"><div class="news-loading">Chargement...</div></div>
  </div>
  </div>
-</div></section><section class="section page" id="direction" data-view="direction"><div class="shell">
+</div></section><section class="section page" id="declaration-partenaires" data-view="declaration-partenaires"><div class="shell">
+  <div class="eyebrow">Espace employé</div>
+  <h2>Déclaration <span class="accent">partenaires.</span></h2>
+  <div id="partnerDeclarationGate" class="notice">Connectez-vous avec un compte employé pour déclarer une prestation partenaire.</div>
+  <div id="partnerDeclarationContent" class="hidden partner-declaration-layout">
+    <div class="card partner-declare-card">
+      <div class="panel-heading"><div><span class="tag">NOUVELLE PRESTATION</span><h3>Déclarer une prestation</h3></div></div>
+      <form id="partnerDeclarationForm" class="form">
+        <label>Partenaire</label>
+        <select id="partnerDeclarationPartner" required><option value="">Choisir un partenaire</option></select>
+        <label>Prestation</label>
+        <select id="partnerDeclarationService" required disabled><option value="">Choisir une prestation</option></select>
+        <label>Quantité</label>
+        <input id="partnerDeclarationQuantity" type="number" min="1" max="10000" step="1" value="1" required inputmode="numeric"/>
+        <div id="partnerBillingPreview" class="partner-billing-preview">
+          <span>Sélectionnez une prestation pour afficher la consigne de facturation.</span>
+        </div>
+        <button class="btn" type="submit">Valider la déclaration</button>
+      </form>
+    </div>
+    <div class="card">
+      <div class="panel-heading"><div><span class="tag">MON HISTORIQUE</span><h3>Prestations déclarées</h3></div></div>
+      <div id="partnerDeclarationHistory">Chargement...</div>
+    </div>
+  </div>
+</div></section>
+<section class="section page" id="direction" data-view="direction"><div class="shell">
 <div class="eyebrow">Administration</div><h2>Auto Exotic <span class="accent">Control.</span></h2>
 <div id="managerPanel" class="hidden">
  <div class="admin-tabs" role="tablist">
@@ -1187,7 +1241,7 @@ body.light .footer{
  <button class="admin-tab" type="button" data-admin-tab="orders">Commandes</button>
  <button class="admin-tab" type="button" data-admin-tab="clients">Clients</button>
  <button class="admin-tab" type="button" data-admin-tab="rh">RH</button><button class="admin-tab" type="button" data-admin-tab="production">Fabrications</button>
- <button class="admin-tab" type="button" data-admin-tab="requests">Partenariats</button>
+ <button class="admin-tab" type="button" data-admin-tab="partners">Partenaires</button>
  <button class="admin-tab" type="button" data-admin-tab="journal">Journal</button>
  <button class="admin-tab" type="button" data-admin-tab="audit">Historique</button>
  <button class="admin-tab" type="button" data-admin-tab="discord">Discord</button>
@@ -1254,8 +1308,54 @@ body.light .footer{
  </div>
  </div>
 
- <div class="admin-panel hidden" data-admin-panel="requests">
- <div class="card"><div class="panel-heading"><div><span class="tag">PARTENARIATS</span><h3>Demandes reçues</h3></div></div><div id="managerRequests">Chargement...</div></div>
+ <div class="admin-panel hidden" data-admin-panel="partners">
+ <div class="partner-admin-hero">
+  <div><span class="tag">PARTENAIRES</span><h2>Facturation partenaires</h2><p class="muted">Suivez les prestations de la semaine et préparez les montants à facturer.</p></div>
+  <div class="partner-week-control"><label>Semaine</label><input id="partnerWeekPicker" type="week"/><button id="partnerCurrentWeek" class="btn secondary" type="button">Cette semaine</button></div>
+ </div>
+ <div id="partnerWeekStats" class="stats-grid compact-stats"></div>
+ <div id="partnerWeeklyCards" class="partner-weekly-grid"></div>
+
+ <div id="partnerConfigZone" class="partner-admin-config">
+  <div class="card">
+   <div class="panel-heading"><div><span class="tag">NOUVEAU PARTENAIRE</span><h3>Créer un partenaire</h3></div></div>
+   <form id="partnerCreateForm" class="form">
+    <input id="partnerCreateName" required maxlength="80" placeholder="Nom du partenaire"/>
+    <button class="btn" type="submit">Créer le partenaire</button>
+   </form>
+  </div>
+  <div class="card">
+   <div class="panel-heading"><div><span class="tag">TARIFS</span><h3>Ajouter une prestation</h3></div></div>
+   <form id="partnerServiceForm" class="form">
+    <select id="partnerServicePartner" required><option value="">Choisir le partenaire</option></select>
+    <input id="partnerServiceName" required maxlength="100" placeholder="Nom de la prestation"/>
+    <div class="grid2">
+      <label>Prix normal<input id="partnerServiceBasePrice" type="number" min="0" step="1" required placeholder="Ex. 600"/></label>
+      <label>Prix partenaire<input id="partnerServicePartnerPrice" type="number" min="0" step="1" required placeholder="Ex. 450"/></label>
+    </div>
+    <label>Mode de facturation</label>
+    <select id="partnerServiceBillingMode" required>
+      <option value="weekly_invoice">Facture 1 $ maintenant + règlement fin de semaine</option>
+      <option value="direct_discount">Facture réduite immédiatement</option>
+    </select>
+    <div id="partnerServiceModeHelp" class="notice">L’employé facture 1 $ sur le moment. Le prix partenaire sera ajouté au montant à facturer en fin de semaine.</div>
+    <button class="btn" type="submit">Ajouter la prestation</button>
+   </form>
+  </div>
+ </div>
+
+ <div class="card">
+  <div class="panel-heading"><div><span class="tag">CONFIGURATION</span><h3>Partenaires & prestations</h3></div></div>
+  <div id="managerPartnerCatalog">Chargement...</div>
+ </div>
+ <div class="card">
+  <div class="panel-heading"><div><span class="tag">SEMAINE SÉLECTIONNÉE</span><h3>Historique des prestations</h3></div></div>
+  <div id="managerPartnerDeclarations">Chargement...</div>
+ </div>
+ <div class="card">
+  <div class="panel-heading"><div><span class="tag">DEMANDES</span><h3>Demandes de partenariat reçues</h3></div></div>
+  <div id="managerRequests">Chargement...</div>
+ </div>
  </div>
 
  <div class="admin-panel hidden" data-admin-panel="journal">
@@ -1271,7 +1371,7 @@ body.light .footer{
  <div class="panel-heading"><div><span class="tag">DISCORD</span><h3>Synchronisation des commandes</h3></div></div>
  <div id="discordConnectionState" class="discord-state">Vérification...</div>
  <div id="discordQueueStats" class="stats-grid compact-stats"></div>
- <p class="muted">Quand Discord est connecté, chaque nouvelle commande crée un fil AE-0001 avec les boutons <strong>Annuler</strong> et <strong>Livrée</strong>. L'annulation demande obligatoirement un motif et le statut est synchronisé avec le site.</p>
+ <p class="muted">Quand Discord est connecté, chaque nouvelle commande crée un panneau directement dans le salon avec les boutons <strong>Annuler</strong> et <strong>Livrée</strong>. L'annulation demande obligatoirement un motif et le statut est synchronisé avec le site.</p>
  <button id="discordSyncButton" class="btn secondary" type="button">Relancer la synchronisation</button>
  </div>
  </div>
@@ -1315,7 +1415,7 @@ if(qtyInput){
 document.getElementById('minus')?.addEventListener('click',()=>{qty=normalizeQty(qty-1);draw();});
 document.getElementById('plus')?.addEventListener('click',()=>{qty=normalizeQty(qty+1);draw();});
 
-const validPages=['accueil','prestations','commander','commandes','actualites','partenaires','equipe','avis','apropos','espace','profil','espace-employe','direction'];
+const validPages=['accueil','prestations','commander','commandes','actualites','partenaires','equipe','avis','apropos','espace','profil','espace-employe','declaration-partenaires','direction'];
 function showPage(){
  let p=location.hash.replace(/^#\/?/,'').split('/')[0];
  if(!validPages.includes(p))p='accueil';
