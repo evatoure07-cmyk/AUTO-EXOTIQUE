@@ -6,6 +6,42 @@ let token=localStorage.getItem('ae_session')||'';
 let account=null;
 let myProfile=null;
 let staffCache=[];
+let cartQuantity=Math.max(0,Math.min(999,Math.trunc(Number(localStorage.getItem('ae_cart_qty')||0))));
+const CART_UNIT_PRICE=750;
+function saveCart(){
+  if(cartQuantity>0)localStorage.setItem('ae_cart_qty',String(cartQuantity));
+  else localStorage.removeItem('ae_cart_qty');
+}
+function renderCart(){
+  const badge=el('cartBadge'),empty=el('cartEmpty'),content=el('cartContent');
+  if(badge){badge.textContent=String(cartQuantity);badge.classList.toggle('hidden',cartQuantity===0)}
+  if(empty)empty.classList.toggle('hidden',cartQuantity>0);
+  if(content)content.classList.toggle('hidden',cartQuantity===0);
+  if(el('cartQuantityLabel'))el('cartQuantityLabel').textContent=cartQuantity+' ×';
+  if(el('cartLineTotal'))el('cartLineTotal').textContent=money(cartQuantity*CART_UNIT_PRICE);
+  if(el('cartTotal'))el('cartTotal').textContent=money(cartQuantity*CART_UNIT_PRICE);
+}
+function openCart(){
+  renderCart();
+  el('cartPanel')?.classList.remove('hidden');
+  el('cartPanel')?.setAttribute('aria-hidden','false');
+  document.body.classList.add('dialog-open');
+}
+function closeCart(){
+  el('cartPanel')?.classList.add('hidden');
+  el('cartPanel')?.setAttribute('aria-hidden','true');
+  el('checkoutArea')?.classList.add('hidden');
+  document.body.classList.remove('dialog-open');
+}
+function updateCheckoutState(){
+  const logged=!!account;
+  el('checkoutLoginNotice')?.classList.toggle('hidden',logged);
+  el('checkoutForm')?.classList.toggle('hidden',!logged);
+  if(logged){
+    if(el('checkoutPhone'))el('checkoutPhone').value=myProfile?.phone||account.phone||'';
+    if(el('checkoutIban'))el('checkoutIban').value=myProfile?.iban_rp||'';
+  }
+}
 const managerRoles=['rh','drh','assistant_direction','copatron','patron'];
 const roleLabels={client:'Client',mecano_novice:'Mécano novice',mecano_intermediaire:'Mécano intermédiaire',mecano_experimente:'Mécano expérimenté',chef_equipe:"Chef d'équipe",rh:'RH',drh:'DRH',assistant_direction:'Assistante de direction',copatron:'Co-patron',patron:'Patron'};
 const employeeRoles=['mecano_novice','mecano_intermediaire','mecano_experimente','chef_equipe','rh','drh','assistant_direction','copatron','patron'];
@@ -88,7 +124,7 @@ function updateConnectedSpace(){
     else avatar.textContent=initials(full);
   }
 
-  el('connectedOrdersLink')?.classList.toggle('hidden',account.role!=='client');
+  el('connectedOrdersLink')?.classList.remove('hidden');
   el('connectedAdminLink')?.classList.toggle('hidden',!managerRoles.includes(account.role));
   if(el('authFeedback'))el('authFeedback').textContent='';
 }
@@ -107,9 +143,10 @@ async function refresh(){
   if(forcePassword&&!location.hash.startsWith('#/profil'))location.hash='#/profil';
   updateSidebarProfile();
   updateConnectedSpace();
-  if(el('submitOrder'))el('submitOrder').style.display=connected&&account.role==='client'?'inline-flex':'none';
-  if(el('orderLogin'))el('orderLogin').parentElement.style.display=connected?'none':'flex';
   if(el('signOut'))el('signOut').style.display=connected?'inline-flex':'none';
+  el('sidebarSignOut')?.classList.toggle('hidden',!connected);
+  updateCheckoutState();
+  renderCart();
   if(!connected&&el('authFeedback'))el('authFeedback').textContent='';
   await Promise.all([loadOrders(),loadNotifications(),loadStaff(),loadNews(),loadMyProfile(),loadStaffSpace(),loadStaffProduction(),managerRefresh()]);
 }
@@ -289,9 +326,6 @@ async function loadOrders(){
   if(!token||!account){
     const c=document.createElement('div');c.className='card';c.textContent='Connectez-vous pour retrouver vos commandes.';box.append(c);return;
   }
-  if(account.role!=='client'){
-    const c=document.createElement('div');c.className='card';c.textContent='Cet espace est réservé aux comptes clients.';box.append(c);return;
-  }
   try{
     const data=await rpc('ae_list_my_orders',{p_token:token});
     if(!data?.length){const c=document.createElement('div');c.className='card';c.textContent='Aucune commande pour le moment.';box.append(c);return}
@@ -320,10 +354,20 @@ async function loadOrders(){
       });
 
       card.append(top,timeline);
+      if(o.contact_phone||o.billing_iban){
+        const billing=document.createElement('p');billing.className='small muted';
+        billing.textContent='Facturation : '+(o.contact_phone||'—')+' · IBAN '+(o.billing_iban||'—');
+        card.append(billing);
+      }
+      if(o.status==='En attente de préparation'){
+        const payment=document.createElement('p');payment.className='notice';
+        payment.textContent='La préparation commence après règlement de la facture reçue.';
+        card.append(payment);
+      }
       if(o.cancel_reason){const reason=document.createElement('p');reason.className='notice';reason.textContent='Motif d’annulation : '+o.cancel_reason;card.append(reason)}
       const actions=document.createElement('div');actions.className='auth-actions';
       const reorder=document.createElement('button');reorder.className='btn secondary';reorder.type='button';reorder.textContent='Recommander';
-      reorder.onclick=()=>{if(window.setOrderQty)window.setOrderQty(o.quantity);location.hash='#/commander'};
+      reorder.onclick=()=>{if(window.setOrderQty)window.setOrderQty(o.quantity);cartQuantity=o.quantity;saveCart();renderCart();location.hash='#/commander'};
       actions.append(reorder);card.append(actions);box.append(card);
     }
     revealNow();
@@ -370,9 +414,8 @@ async function loadStaffSpace(){
   }
 
   const full=((myProfile?.first_name||account.first_name||'')+' '+(myProfile?.last_name||account.last_name||'')).trim();
-  if(el('staffSpaceName'))el('staffSpaceName').textContent=full||'Compte employé';
+  if(el('staffSpaceFirstName'))el('staffSpaceFirstName').textContent=myProfile?.first_name||account.first_name||'Employé';
   if(el('staffSpaceRole'))el('staffSpaceRole').textContent=roleLabels[account.role]||account.role;
-  if(el('staffSpaceJob'))el('staffSpaceJob').textContent=roleLabels[account.role]||account.role;
   el('staffSpaceAdminLink')?.classList.toggle('hidden',!managerRoles.includes(account.role));
 
   try{
@@ -401,6 +444,10 @@ async function loadStaffSpace(){
     list.textContent='Annonces internes indisponibles : '+err.message;
   }
 }
+
+el('quickDeclareProduction')?.addEventListener('click',()=>el('productionDeclareCard')?.scrollIntoView({behavior:'smooth',block:'start'}));
+el('quickProductionHistory')?.addEventListener('click',()=>el('productionHistoryCard')?.scrollIntoView({behavior:'smooth',block:'start'}));
+el('quickInternalNews')?.addEventListener('click',()=>el('internalNewsCard')?.scrollIntoView({behavior:'smooth',block:'start'}));
 
 let productionProducts=[];
 async function loadStaffProduction(){
@@ -651,18 +698,58 @@ el('registerForm')?.addEventListener('submit',async e=>{
   }catch(err){feedback('Inscription impossible : '+err.message)}
 });
 
-el('submitOrder')?.addEventListener('click',async()=>{
-  if(!account||account.role!=='client')return;
+el('addToCart')?.addEventListener('click',()=>{
   const quantity=Math.max(1,Math.min(999,Math.floor(Number(el('qty')?.value||1))));
-  if(!await siteConfirm('Confirmer '+quantity+' kit(s) moteur standard pour '+money(quantity*750)+' ?',{title:'Confirmer la commande',confirmText:'Commander'}))return;
+  cartQuantity=Math.min(999,cartQuantity+quantity);
+  saveCart();renderCart();
+  siteToast(quantity+' kit(s) ajouté(s) au panier.','success');
+});
+el('openCartFromPage')?.addEventListener('click',openCart);
+el('cartToggle')?.addEventListener('click',openCart);
+el('cartClose')?.addEventListener('click',closeCart);
+el('cartPanel')?.querySelectorAll('[data-close-cart]').forEach(node=>node.addEventListener('click',closeCart));
+el('cartClear')?.addEventListener('click',()=>{
+  cartQuantity=0;saveCart();renderCart();el('checkoutArea')?.classList.add('hidden');
+  siteToast('Panier vidé.','success');
+});
+el('cartCheckout')?.addEventListener('click',()=>{
+  if(cartQuantity<1)return;
+  el('checkoutArea')?.classList.remove('hidden');
+  updateCheckoutState();
+  setTimeout(()=>el('checkoutArea')?.scrollIntoView({behavior:'smooth',block:'nearest'}),40);
+});
+el('cartGoLogin')?.addEventListener('click',()=>{closeCart()});
+el('checkoutForm')?.addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!account){siteToast('Connectez-vous pour valider votre panier.','error');return}
+  if(cartQuantity<1){siteToast('Votre panier est vide.','error');return}
+  const phone=el('checkoutPhone')?.value.trim()||'';
+  const iban=el('checkoutIban')?.value.trim()||'';
+  if(!phone||!iban){siteToast('Téléphone RP et IBAN RP obligatoires.','error');return}
+  const button=e.currentTarget.querySelector('[type=submit]');button.disabled=true;
   try{
-    const result=await rpc('ae_create_order',{p_token:token,p_quantity:quantity});
-    siteToast('Commande AE-'+String(result.id).padStart(4,'0')+' enregistrée !');
-    triggerDiscordSync(false).catch(()=>{});location.hash='#/commandes';await Promise.all([loadOrders(),loadNotifications()]);
-  }catch(err){siteToast('Commande impossible : '+err.message)}
+    const result=await rpc('ae_create_order_checkout',{p_token:token,p_quantity:cartQuantity,p_phone:phone,p_iban:iban});
+    cartQuantity=0;saveCart();renderCart();closeCart();
+    siteToast('Commande AE-'+String(result.id).padStart(4,'0')+' enregistrée. La préparation commencera après paiement de la facture.','success');
+    triggerDiscordSync(false).catch(()=>{});
+    await Promise.all([refresh(),loadOrders(),loadNotifications()]);
+    location.hash='#/commandes';
+  }catch(err){siteToast('Commande impossible : '+err.message,'error')}
+  finally{button.disabled=false}
 });
 
-el('signOut')?.addEventListener('click',async()=>{try{if(token)await rpc('ae_logout',{p_token:token})}catch(_){}token='';account=null;myProfile=null;localStorage.removeItem('ae_session');feedback('Déconnecté.');await refresh()});
+async function signOutEverywhere(){
+  try{if(token)await rpc('ae_logout',{p_token:token})}catch(_){}
+  token='';account=null;myProfile=null;localStorage.removeItem('ae_session');
+  feedback('Déconnecté.');
+  siteToast('Vous êtes déconnecté.','success');
+  await refresh();
+  location.hash='#/accueil';
+}
+el('signOut')?.addEventListener('click',signOutEverywhere);
+el('sidebarSignOut')?.addEventListener('click',signOutEverywhere);
+
+
 
 const requestForms=[];
 if(el('recruit'))requestForms.push([el('recruit'),'recrutement']);
@@ -965,7 +1052,7 @@ async function managerRefresh(){
     for(const item of orders||[]){
       const box=document.createElement('div');box.className='manager-item';
       const title=document.createElement('strong');title.textContent='AE-'+String(item.id).padStart(4,'0')+' — '+item.status;
-      const p=document.createElement('p');p.textContent=item.customer+' · '+(item.phone||'sans téléphone')+' · '+item.quantity+' kit(s) · '+money(item.quantity*item.unit_price);
+      const p=document.createElement('p');p.textContent=item.customer+' · '+(item.phone||'sans téléphone')+' · IBAN '+(item.billing_iban||'—')+' · '+item.quantity+' kit(s) · '+money(item.quantity*item.unit_price);
       box.append(title,p);
       if(item.status==='En attente de préparation'){
         const delivered=document.createElement('button');delivered.className='btn secondary';delivered.textContent='Livrée';
@@ -1137,4 +1224,5 @@ window.addEventListener('hashchange',()=>setTimeout(revealNow,80));
 setTimeout(revealNow,100);
 setInterval(()=>{if(account)loadNotifications()},60000);
 refresh();
+renderCart();
 })();
