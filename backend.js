@@ -111,7 +111,7 @@ async function refresh(){
   if(el('orderLogin'))el('orderLogin').parentElement.style.display=connected?'none':'flex';
   if(el('signOut'))el('signOut').style.display=connected?'inline-flex':'none';
   if(!connected&&el('authFeedback'))el('authFeedback').textContent='';
-  await Promise.all([loadOrders(),loadNotifications(),loadStaff(),loadNews(),loadMyProfile(),loadStaffSpace(),managerRefresh()]);
+  await Promise.all([loadOrders(),loadNotifications(),loadStaff(),loadNews(),loadMyProfile(),loadStaffSpace(),loadStaffProduction(),managerRefresh()]);
 }
 
 function initials(name){
@@ -402,6 +402,79 @@ async function loadStaffSpace(){
   }
 }
 
+let productionProducts=[];
+async function loadStaffProduction(){
+  const select=el('productionProduct'),history=el('staffProductionHistory');
+  if(!select||!history)return;
+  if(!account||account.role==='client'){
+    productionProducts=[];
+    select.innerHTML='<option value="">Choisir un objet fabriqué</option>';
+    history.replaceChildren();
+    return;
+  }
+
+  try{
+    const [products,rows]=await Promise.all([
+      rpc('ae_staff_production_products',{p_token:token}),
+      rpc('ae_staff_my_production_declarations',{p_token:token,p_limit:50})
+    ]);
+    productionProducts=products||[];
+
+    const current=select.value;
+    select.replaceChildren();
+    const first=document.createElement('option');first.value='';first.textContent='Choisir un objet fabriqué';select.append(first);
+    for(const product of productionProducts){
+      const option=document.createElement('option');
+      option.value=String(product.id);
+      option.textContent=product.name;
+      select.append(option);
+    }
+    if([...select.options].some(o=>o.value===current))select.value=current;
+
+    history.replaceChildren();
+    if(!rows?.length){
+      const p=document.createElement('p');p.className='muted';p.textContent='Aucune fabrication déclarée pour le moment.';history.append(p);
+      return;
+    }
+    for(const row of rows){
+      const item=document.createElement('div');item.className='production-row';
+      const copy=document.createElement('div');
+      const strong=document.createElement('strong');strong.textContent=row.product_name;
+      const small=document.createElement('small');small.textContent=new Date(row.created_at).toLocaleString('fr-FR');
+      copy.append(strong,small);
+      const qty=document.createElement('div');qty.className='production-qty';qty.textContent='× '+Number(row.quantity||0).toLocaleString('fr-FR');
+      item.append(copy,qty);history.append(item);
+    }
+  }catch(err){
+    history.textContent='Historique des fabrications indisponible : '+err.message;
+  }
+}
+
+el('productionDeclarationForm')?.addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!account||account.role==='client'){siteToast('Connexion employé requise.','error');return}
+  const productId=Number(el('productionProduct')?.value||0);
+  const quantity=Math.trunc(Number(el('productionQuantity')?.value||0));
+  if(!productId){siteToast('Choisissez un objet fabriqué.','error');return}
+  if(quantity<1){siteToast('Indiquez une quantité valide.','error');return}
+
+  const product=productionProducts.find(p=>Number(p.id)===productId);
+  const ok=await siteConfirm(
+    'Déclarer '+quantity.toLocaleString('fr-FR')+' × '+(product?.name||'cet objet')+' ?',
+    {title:'Confirmer la fabrication',confirmText:'Enregistrer'}
+  );
+  if(!ok)return;
+
+  const button=e.currentTarget.querySelector('[type=submit]');button.disabled=true;
+  try{
+    await rpc('ae_staff_add_production_declaration',{p_token:token,p_product_id:productId,p_quantity:quantity});
+    el('productionQuantity').value='';
+    siteToast('Fabrication enregistrée.','success');
+    await Promise.all([loadStaffProduction(),loadManagerProductionDeclarations()]);
+  }catch(err){siteToast('Déclaration impossible : '+err.message,'error')}
+  finally{button.disabled=false}
+});
+
 async function loadNotifications(){
   const list=el('notificationsList'),badge=el('notificationBadge');if(!list||!badge)return;
   if(!token||!account){
@@ -691,8 +764,6 @@ function activateAdminTab(name){
   localStorage.setItem('ae_admin_tab',target);
 }
 document.querySelectorAll('[data-admin-tab]').forEach(btn=>btn.addEventListener('click',()=>activateAdminTab(btn.dataset.adminTab)));
-el('staffRHLink')?.addEventListener('click',()=>{localStorage.setItem('ae_admin_tab','rh');setTimeout(()=>activateAdminTab('rh'),0)});
-el('staffDashboardLink')?.addEventListener('click',()=>{loadStaffDashboard().catch(()=>{})});
 activateAdminTab(localStorage.getItem('ae_admin_tab')==='team'?'rh':(localStorage.getItem('ae_admin_tab')||'dashboard'));
 
 function filterManagerClients(){
@@ -711,6 +782,38 @@ function filterManagerEmployees(){
 el('managerCustomerSearch')?.addEventListener('input',filterManagerClients);
 el('managerEmployeeSearch')?.addEventListener('input',filterManagerEmployees);
 el('managerEmployeeRole')?.addEventListener('change',filterManagerEmployees);
+
+function filterManagerProduction(){
+  const q=(el('managerProductionSearch')?.value||'').trim().toLowerCase();
+  document.querySelectorAll('#managerProductionDeclarations .production-admin-row').forEach(row=>{
+    row.classList.toggle('is-filtered',q&&!String(row.dataset.search||'').includes(q));
+  });
+}
+el('managerProductionSearch')?.addEventListener('input',filterManagerProduction);
+
+async function loadManagerProductionDeclarations(){
+  const box=el('managerProductionDeclarations');
+  if(!box||!account||!managerRoles.includes(account.role))return;
+  try{
+    const rows=await rpc('ae_manager_production_declarations',{p_token:token,p_limit:250});
+    box.replaceChildren();
+    if(!rows?.length){
+      const p=document.createElement('p');p.className='muted';p.textContent='Aucune fabrication déclarée.';box.append(p);return;
+    }
+    for(const row of rows){
+      const item=document.createElement('div');item.className='production-admin-row';
+      item.dataset.search=((row.employee||'')+' '+(row.product_name||'')+' '+(roleLabels[row.role]||row.role)).toLowerCase();
+      const top=document.createElement('div');top.className='production-admin-top';
+      const left=document.createElement('div');
+      const strong=document.createElement('strong');strong.textContent=row.employee;
+      const meta=document.createElement('div');meta.className='production-admin-meta';meta.textContent=(roleLabels[row.role]||row.role)+' · '+row.product_name+' · '+new Date(row.created_at).toLocaleString('fr-FR');
+      left.append(strong,meta);
+      const qty=document.createElement('div');qty.className='production-qty';qty.textContent='× '+Number(row.quantity||0).toLocaleString('fr-FR');
+      top.append(left,qty);item.append(top);box.append(item);
+    }
+    filterManagerProduction();
+  }catch(err){box.textContent='Fabrications indisponibles : '+err.message}
+}
 
 const discordFunctionUrl='https://gkljzpwfmthzjgfzzeoy.supabase.co/functions/v1/auto-exotic-discord';
 async function triggerDiscordSync(retryFailed=false){
@@ -866,7 +969,7 @@ async function managerRefresh(){
       box.append(title,p);
       if(item.status==='En attente de préparation'){
         const delivered=document.createElement('button');delivered.className='btn secondary';delivered.textContent='Livrée';
-        delivered.onclick=async()=>{try{await rpc('ae_manager_update_order',{p_token:token,p_id:item.id,p_status:'Livrée',p_reason:null});triggerDiscordSync(false).catch(()=>{});await Promise.all([managerRefresh(),loadNotifications(),loadStaffDashboard()])}catch(err){siteToast(err.message)}};
+        delivered.onclick=async()=>{try{await rpc('ae_manager_update_order',{p_token:token,p_id:item.id,p_status:'Livrée',p_reason:null});triggerDiscordSync(false).catch(()=>{});await Promise.all([managerRefresh(),loadNotifications(),loadStaffSpace()])}catch(err){siteToast(err.message)}};
         const cancel=document.createElement('button');cancel.className='btn secondary';cancel.textContent='Annuler';
         cancel.onclick=async()=>{const reason=await sitePrompt('Indiquez pourquoi cette commande est annulée.',{title:'Annuler AE-'+String(item.id).padStart(4,'0'),label:'Motif d’annulation',required:true,confirmText:'Annuler la commande'});if(!reason)return;try{await rpc('ae_manager_update_order',{p_token:token,p_id:item.id,p_status:'Annulée',p_reason:reason});siteToast('Commande annulée.','success');triggerDiscordSync(false).catch(()=>{});await Promise.all([managerRefresh(),loadNotifications()])}catch(err){siteToast(err.message,'error')}};
         box.append(delivered,cancel);
@@ -1007,7 +1110,7 @@ async function managerRefresh(){
     }
   }catch(err){if(el('managerAuditLog'))el('managerAuditLog').textContent='Historique indisponible : '+err.message}
 
-  await Promise.all([refreshDiscordAdmin(),loadManagerInternalAnnouncements()]);
+  await Promise.all([refreshDiscordAdmin(),loadManagerInternalAnnouncements(),loadManagerProductionDeclarations()]);
   revealNow();
 }
 
