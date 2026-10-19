@@ -1545,6 +1545,14 @@ body.light .news-card .btn.secondary{
   background:rgba(255,255,255,.88)!important;
   border-color:rgba(28,91,104,.12)!important;
 }
+
+.partner-directory-row{display:grid;grid-template-columns:minmax(0,1fr) 34px;gap:6px;align-items:stretch}
+.partner-directory-row.active .partner-directory-item{background:rgba(40,217,229,.13)!important;border-color:rgba(40,217,229,.48)!important;box-shadow:inset 3px 0 0 var(--cyan)}
+.partner-directory-row.is-inactive{opacity:.58}
+.partner-directory-delete{border:1px solid rgba(245,91,91,.2);background:rgba(245,91,91,.07);color:#ff8f8f;border-radius:10px;font-size:18px;font-weight:800}
+.partner-directory-delete:hover{background:rgba(245,91,91,.15);border-color:rgba(245,91,91,.38)}
+.client-file-actions{display:flex;justify-content:flex-end;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.client-file-actions .btn{min-height:34px;padding:8px 11px;font-size:10px}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
