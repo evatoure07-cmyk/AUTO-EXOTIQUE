@@ -617,22 +617,20 @@ async function loadStaff(){
     }
 
     if(!staff?.length){
-      const card=document.createElement('div');card.className='card';card.innerHTML='<h3>Équipe en préparation</h3><p class="muted">Les profils de direction et RH apparaîtront ici.</p>';box.append(card);return;
+      const card=document.createElement('div');card.className='card';card.innerHTML='<h3>Équipe en préparation</h3><p class="muted">Les membres de l’équipe apparaîtront ici.</p>';box.append(card);return;
     }
 
     for(const s of staff){
-      const card=document.createElement('article');card.className='card staff-card reveal';
-      const head=document.createElement('div');head.className='staff-head';
-      const avatar=document.createElement('div');avatar.className='staff-avatar';
-      if(s.avatar_url){const img=document.createElement('img');img.src=s.avatar_url;img.alt='';img.className='staff-avatar';head.append(img)}
-      else{avatar.textContent=initials(s.name);head.append(avatar)}
-      const role=document.createElement('span');role.className='tag';role.textContent=roleLabels[s.role]||s.role;
+      const card=document.createElement('article');card.className='team-face-card reveal';
+      const photo=document.createElement('div');photo.className='team-face-photo';
+      if(s.avatar_url){
+        const img=document.createElement('img');img.src=s.avatar_url;img.alt='Photo de '+s.name;photo.append(img);
+      }else{
+        photo.textContent=initials(s.name);
+      }
       const name=document.createElement('h3');name.textContent=s.name;
-      const meta=document.createElement('p');meta.className='muted';meta.textContent=s.joined_at?'Depuis le '+new Date(s.joined_at+'T00:00:00').toLocaleDateString('fr-FR'):'Ancienneté non renseignée';
-      const rating=document.createElement('p');rating.className='muted';rating.textContent=(Number(s.rating_avg||0)>0?Number(s.rating_avg).toFixed(1):'—')+' / 5 · '+Number(s.rating_count||0)+' avis';
-      card.append(head,role,name,meta,rating);
-      if(s.bio){const bio=document.createElement('p');bio.className='muted';bio.textContent=s.bio;card.append(bio)}
-      const open=document.createElement('button');open.type='button';open.className='btn secondary staff-profile-button';open.textContent='Voir le profil';open.onclick=()=>showEmployeeProfile(s);card.append(open);
+      const role=document.createElement('span');role.className='team-face-role';role.textContent=roleLabels[s.role]||s.role;
+      card.append(photo,name,role);
       box.append(card);
     }
     revealNow();
