@@ -1335,6 +1335,10 @@ body.light .employee-manage-toggle:hover{background:#eaf5f6}
  .partner-calc-total{grid-column:auto}
  .partner-memo-custom-calc{grid-template-columns:1fr}
 }
+
+.partner-memo-standalone{max-width:980px;margin:0 auto}
+.partner-memo-standalone .panel-heading{margin-bottom:6px}
+.partner-memo-standalone>#partnerMemoList{margin-top:18px}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
@@ -1345,6 +1349,7 @@ body.light .employee-manage-toggle:hover{background:#eaf5f6}
  <span class="staff-nav-label">ESPACE EMPLOYÉ</span>
  <a href="#/espace-employe" data-page="espace-employe" data-icon="▦"><span>Espace employé</span></a>
  <a href="#/declaration-partenaires" data-page="declaration-partenaires" data-icon="◇"><span>Déclaration partenaires</span></a>
+ <a href="#/tarifs-memo" data-page="tarifs-memo" data-icon="$"><span>Tarifs mémo</span></a>
  <a id="staffAdminLink" class="hidden" href="#/direction" data-page="direction" data-icon="⚙"><span>Administration</span></a>
  </div>
  <a href="#/profil" id="sidebarUser" class="sidebar-user hidden" data-page="profil"><span id="sidebarAvatar" class="sidebar-avatar">AE</span><span class="sidebar-user-copy"><strong id="sidebarUserName">Mon profil</strong><small id="sidebarUserRole">Compte Auto Exotic</small></span><span class="sidebar-chevron">›</span></a><button id="sidebarSignOut" class="sidebar-signout hidden" type="button"><span>↪</span><strong>Déconnexion</strong></button>
@@ -1474,15 +1479,24 @@ body.light .employee-manage-toggle:hover{background:#eaf5f6}
       </form>
     </div>
     <div class="partner-employee-side">
-      <div class="card partner-memo-card">
-        <div class="panel-heading"><div><span class="tag">FICHE MÉMO</span><h3>Prix partenaires</h3></div></div>
-        <p class="muted">Tarifs partenaires payés directement. Ils ne sont pas ajoutés à la facture de fin de semaine.</p>
-        <div id="partnerMemoList">Chargement...</div>
-      </div>
       <div class="card">
         <div class="panel-heading"><div><span class="tag">MON HISTORIQUE</span><h3>Prestations déclarées</h3></div></div>
         <div id="partnerDeclarationHistory">Chargement...</div>
       </div>
+    </div>
+  </div>
+</div></section>
+<section class="section page" id="tarifs-memo" data-view="tarifs-memo"><div class="shell">
+  <div class="eyebrow">Espace employé</div>
+  <h2>Tarifs <span class="accent">mémo.</span></h2>
+  <div id="partnerMemoGate" class="notice">Connectez-vous avec un compte employé pour consulter les tarifs partenaires.</div>
+  <div id="partnerMemoContent" class="hidden">
+    <div class="card partner-memo-card partner-memo-standalone">
+      <div class="panel-heading">
+        <div><span class="tag">PARTENAIRES</span><h3>Prix & réductions employés</h3></div>
+      </div>
+      <p class="muted">Retrouvez ici uniquement les tarifs partenaires payés directement. Ils ne sont jamais ajoutés aux déclarations de fin de semaine.</p>
+      <div id="partnerMemoList">Chargement...</div>
     </div>
   </div>
 </div></section>
@@ -1691,7 +1705,7 @@ if(qtyInput){
 document.getElementById('minus')?.addEventListener('click',()=>{qty=normalizeQty(qty-1);draw();});
 document.getElementById('plus')?.addEventListener('click',()=>{qty=normalizeQty(qty+1);draw();});
 
-const validPages=['accueil','prestations','commander','commandes','actualites','partenaires','equipe','avis','apropos','espace','profil','espace-employe','declaration-partenaires','direction'];
+const validPages=['accueil','prestations','commander','commandes','actualites','partenaires','equipe','avis','apropos','espace','profil','espace-employe','declaration-partenaires','tarifs-memo','direction'];
 function showPage(){
  let p=location.hash.replace(/^#\/?/,'').split('/')[0];
  if(!validPages.includes(p))p='accueil';
