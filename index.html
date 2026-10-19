@@ -1426,6 +1426,15 @@ details[open] .order-chevron{transform:rotate(180deg)}
  .compact-order-total{grid-column:2;grid-row:1/3}
  .manager-order-meta{grid-template-columns:1fr}
 }
+
+.partner-admin-tabs{display:flex;flex-wrap:wrap;gap:9px;margin:16px 0 22px;padding:6px;border:1px solid var(--line);background:var(--soft);border-radius:16px}
+.partner-admin-tab{border:0;border-radius:11px;padding:12px 17px;flex:1;min-width:155px;cursor:pointer;color:var(--muted);background:transparent;font-weight:800;font-size:12px;transition:.18s}
+.partner-admin-tab.active{background:var(--cyan);color:#071a1d;box-shadow:0 5px 18px rgba(31,190,202,.18)}
+.partner-summary-intro,.partner-config-intro{padding:18px 20px;margin-bottom:16px;border:1px solid var(--line);border-radius:16px;background:var(--soft)}
+.partner-summary-intro strong,.partner-config-intro strong{font:800 23px Rajdhani,sans-serif}
+.partner-summary-intro p,.partner-config-intro p{margin:5px 0 0}
+.partner-tab-panel.hidden{display:none!important}
+@media(max-width:650px){.partner-admin-tabs{flex-direction:column}.partner-admin-tab{min-width:0;flex:auto}.partner-summary-intro,.partner-config-intro{padding:14px}}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
@@ -1691,8 +1700,18 @@ details[open] .order-chevron{transform:rotate(180deg)}
   <div><span class="tag">PARTENAIRES</span><h2>Facturation partenaires</h2><p class="muted">Suivez les prestations de la semaine et préparez les montants à facturer.</p></div>
   <div class="partner-week-control"><label>Semaine</label><input id="partnerWeekPicker" type="week"/><button id="partnerCurrentWeek" class="btn secondary" type="button">Cette semaine</button></div>
  </div>
+ <div class="partner-admin-tabs" role="tablist" aria-label="Gestion des partenaires">
+  <button type="button" class="partner-admin-tab active" data-partner-tab="summary" aria-selected="true">Résumé hebdomadaire</button>
+  <button type="button" class="partner-admin-tab" data-partner-tab="configure" aria-selected="false">Configurer les partenaires</button>
+  <button type="button" class="partner-admin-tab" data-partner-tab="history" aria-selected="false">Historique des prestations</button>
+ </div>
+ <div class="partner-tab-panel" data-partner-panel="summary">
+ <div class="partner-summary-intro"><strong>Bilan de la semaine</strong><p class="muted">Montants à facturer par partenaire, calculés à partir des prestations déclarées par les employés.</p></div>
  <div id="partnerWeekStats" class="stats-grid compact-stats"></div>
  <div id="partnerWeeklyCards" class="partner-weekly-grid"></div>
+ </div>
+ <div class="partner-tab-panel hidden" data-partner-panel="configure">
+ <div class="partner-config-intro"><strong>Gestion des contrats</strong><p class="muted">1. Créez un partenaire dans la colonne de gauche. 2. Sélectionnez-le. 3. Configurez ses prestations et les groupes autorisés.</p></div>
 
  <div id="partnerConfigZone" class="partner-admin-workspace">
   <aside class="card partner-directory-card">
@@ -1755,9 +1774,12 @@ details[open] .order-chevron{transform:rotate(180deg)}
    </div>
   </div>
  </div>
+ </div>
+ <div class="partner-tab-panel hidden" data-partner-panel="history">
  <div class="card">
   <div class="panel-heading"><div><span class="tag">SEMAINE SÉLECTIONNÉE</span><h3>Historique des prestations</h3></div></div>
   <div id="managerPartnerDeclarations">Chargement...</div>
+ </div>
  </div>
  <div class="card">
   <div class="panel-heading"><div><span class="tag">DEMANDES</span><h3>Demandes de partenariat reçues</h3></div></div>
