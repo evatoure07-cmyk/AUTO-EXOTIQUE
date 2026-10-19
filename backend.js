@@ -869,6 +869,15 @@ const partnerGroupLabels={
  gestion:'Gestion',
  direction:'Direction'
 };
+const partnerServiceTypeLabels={totale:'Totale',moteur:'Moteur',custom:'Custom'};
+
+function calcCustomPartnerPrice(factoryPrice,discountPercent){
+ const factory=Math.max(0,Math.trunc(Number(factoryPrice)||0));
+ const discount=Math.min(100,Math.max(0,Math.trunc(Number(discountPercent)||0)));
+ const discounted=Math.round(factory*((100-discount)/100));
+ const margin=Math.min(Math.round(discounted*2.5),10000);
+ return {factory,discount,discounted,margin,final:discounted+margin};
+}
 
 function selectedPartnerService(){
  const serviceId=Number(el('partnerDeclarationService')?.value||0);
@@ -880,18 +889,49 @@ function selectedPartnerService(){
 }
 
 function renderPartnerBillingPreview(){
- const box=el('partnerBillingPreview');if(!box)return;
+ const box=el('partnerBillingPreview'),factoryWrap=el('partnerCustomFactoryWrap'),factoryInput=el('partnerCustomFactoryPrice');
+ if(!box)return;
  const chosen=selectedPartnerService();
  const qty=Math.max(1,Math.trunc(Number(el('partnerDeclarationQuantity')?.value||1)));
+ const custom=chosen?.service?.service_type==='custom';
+ factoryWrap?.classList.toggle('hidden',!custom);
+ if(factoryInput)factoryInput.required=!!custom;
+
  box.replaceChildren();
  if(!chosen){
    const span=document.createElement('span');span.textContent='Sélectionnez une prestation à déclarer pour afficher le montant de fin de semaine.';box.append(span);return;
  }
+
  const {service}=chosen;
- const total=Number(service.partner_price||0)*qty;
- const title=document.createElement('strong');title.textContent='À ajouter à la facture de fin de semaine : '+money(total);
- const detail=document.createElement('small');detail.textContent='Tarif partenaire : '+money(service.partner_price)+' par prestation · quantité '+qty+'.';
- box.append(title,detail);
+ if(service.service_type==='custom'){
+   const factory=Math.max(0,Math.trunc(Number(factoryInput?.value||0)));
+   const intro=document.createElement('strong');intro.textContent='Calculateur Custom — réduction '+Number(service.discount_percent||0)+' %';
+   box.append(intro);
+   if(factory<=0){
+     const hint=document.createElement('small');hint.textContent='Entrez le prix d’usine pour calculer automatiquement le tarif partenaire.';box.append(hint);return;
+   }
+   const calc=calcCustomPartnerPrice(factory,service.discount_percent);
+   const grid=document.createElement('div');grid.className='partner-calc-grid';
+   const cell=(label,value,cls='')=>{
+     const div=document.createElement('div');div.className='partner-calc-cell '+cls;
+     const small=document.createElement('small');small.textContent=label;
+     const strong=document.createElement('strong');strong.textContent=value;
+     div.append(small,strong);return div;
+   };
+   grid.append(
+     cell('Prix d’usine',money(calc.factory)),
+     cell('Après réduction',money(calc.discounted)),
+     cell('Marge × 2,5',money(calc.margin)+(calc.margin>=10000?' · MAX':'')),
+     cell('Prix final / unité',money(calc.final)),
+     cell('Total à facturer',money(calc.final*qty),'partner-calc-total')
+   );
+   box.append(grid);
+ }else{
+   const total=Number(service.partner_price||0)*qty;
+   const title=document.createElement('strong');title.textContent='À ajouter à la facture de fin de semaine : '+money(total);
+   const detail=document.createElement('small');detail.textContent=(partnerServiceTypeLabels[service.service_type]||service.name)+' · '+money(service.partner_price)+' par prestation · quantité '+qty+'.';
+   box.append(title,detail);
+ }
 }
 
 function populatePartnerServices(){
@@ -902,7 +942,11 @@ function populatePartnerServices(){
  const first=document.createElement('option');first.value='';first.textContent='Choisir une prestation';select.append(first);
  const partner=(partnerCatalog||[]).find(p=>Number(p.id)===partnerId);
  for(const service of partner?.services||[]){
-   const option=document.createElement('option');option.value=String(service.id);option.textContent=service.name+' — '+money(service.partner_price);select.append(option);
+   const option=document.createElement('option');option.value=String(service.id);
+   option.textContent=service.service_type==='custom'
+     ?'Custom — réduction '+Number(service.discount_percent||0)+' %'
+     :(partnerServiceTypeLabels[service.service_type]||service.name)+' — '+money(service.partner_price);
+   select.append(option);
  }
  select.disabled=!partnerId||!(partner?.services||[]).length;
  if([...select.options].some(o=>o.value===current))select.value=current;
@@ -919,10 +963,32 @@ function renderPartnerMemo(){
    const group=document.createElement('section');group.className='partner-memo-group';
    const title=document.createElement('h4');title.textContent=partner.name;group.append(title);
    for(const service of partner.services||[]){
-     const row=document.createElement('div');row.className='partner-memo-service';
-     const name=document.createElement('strong');name.textContent=service.name;
-     const price=document.createElement('span');price.textContent=money(service.partner_price);
-     row.append(name,price);group.append(row);
+     if(service.service_type==='custom'){
+       const row=document.createElement('div');row.className='partner-memo-service partner-memo-custom';
+       const head=document.createElement('div');head.className='partner-memo-custom-head';
+       const name=document.createElement('strong');name.textContent='Custom';
+       const discount=document.createElement('span');discount.textContent='−'+Number(service.discount_percent||0)+' %';
+       head.append(name,discount);
+       const calcWrap=document.createElement('div');calcWrap.className='partner-memo-custom-calc';
+       const input=document.createElement('input');input.type='number';input.min='1';input.step='1';input.inputMode='numeric';input.placeholder='Prix d’usine';
+       const result=document.createElement('div');result.className='partner-memo-custom-result';result.textContent='Entrez le prix d’usine pour obtenir le prix partenaire.';
+       const update=()=>{
+         const factory=Math.max(0,Math.trunc(Number(input.value||0)));
+         if(!factory){result.textContent='Entrez le prix d’usine pour obtenir le prix partenaire.';return}
+         const calc=calcCustomPartnerPrice(factory,service.discount_percent);
+         result.replaceChildren();
+         const line=document.createElement('span');
+         line.innerHTML='Usine remisée '+money(calc.discounted)+' + marge '+money(calc.margin)+' = <strong>'+money(calc.final)+'</strong>';
+         result.append(line);
+       };
+       input.addEventListener('input',update);
+       calcWrap.append(input,result);row.append(head,calcWrap);group.append(row);
+     }else{
+       const row=document.createElement('div');row.className='partner-memo-service';
+       const name=document.createElement('strong');name.textContent=partnerServiceTypeLabels[service.service_type]||service.name;
+       const price=document.createElement('span');price.textContent=money(service.partner_price);
+       row.append(name,price);group.append(row);
+     }
    }
    box.append(group);
  }
@@ -940,6 +1006,7 @@ async function loadPartnerDeclarations(){
    partnerCatalog=[];partnerMemoCatalog=[];partnerSelect.replaceChildren();
    const opt=document.createElement('option');opt.value='';opt.textContent='Choisir un partenaire';partnerSelect.append(opt);
    history.replaceChildren();renderPartnerMemo();
+   el('partnerCustomFactoryWrap')?.classList.add('hidden');
    if(location.hash.startsWith('#/declaration-partenaires'))location.hash='#/espace';
    return;
  }
@@ -970,9 +1037,11 @@ async function loadPartnerDeclarations(){
      for(const row of rows){
        const item=document.createElement('div');item.className='partner-declaration-row';
        const main=document.createElement('div');main.className='partner-declaration-main';
-       const strong=document.createElement('strong');strong.textContent=row.partner_name+' — '+row.service_name;
+       const strong=document.createElement('strong');strong.textContent=row.partner_name+' — '+(partnerServiceTypeLabels[row.service_type]||row.service_name);
        const meta=document.createElement('small');
-       meta.textContent='× '+Number(row.quantity||0).toLocaleString('fr-FR')+' · '+new Date(row.created_at).toLocaleString('fr-FR')+' · Règlement fin de semaine';
+       let metaText='× '+Number(row.quantity||0).toLocaleString('fr-FR')+' · '+new Date(row.created_at).toLocaleString('fr-FR')+' · Règlement fin de semaine';
+       if(row.service_type==='custom')metaText+=' · usine '+money(row.factory_price)+' · −'+Number(row.discount_percent||0)+' % · marge '+money(row.margin);
+       meta.textContent=metaText;
        main.append(strong,meta);
        const amount=document.createElement('div');amount.className='partner-declaration-money';
        const total=document.createElement('strong');total.textContent=money(row.weekly_due_total);
@@ -989,6 +1058,7 @@ async function loadPartnerDeclarations(){
 el('partnerDeclarationPartner')?.addEventListener('change',populatePartnerServices);
 el('partnerDeclarationService')?.addEventListener('change',renderPartnerBillingPreview);
 el('partnerDeclarationQuantity')?.addEventListener('input',renderPartnerBillingPreview);
+el('partnerCustomFactoryPrice')?.addEventListener('input',renderPartnerBillingPreview);
 el('partnerDeclarationForm')?.addEventListener('submit',async e=>{
  e.preventDefault();
  if(!account||account.role==='client'){siteToast('Connexion employé requise.','error');return}
@@ -999,15 +1069,26 @@ el('partnerDeclarationForm')?.addEventListener('submit',async e=>{
  if(!chosen){siteToast('Choisissez une prestation à déclarer.','error');return}
  if(quantity<1){siteToast('Indiquez une quantité valide.','error');return}
 
- const weeklyDue=Number(chosen.service.partner_price||0)*quantity;
- const message=chosen.partner.name+' — '+chosen.service.name+' × '+quantity+'\nMontant ajouté à la facture de fin de semaine : '+money(weeklyDue);
+ const custom=chosen.service.service_type==='custom';
+ const factoryPrice=custom?Math.max(0,Math.trunc(Number(el('partnerCustomFactoryPrice')?.value||0))):null;
+ if(custom&&factoryPrice<=0){siteToast('Indiquez le prix d’usine du custom.','error');return}
+ const unitPrice=custom?calcCustomPartnerPrice(factoryPrice,chosen.service.discount_percent).final:Number(chosen.service.partner_price||0);
+ const weeklyDue=unitPrice*quantity;
+ const detail=custom?'\nPrix d’usine : '+money(factoryPrice)+' · réduction '+Number(chosen.service.discount_percent||0)+' %:'';
+ const message=chosen.partner.name+' — '+(partnerServiceTypeLabels[chosen.service.service_type]||chosen.service.name)+' × '+quantity+detail+'\nMontant ajouté à la facture de fin de semaine : '+money(weeklyDue);
  const ok=await siteConfirm(message,{title:'Confirmer la déclaration partenaire',confirmText:'Déclarer'});
  if(!ok)return;
 
  if(button)button.disabled=true;
  try{
-   await rpc('ae_staff_declare_partner_service',{p_token:token,p_service_id:Number(chosen.service.id),p_quantity:quantity});
+   await rpc('ae_staff_declare_partner_service',{
+     p_token:token,
+     p_service_id:Number(chosen.service.id),
+     p_quantity:quantity,
+     p_factory_price:factoryPrice
+   });
    el('partnerDeclarationQuantity').value='1';
+   if(el('partnerCustomFactoryPrice'))el('partnerCustomFactoryPrice').value='';
    siteToast('Prestation partenaire déclarée.','success');
    await Promise.all([loadPartnerDeclarations(),loadManagerPartners()]);
  }catch(err){siteToast('Déclaration impossible : '+err.message,'error')}
@@ -1044,8 +1125,25 @@ function selectedPartnerAccessGroups(){
  const values=[...document.querySelectorAll('#partnerAccessGroups input[type=checkbox]:checked')].map(input=>input.value);
  return values.includes('all_staff')?['all_staff']:values;
 }
+function selectedPartnerServiceType(){
+ return document.querySelector('input[name="partnerServiceType"]:checked')?.value||'totale';
+}
 function accessGroupText(groups){
  return (groups||[]).map(g=>partnerGroupLabels[g]||g).join(', ')||'—';
+}
+function renderPartnerAdminCustomExample(){
+ const out=el('partnerCustomExample');if(!out)return;
+ const discount=Math.min(100,Math.max(0,Math.trunc(Number(el('partnerServiceDiscountPercent')?.value||0))));
+ out.textContent=money(calcCustomPartnerPrice(4000,discount).final);
+}
+function updatePartnerServiceTypeUI(){
+ const type=selectedPartnerServiceType();
+ const custom=type==='custom';
+ el('partnerFixedPriceFields')?.classList.toggle('hidden',custom);
+ el('partnerCustomConfig')?.classList.toggle('hidden',!custom);
+ if(el('partnerServicePartnerPrice'))el('partnerServicePartnerPrice').required=!custom;
+ if(el('partnerServiceDiscountPercent'))el('partnerServiceDiscountPercent').required=custom;
+ renderPartnerAdminCustomExample();
 }
 
 document.querySelectorAll('#partnerAccessGroups input[type=checkbox]').forEach(input=>{
@@ -1058,6 +1156,9 @@ document.querySelectorAll('#partnerAccessGroups input[type=checkbox]').forEach(i
    }
  });
 });
+document.querySelectorAll('input[name="partnerServiceType"]').forEach(input=>input.addEventListener('change',updatePartnerServiceTypeUI));
+el('partnerServiceDiscountPercent')?.addEventListener('input',renderPartnerAdminCustomExample);
+updatePartnerServiceTypeUI();
 
 async function loadManagerPartners(){
  const catalogBox=el('managerPartnerCatalog'),declarationsBox=el('managerPartnerDeclarations');
@@ -1138,12 +1239,14 @@ async function loadManagerPartners(){
        for(const service of partner.services||[]){
          const row=document.createElement('div');row.className='partner-service-row';
          const copy=document.createElement('div');
-         const strong=document.createElement('strong');strong.textContent=service.name;
-         const small=document.createElement('small');small.textContent=(service.billing_mode==='weekly_invoice'?'À déclarer · règlement fin de semaine':'Fiche mémo · payé directement')+(service.active?'':' · inactive');
+         const strong=document.createElement('strong');strong.textContent=partnerServiceTypeLabels[service.service_type]||service.name;
+         const small=document.createElement('small');
+         small.textContent=(service.billing_mode==='weekly_invoice'?'À déclarer · règlement fin de semaine':'Fiche mémo · payé directement')+(service.active?'':' · inactive');
          const audience=document.createElement('div');audience.className='partner-service-audience';
          for(const group of service.access_groups||[]){const chip=document.createElement('span');chip.textContent=partnerGroupLabels[group]||group;audience.append(chip)}
          copy.append(strong,small,audience);
-         const price=document.createElement('div');price.className='partner-service-price';price.textContent=money(service.partner_price);
+         const price=document.createElement('div');price.className='partner-service-price';
+         price.textContent=service.service_type==='custom'?'−'+Number(service.discount_percent||0)+' %':money(service.partner_price);
          const mode=document.createElement('span');mode.className='partner-service-mode';mode.textContent=service.billing_mode==='weekly_invoice'?'Fin de semaine':'Mémo direct';
          row.append(copy,price,mode);
          if(canConfigurePartners()){
@@ -1163,8 +1266,12 @@ async function loadManagerPartners(){
    }else{
      for(const row of rows){
        const item=document.createElement('div');item.className='partner-admin-declaration';
-       const copy=document.createElement('div');const strong=document.createElement('strong');strong.textContent=row.partner_name+' — '+row.service_name;
-       const small=document.createElement('small');small.textContent=row.employee+' · '+(roleLabels[row.role]||row.role)+' · '+new Date(row.created_at).toLocaleString('fr-FR')+' · × '+Number(row.quantity||0).toLocaleString('fr-FR');copy.append(strong,small);
+       const copy=document.createElement('div');
+       const strong=document.createElement('strong');strong.textContent=row.partner_name+' — '+(partnerServiceTypeLabels[row.service_type]||row.service_name);
+       const small=document.createElement('small');
+       let details=row.employee+' · '+(roleLabels[row.role]||row.role)+' · '+new Date(row.created_at).toLocaleString('fr-FR')+' · × '+Number(row.quantity||0).toLocaleString('fr-FR');
+       if(row.service_type==='custom')details+=' · usine '+money(row.factory_price)+' · −'+Number(row.discount_percent||0)+' % · marge '+money(row.margin);
+       small.textContent=details;copy.append(strong,small);
        const due=document.createElement('div');due.className='partner-admin-amount';due.innerHTML='<small>À facturer</small><strong>'+money(row.weekly_due_total)+'</strong>';
        item.append(copy,due);declarationsBox.append(item);
      }
@@ -1197,19 +1304,26 @@ el('partnerServiceForm')?.addEventListener('submit',async e=>{
  e.preventDefault();if(!canConfigurePartners()){siteToast('Accès direction requis.','error');return}
  const groups=selectedPartnerAccessGroups();
  if(!groups.length){siteToast('Choisissez au moins un groupe concerné.','error');return}
+ const type=selectedPartnerServiceType();
+ const partnerPrice=type==='custom'?0:Math.trunc(Number(el('partnerServicePartnerPrice')?.value));
+ const discount=type==='custom'?Math.trunc(Number(el('partnerServiceDiscountPercent')?.value)):0;
+ if(type!=='custom'&&(!Number.isFinite(partnerPrice)||partnerPrice<0)){siteToast('Indiquez un prix partenaire valide.','error');return}
+ if(type==='custom'&&(!Number.isFinite(discount)||discount<0||discount>100)){siteToast('Indiquez une réduction entre 0 et 100 %.','error');return}
  const button=e.currentTarget.querySelector('[type=submit]');if(button)button.disabled=true;
  try{
    await rpc('ae_manager_add_partner_service',{
      p_token:token,
      p_partner_id:Number(el('partnerServicePartner').value),
-     p_service_name:el('partnerServiceName').value.trim(),
-     p_partner_price:Math.trunc(Number(el('partnerServicePartnerPrice').value)),
+     p_service_type:type,
+     p_partner_price:partnerPrice,
+     p_discount_percent:discount,
      p_billing_mode:el('partnerServiceBillingMode').value,
      p_access_groups:groups
    });
    const partnerValue=el('partnerServicePartner').value;
    e.currentTarget.reset();
    el('partnerServicePartner').value=partnerValue;
+   updatePartnerServiceTypeUI();
    siteToast('Prestation partenaire ajoutée.','success');
    await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
  }catch(err){siteToast('Ajout impossible : '+err.message,'error')}
