@@ -1093,6 +1093,46 @@ body.light .footer{
 .partner-admin-declaration{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}.partner-admin-declaration:last-child{border-bottom:0}.partner-admin-declaration small{display:block;color:var(--muted);margin-top:4px}.partner-admin-amount{text-align:right}.partner-admin-amount strong{display:block;font:800 19px Rajdhani,sans-serif;color:var(--cyan)}.partner-admin-amount small{font-size:9px}
 @media(max-width:900px){.partner-declaration-layout,.partner-admin-config{grid-template-columns:1fr}.partner-declare-card{position:static}.partner-weekly-grid{grid-template-columns:1fr 1fr}.partner-admin-hero{align-items:flex-start;flex-direction:column}}
 @media(max-width:650px){.partner-weekly-grid{grid-template-columns:1fr}.partner-service-row,.partner-admin-declaration{grid-template-columns:1fr}.partner-service-price,.partner-admin-amount{text-align:left}.partner-week-control{width:100%}.partner-week-control label{width:100%}.partner-week-control input{width:100%}}
+
+.checkout-login-notice{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:16px;
+  margin-top:18px!important;
+  padding:16px 17px!important;
+  min-height:76px;
+  overflow:visible;
+}
+.checkout-login-notice>div{min-width:0}
+.checkout-login-notice strong{
+  display:block;
+  margin:0 0 5px;
+  color:var(--text);
+  font-size:13px;
+}
+.checkout-login-notice span{
+  display:block;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.5;
+}
+.checkout-login-notice .btn{
+  flex:0 0 auto;
+  align-self:center;
+  margin:0!important;
+  white-space:nowrap;
+}
+@media(max-width:560px){
+  .checkout-login-notice{
+    grid-template-columns:1fr;
+    align-items:stretch;
+  }
+  .checkout-login-notice .btn{
+    width:100%;
+    text-align:center;
+  }
+}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
@@ -1484,7 +1524,7 @@ showPage();
  <div class="checkout-divider"></div>
  <span class="tag">VALIDATION</span><h4>Informations de facturation</h4>
  <p class="muted">La commande sera préparée uniquement après le règlement de la facture reçue grâce aux informations ci-dessous.</p>
- <div id="checkoutLoginNotice" class="notice hidden">Connectez-vous avant de finaliser la commande.<br><a class="btn" href="#/espace" id="cartGoLogin">Se connecter</a></div>
+ <div id="checkoutLoginNotice" class="notice checkout-login-notice hidden"><div><strong>Connexion requise</strong><span>Connectez-vous à votre compte avant de finaliser la commande.</span></div><a class="btn" href="#/espace" id="cartGoLogin">Se connecter</a></div>
  <form id="checkoutForm" class="form">
  <label>Téléphone</label><input id="checkoutPhone" required placeholder="444-4444"/>
  <label>IBAN</label><input id="checkoutIban" required placeholder="Votre IBAN"/>
