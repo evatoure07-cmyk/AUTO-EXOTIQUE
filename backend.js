@@ -1540,26 +1540,31 @@ el('partnerServiceBillingMode')?.addEventListener('change',()=>{
 });
 el('partnerCreateForm')?.addEventListener('submit',async e=>{
  e.preventDefault();if(!canConfigurePartners()){siteToast('Accès direction requis.','error');return}
- const button=e.currentTarget.querySelector('[type=submit]');if(button)button.disabled=true;
+ const form=e.currentTarget;
+ const button=form.querySelector('[type=submit]');if(button)button.disabled=true;
+ const name=el('partnerCreateName')?.value.trim()||'';
  try{
-   const created=await rpc('ae_manager_create_partner',{p_token:token,p_name:el('partnerCreateName').value.trim()});
+   const created=await rpc('ae_manager_create_partner',{p_token:token,p_name:name});
    selectedAdminPartnerId=Number(created.id);
-   e.currentTarget.reset();siteToast('Partenaire créé.','success');
+   form.reset();
+   siteToast('Partenaire créé.','success');
    await Promise.all([loadManagerPartners(),loadPartnerDeclarations()]);
  }catch(err){siteToast('Création impossible : '+err.message,'error')}
  finally{if(button)button.disabled=false}
 });
 el('partnerServiceForm')?.addEventListener('submit',async e=>{
  e.preventDefault();if(!canConfigurePartners()){siteToast('Accès direction requis.','error');return}
+ const form=e.currentTarget;
  const groups=selectedPartnerAccessGroups();
  if(!groups.length){siteToast('Choisissez au moins un groupe concerné.','error');return}
  if(!selectedAdminPartnerId){siteToast('Sélectionnez un partenaire dans la liste à gauche.','error');return}
  const type=selectedPartnerServiceType();
  const partnerPrice=type==='custom'?0:Math.trunc(Number(el('partnerServicePartnerPrice')?.value));
  const discount=type==='custom'?Math.trunc(Number(el('partnerServiceDiscountPercent')?.value)):0;
+ const billingMode=el('partnerServiceBillingMode')?.value||'weekly_invoice';
  if(type!=='custom'&&(!Number.isFinite(partnerPrice)||partnerPrice<0)){siteToast('Indiquez un prix partenaire valide.','error');return}
  if(type==='custom'&&(!Number.isFinite(discount)||discount<0||discount>100)){siteToast('Indiquez une réduction entre 0 et 100 %.','error');return}
- const button=e.currentTarget.querySelector('[type=submit]');if(button)button.disabled=true;
+ const button=form.querySelector('[type=submit]');if(button)button.disabled=true;
  try{
    await rpc('ae_manager_add_partner_service',{
      p_token:token,
@@ -1567,12 +1572,13 @@ el('partnerServiceForm')?.addEventListener('submit',async e=>{
      p_service_type:type,
      p_partner_price:partnerPrice,
      p_discount_percent:discount,
-     p_billing_mode:el('partnerServiceBillingMode').value,
+     p_billing_mode:billingMode,
      p_access_groups:groups
    });
-   const partnerValue=el('partnerServicePartner').value;
-   e.currentTarget.reset();
-   el('partnerServicePartner').value=partnerValue;
+   form.reset();
+   document.querySelector('input[name="partnerServiceType"][value="totale"]')?.click();
+   const mode=el('partnerServiceBillingMode');if(mode)mode.value='weekly_invoice';
+   document.querySelectorAll('#partnerAccessGroups input[type=checkbox]').forEach(input=>input.checked=false);
    updatePartnerServiceTypeUI();
    updatePartnerAccessCount();
    siteToast('Prestation partenaire ajoutée.','success');
