@@ -663,35 +663,6 @@ async function loadNews(){
 }
 
 
-function showAuthPanel(which){
- const panels={client:el('loginPanel'),register:el('registerPanel'),employee:el('employeeLoginPanel')};
- Object.entries(panels).forEach(([key,node])=>node?.classList.toggle('hidden',key!==which));
- if(el('authFeedback'))el('authFeedback').textContent='';
- const panel=panels[which];
- panel?.scrollIntoView({behavior:'smooth',block:'nearest'});
- panel?.querySelector('input')?.focus({preventScroll:true});
-}
-el('showLogin')?.addEventListener('click',()=>showAuthPanel('client'));
-el('showRegister')?.addEventListener('click',()=>showAuthPanel('register'));
-el('internalLogin')?.addEventListener('click',()=>showAuthPanel('employee'));
-el('employeeLoginForm')?.addEventListener('submit',async e=>{
- e.preventDefault();
- const form=e.currentTarget,inputs=form.querySelectorAll('input'),button=form.querySelector('[type=submit]');
- const login=String(inputs[0]?.value||'').trim(),password=String(inputs[1]?.value||'');
- if(!login||!password){feedback('Renseignez votre identifiant et votre mot de passe.');return}
- if(button)button.disabled=true;
- feedback('Connexion en cours…');
- try{
-  const result=await rpc('ae_login',{p_login:login,p_password:password});
-  if(!result?.token||!result?.account)throw new Error('Réponse de connexion invalide. Vérifiez vos identifiants.');
-  saveSession(result);
-  feedback('Connexion réussie.');
-  await refresh();
-  location.hash=account?.must_change_password?'#/profil':'#/espace-employe';
- }catch(err){feedback('Connexion employé impossible : '+err.message)}
- finally{if(button)button.disabled=false}
-});
-
 el('loginForm')?.addEventListener('submit',async e=>{
  e.preventDefault();const i=e.currentTarget.querySelectorAll('input');
  try{const result=await rpc('ae_login',{p_login:i[0].value,p_password:i[1].value});saveSession(result);feedback('Connexion réussie.');await refresh();location.hash=account?.must_change_password?'#/profil':(account?.role==='client'?'#/commander':'#/espace-employe')}
