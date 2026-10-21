@@ -2091,6 +2091,31 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
  .partner-service-row>.btn{width:100%}
  .partner-directory-card{position:static!important}
 }
+
+/* Bilan CA partenaire : tableau lisible et aligné */
+#managerPayrollTable{width:100%;min-width:0;margin-top:18px}
+#managerPayrollTable>.table-wrap{width:100%;max-width:100%;min-width:0;overflow-x:auto;border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:0 12px 34px rgba(0,0,0,.10)}
+#managerPayrollTable .admin-table{width:100%;min-width:960px;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:13px}
+#managerPayrollTable .admin-table th{position:sticky;top:0;z-index:2;padding:15px 16px;background:var(--soft);color:var(--muted);font-size:10px;font-weight:900;line-height:1.35;letter-spacing:.055em;text-transform:uppercase;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line)}
+#managerPayrollTable .admin-table td{padding:13px 16px;color:var(--text);font-size:13px;line-height:1.45;border-bottom:1px solid rgba(132,171,184,.12);vertical-align:middle}
+#managerPayrollTable .admin-table th:nth-child(1),#managerPayrollTable .admin-table td:nth-child(1){width:20%;font-weight:750}
+#managerPayrollTable .admin-table th:nth-child(2),#managerPayrollTable .admin-table td:nth-child(2){width:22%}
+#managerPayrollTable .admin-table th:nth-child(3),#managerPayrollTable .admin-table td:nth-child(3){width:11%}
+#managerPayrollTable .admin-table th:nth-child(4),#managerPayrollTable .admin-table td:nth-child(4){width:11%}
+#managerPayrollTable .admin-table th:nth-child(5),#managerPayrollTable .admin-table td:nth-child(5){width:18%}
+#managerPayrollTable .admin-table th:nth-child(6),#managerPayrollTable .admin-table td:nth-child(6){width:18%}
+#managerPayrollTable .admin-table th:nth-child(n+3),#managerPayrollTable .admin-table td:nth-child(n+3){text-align:right;font-variant-numeric:tabular-nums}
+#managerPayrollTable .admin-table tbody tr:nth-child(even){background:rgba(130,177,190,.035)}
+#managerPayrollTable .admin-table tbody tr:hover{background:rgba(40,217,229,.07)}
+#managerPayrollTable .admin-table tbody tr:last-child td{border-bottom:0}
+#managerPayrollTable .admin-table td:nth-child(5){font-weight:750}
+#managerPayrollTable .admin-table td:nth-child(6){font-weight:850;color:var(--cyan)}
+#managerPayrollTable .admin-table td[colspan]{padding:28px;text-align:center;color:var(--muted)}
+body.light #managerPayrollTable>.table-wrap{background:#fff;box-shadow:0 12px 34px rgba(35,70,80,.06)}
+body.light #managerPayrollTable .admin-table th{background:#f2f7f8;color:#526b73}
+body.light #managerPayrollTable .admin-table td{border-bottom-color:rgba(45,83,94,.10)}
+@media(max-width:720px){#managerPayrollTable .admin-table{min-width:960px}#managerPayrollTable .admin-table th,#managerPayrollTable .admin-table td{padding:12px 13px}}
+
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend-admin-v12.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
