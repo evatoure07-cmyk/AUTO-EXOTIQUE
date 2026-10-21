@@ -2201,6 +2201,16 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
  <div id="staffProductionHistory"><div class="news-loading">Chargement...</div></div>
  </div>
 
+ <div id="expenseNotesCard" class="employee-dashboard-card">
+ <div class="employee-card-title"><div><span class="employee-kicker">FRAIS</span><h3>Mes notes de frais</h3></div><span class="employee-card-icon">＄</span></div>
+ <form id="expenseNoteForm" class="form">
+  <label>Montant ($)</label><input id="expenseAmount" type="number" min="1" max="100000000" step="1" required placeholder="Ex. 250"/>
+  <label>Motif de la dépense</label><textarea id="expenseReason" rows="3" maxlength="500" required placeholder="Expliquez la dépense…"></textarea>
+  <label>Justificatif (lien facultatif)</label><input id="expenseReceipt" type="url" maxlength="1000" placeholder="https://…"/>
+  <button class="btn" type="submit">Envoyer la note de frais</button>
+ </form>
+ <div id="staffExpenseHistory"><p class="muted">Chargement des notes de frais…</p></div>
+ </div>
  <div id="internalNewsCard" class="employee-dashboard-card employee-announcements-card">
  <div class="employee-card-title"><div><span class="employee-kicker">ÉQUIPE</span><h3>Annonces internes</h3></div><span class="employee-card-icon">⌁</span></div>
  <div id="staffInternalAnnouncements"><div class="news-loading">Chargement...</div></div>
@@ -2280,6 +2290,7 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
  <button class="admin-tab" type="button" data-admin-tab="clients">Clients</button>
  <button class="admin-tab" type="button" data-admin-tab="rh">RH</button><button class="admin-tab" type="button" data-admin-tab="production">Fabrications</button>
  <button class="admin-tab" type="button" data-admin-tab="partners">Partenaires</button>
+ <button class="admin-tab" type="button" data-admin-tab="payroll">CA & Notes de frais</button>
  <button class="admin-tab" type="button" data-admin-tab="journal">Journal</button>
  <button class="admin-tab" type="button" data-admin-tab="audit">Historique</button>
  <button class="admin-tab" type="button" data-admin-tab="discord">Discord</button>
@@ -2462,6 +2473,20 @@ body.light .partner-directory-row.active{background:#e6f5f7!important}
    <div class="panel-heading"><div><span class="tag">DEMANDES</span><h3>Demandes de partenariat reçues</h3></div></div>
    <div id="managerRequests">Chargement...</div>
   </div>
+ </div>
+ </div>
+
+ <div class="admin-panel hidden" data-admin-panel="payroll">
+ <div class="card">
+  <div class="panel-heading"><div><span class="tag">RÉMUNÉRATION</span><h3>CA des déclarations partenaires</h3></div><small class="muted">15 % du CA déclaré · lundi au dimanche</small></div>
+  <div class="admin-toolbar"><label for="payrollWeekPicker">Semaine</label><input id="payrollWeekPicker" type="week"/><button id="payrollCurrentWeek" class="btn secondary" type="button">Cette semaine</button></div>
+  <div id="managerPayrollStats" class="stats-grid compact-stats"></div>
+  <div id="managerPayrollTable" class="table-wrap"><p class="muted">Chargement…</p></div>
+ </div>
+ <div class="card">
+  <div class="panel-heading"><div><span class="tag">REMBOURSEMENTS</span><h3>Notes de frais des employés</h3></div></div>
+  <div class="admin-toolbar"><label for="expenseStatusFilter">Statut</label><select id="expenseStatusFilter"><option value="">Toutes</option><option value="pending">En attente</option><option value="approved">Acceptées</option><option value="rejected">Refusées</option></select></div>
+  <div id="managerExpenseNotes"><p class="muted">Chargement…</p></div>
  </div>
  </div>
 
