@@ -2116,6 +2116,29 @@ body.light #managerPayrollTable .admin-table th{background:#f2f7f8;color:#526b73
 body.light #managerPayrollTable .admin-table td{border-bottom-color:rgba(45,83,94,.10)}
 @media(max-width:720px){#managerPayrollTable .admin-table{min-width:960px}#managerPayrollTable .admin-table th,#managerPayrollTable .admin-table td{padding:12px 13px}}
 
+
+/* Notes de frais : cartes compactes, statuts explicites et contenu bien hiérarchisé */
+.expense-note-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:12px;margin-top:18px;min-width:0}
+.expense-note-list:empty{display:none}
+.expense-note-list>.muted{margin:0;padding:18px 16px;border:1px dashed var(--line);border-radius:14px;background:rgba(110,160,175,.035)}
+.expense-note-card{min-width:0;margin:0;padding:17px 18px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(145deg,rgba(19,43,52,.66),rgba(8,22,29,.72));box-shadow:0 8px 22px rgba(0,0,0,.08);transition:border-color .18s,background .18s}
+.expense-note-card:hover{border-color:rgba(40,217,229,.32);background:linear-gradient(145deg,rgba(20,48,57,.78),rgba(9,25,32,.82))}
+.expense-note-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;min-width:0}
+.expense-note-title{display:block;min-width:0;color:var(--text);font-size:14px;font-weight:850;line-height:1.4;overflow-wrap:anywhere}
+.expense-note-amount{color:var(--cyan);font-variant-numeric:tabular-nums;white-space:nowrap}
+.expense-note-status{display:inline-flex;align-items:center;justify-content:center;flex:none;padding:6px 10px;border-radius:999px;border:1px solid var(--line);font-size:10px;font-weight:900;line-height:1.2;white-space:nowrap}
+.expense-note-status.pending{color:#e9bd73;background:rgba(233,189,115,.09);border-color:rgba(233,189,115,.24)}
+.expense-note-status.approved{color:#63dca7;background:rgba(99,220,167,.09);border-color:rgba(99,220,167,.22)}
+.expense-note-status.rejected{color:#ff8c91;background:rgba(255,140,145,.08);border-color:rgba(255,140,145,.22)}
+.expense-note-reason{margin:11px 0 12px;color:var(--text);font-size:13px;line-height:1.55;overflow-wrap:anywhere;white-space:pre-wrap}
+.expense-note-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-top:10px;border-top:1px solid rgba(132,171,184,.13);color:var(--muted);font-size:11px;line-height:1.45}
+.expense-note-meta a{color:var(--cyan);font-weight:800;text-decoration:underline;text-underline-offset:3px}
+.expense-note-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+.expense-note-actions .btn{padding:9px 13px;font-size:11px;border-radius:10px}
+body.light .expense-note-card{background:linear-gradient(145deg,#fff,#f6fafb);box-shadow:0 8px 22px rgba(35,70,80,.05)}
+body.light .expense-note-card:hover{background:linear-gradient(145deg,#fff,#f0f8fa)}
+@media(max-width:650px){.expense-note-list{grid-template-columns:1fr}.expense-note-card{padding:15px}.expense-note-top{gap:8px}.expense-note-title{font-size:13px}}
+
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend-admin-v12.js" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
@@ -2234,7 +2257,7 @@ body.light #managerPayrollTable .admin-table td{border-bottom-color:rgba(45,83,9
   <label>Justificatif (lien facultatif)</label><input id="expenseReceipt" type="url" maxlength="1000" placeholder="https://…"/>
   <button class="btn" type="submit">Envoyer la note de frais</button>
  </form>
- <div id="staffExpenseHistory"><p class="muted">Chargement des notes de frais…</p></div>
+ <div id="staffExpenseHistory" class="expense-note-list"><p class="muted">Chargement des notes de frais…</p></div>
  </div>
  <div id="internalNewsCard" class="employee-dashboard-card employee-announcements-card">
  <div class="employee-card-title"><div><span class="employee-kicker">ÉQUIPE</span><h3>Annonces internes</h3></div><span class="employee-card-icon">⌁</span></div>
@@ -2511,7 +2534,7 @@ body.light #managerPayrollTable .admin-table td{border-bottom-color:rgba(45,83,9
  <div class="card">
   <div class="panel-heading"><div><span class="tag">REMBOURSEMENTS</span><h3>Notes de frais des employés</h3></div></div>
   <div class="admin-toolbar"><label for="expenseStatusFilter">Statut</label><select id="expenseStatusFilter"><option value="">Toutes</option><option value="pending">En attente</option><option value="approved">Acceptées</option><option value="rejected">Refusées</option></select></div>
-  <div id="managerExpenseNotes"><p class="muted">Chargement…</p></div>
+  <div id="managerExpenseNotes" class="expense-note-list"><p class="muted">Chargement…</p></div>
  </div>
  </div>
 
@@ -2533,7 +2556,7 @@ body.light #managerPayrollTable .admin-table td{border-bottom-color:rgba(45,83,9
  </div>
  </div>
 </div>
-<div class="notice">Connectez-vous avec un compte RH, Assistante de direction, Co-patron ou Patron pour afficher l'administration.</div>
+<div class="notice hidden" id="managerAccessNotice">Connectez-vous avec un compte RH, Assistante de direction, Co-patron ou Patron pour afficher l'administration.</div>
 </div></section></main><div id="notificationsPanel" class="notifications-panel hidden"><div class="notification-head"><strong>Notifications</strong><div class="notification-head-actions"><button id="markNotificationsRead" class="notification-mark-read" type="button">Tout marquer comme lu</button><button id="closeNotifications" class="notification-close" type="button">×</button></div></div><div class="notification-filters"><button type="button" class="active" data-notification-filter="all">Toutes</button><button type="button" data-notification-filter="order">Commandes</button><button type="button" data-notification-filter="team">Équipe</button><button type="button" data-notification-filter="security">Sécurité</button><button type="button" data-notification-filter="account">Compte</button></div><div id="notificationsList"><p class="muted">Connectez-vous pour voir vos notifications.</p></div></div><nav class="mobile-nav"><a href="#/accueil" data-page="accueil" data-no=""><span>⌂</span><small>Accueil</small></a><a href="#/prestations" data-page="prestations" data-no=""><span>⌘</span><small>Services</small></a><a href="#/commander" data-page="commander" data-no=""><span>＋</span><small>Commander</small></a><a href="#/commandes" data-page="commandes" data-no=""><span>≡</span><small>Commandes</small></a><a href="#/avis" data-page="avis" data-no=""><span>★</span><small>Avis</small></a><a href="#/espace" data-page="espace" data-no=""><span>○</span><small>Profil</small></a></nav>
 <script>
 const theme=localStorage.getItem('ae_theme')||(matchMedia('(prefers-color-scheme:light)').matches?'light':'dark');
