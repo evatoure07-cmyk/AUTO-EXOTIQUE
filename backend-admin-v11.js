@@ -159,7 +159,7 @@ async function refresh(){
  updateCheckoutState();
  renderCart();
  if(!connected&&el('authFeedback'))el('authFeedback').textContent='';
- await Promise.all([loadOrders(),loadNotifications(),loadStaff(),loadNews(),loadMyProfile(),loadStaffSpace(),loadStaffProduction(),loadPartnerDeclarations(),managerRefresh(),loadManagerPartners()]);
+ await Promise.all([loadOrders(),loadNotifications(),loadStaff(),loadNews(),loadMyProfile(),loadStaffSpace(),loadStaffProduction(),loadPartnerDeclarations(),managerRefresh(),loadManagerPartners(),loadStaffExpenseNotes(),loadManagerPayroll(),loadManagerExpenseNotes()]);
 }
 
 function initials(name){
@@ -2140,6 +2140,122 @@ el('employeeProfileModal')?.addEventListener('click',e=>{if(e.target===el('emplo
 el('notificationToggle')?.addEventListener('click',()=>el('notificationsPanel')?.classList.toggle('hidden'));
 el('closeNotifications')?.addEventListener('click',()=>el('notificationsPanel')?.classList.add('hidden'));
 el('markNotificationsRead')?.addEventListener('click',async()=>{if(!token)return;try{await rpc('ae_mark_notifications_read',{p_token:token});await loadNotifications()}catch(err){siteToast(err.message)}});
+
+
+function money(value){return (Number(value)||0).toLocaleString('fr-FR')+' 
+ document.querySelectorAll('.section .card,.order-card,.stat-card,.staff-card,.news-card').forEach(node=>{
+ if(!node.classList.contains('reveal'))node.classList.add('reveal');
+ observer.observe(node);
+ });
+}
+const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target)}}),{threshold:.12});
+window.addEventListener('hashchange',()=>setTimeout(revealNow,80));
+setTimeout(revealNow,100);
+setInterval(()=>{if(account)loadNotifications()},60000);
+refresh();
+renderCart();
+})();;}
+function payrollWeekStart(){
+ const input=el('payrollWeekPicker');
+ if(!input)return null;
+ if(!input.value)input.value=currentIsoWeekValue();
+ return isoWeekMonday(input.value);
+}
+async function loadStaffExpenseNotes(){
+ const box=el('staffExpenseHistory');
+ if(!box)return;
+ if(!account||account.role==='client'){box.replaceChildren();return}
+ try{
+  const rows=await rpc('ae_staff_expense_notes',{p_token:token,p_limit:100});
+  box.replaceChildren();
+  if(!rows?.length){const p=document.createElement('p');p.className='muted';p.textContent='Aucune note de frais pour le moment.';box.append(p);return}
+  for(const row of rows){
+   const item=document.createElement('article');item.className='internal-announcement';
+   const top=document.createElement('div');top.className='internal-announcement-top';
+   const title=document.createElement('strong');title.textContent=money(row.amount);
+   const status=document.createElement('span');status.className='tag';status.textContent=({pending:'En attente',approved:'Acceptée',rejected:'Refusée'})[row.status]||row.status;
+   top.append(title,status);
+   const reason=document.createElement('p');reason.textContent=row.reason;
+   const date=document.createElement('small');date.className='muted';date.textContent=new Date(row.created_at).toLocaleString('fr-FR');
+   item.append(top,reason,date);
+   if(row.receipt_url){const a=document.createElement('a');a.href=row.receipt_url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Voir le justificatif';item.append(a)}
+   box.append(item);
+  }
+ }catch(err){box.textContent='Impossible de charger les notes de frais : '+err.message}
+}
+el('expenseNoteForm')?.addEventListener('submit',async e=>{
+ e.preventDefault();
+ if(!account||account.role==='client'){siteToast('Connexion employé requise.','error');return}
+ const form=e.currentTarget,button=form.querySelector('button[type=submit]');
+ const amount=Number(el('expenseAmount')?.value),reason=String(el('expenseReason')?.value||'').trim(),receipt=String(el('expenseReceipt')?.value||'').trim()||null;
+ if(!Number.isInteger(amount)||amount<=0||reason.length<3){siteToast('Vérifie le montant et le motif.','error');return}
+ if(button)button.disabled=true;
+ try{
+  await rpc('ae_staff_create_expense_note',{p_token:token,p_amount:amount,p_reason:reason,p_receipt_url:receipt});
+  form.reset();siteToast('Note de frais envoyée à la direction.','success');await loadStaffExpenseNotes();
+ }catch(err){siteToast('Envoi impossible : '+err.message,'error')}
+ finally{if(button)button.disabled=false}
+});
+async function loadManagerPayroll(){
+ const stats=el('managerPayrollStats'),table=el('managerPayrollTable');
+ if(!stats||!table)return;
+ if(!account||!managerRoles.includes(account.role)){stats.replaceChildren();table.replaceChildren();return}
+ const week=payrollWeekStart();
+ try{
+  const data=await rpc('ae_manager_partner_ca_by_employee',{p_token:token,p_week_start:week});
+  stats.replaceChildren();
+  [['CA partenaire',money(data.ca_total)],['Salaire estimé (15 %)',money(data.salary_total)],['Employés concernés',String((data.employees||[]).filter(x=>Number(x.ca_total)>0).length)]].forEach(([label,value])=>{
+   const card=document.createElement('div');card.className='stat-card';const strong=document.createElement('strong');strong.textContent=value;const span=document.createElement('span');span.textContent=label;card.append(strong,span);stats.append(card)
+  });
+  const wrap=document.createElement('div');wrap.className='table-wrap';
+  const t=document.createElement('table');t.className='admin-table';
+  const thead=document.createElement('thead');const hr=document.createElement('tr');
+  ['Employé','Grade','Déclarations','Prestations','CA partenaire','Salaire estimé'].forEach(label=>{const th=document.createElement('th');th.textContent=label;hr.append(th)});thead.append(hr);t.append(thead);
+  const body=document.createElement('tbody');
+  for(const row of data.employees||[]){
+   const tr=document.createElement('tr');
+   [row.employee_name||'Employé',roleLabels[row.role]||row.role,String(row.declaration_count||0),String(row.prestation_count||0),money(row.ca_total),money(row.salary_estimate)].forEach((value,index)=>{const td=document.createElement('td');td.textContent=value;if(index>=2)td.style.whiteSpace='nowrap';tr.append(td)});
+   body.append(tr)
+  }
+  if(!(data.employees||[]).length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=6;td.textContent='Aucun employé à afficher.';tr.append(td);body.append(tr)}
+  t.append(body);wrap.append(t);table.replaceChildren(wrap);
+ }catch(err){stats.replaceChildren();table.textContent='Impossible de charger le bilan : '+err.message}
+}
+async function loadManagerExpenseNotes(){
+ const box=el('managerExpenseNotes');if(!box)return;
+ if(!account||!managerRoles.includes(account.role)){box.replaceChildren();return}
+ try{
+  const filter=el('expenseStatusFilter')?.value||null;
+  const rows=await rpc('ae_manager_expense_notes',{p_token:token,p_status:filter,p_limit:500});
+  box.replaceChildren();
+  if(!rows?.length){const p=document.createElement('p');p.className='muted';p.textContent='Aucune note de frais pour ce filtre.';box.append(p);return}
+  for(const row of rows){
+   const item=document.createElement('article');item.className='internal-announcement';
+   const top=document.createElement('div');top.className='internal-announcement-top';
+   const title=document.createElement('strong');title.textContent=(row.employee_name||'Employé')+' · '+money(row.amount);
+   const status=document.createElement('span');status.className='tag';status.textContent=({pending:'En attente',approved:'Acceptée',rejected:'Refusée'})[row.status]||row.status;
+   top.append(title,status);
+   const reason=document.createElement('p');reason.textContent=row.reason;
+   const date=document.createElement('small');date.className='muted';date.textContent=new Date(row.created_at).toLocaleString('fr-FR');
+   item.append(top,reason,date);
+   if(row.receipt_url){const a=document.createElement('a');a.href=row.receipt_url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Ouvrir le justificatif';item.append(a)}
+   if(row.status==='pending'){
+    const actions=document.createElement('div');actions.className='admin-toolbar';
+    for(const [label,statusValue] of [['Accepter','approved'],['Refuser','rejected']]){
+     const btn=document.createElement('button');btn.type='button';btn.className='btn'+(statusValue==='rejected'?' secondary':'');btn.textContent=label;
+     btn.addEventListener('click',async()=>{btn.disabled=true;try{await rpc('ae_manager_review_expense_note',{p_token:token,p_note_id:row.id,p_status:statusValue});siteToast(statusValue==='approved'?'Note de frais acceptée.':'Note de frais refusée.','success');await loadManagerExpenseNotes()}catch(err){siteToast(err.message,'error');btn.disabled=false}});
+     actions.append(btn)
+    }
+    item.append(actions)
+   }
+   box.append(item)
+  }
+ }catch(err){box.textContent='Impossible de charger les notes de frais : '+err.message}
+}
+el('payrollWeekPicker')?.addEventListener('change',loadManagerPayroll);
+el('payrollCurrentWeek')?.addEventListener('click',()=>{if(el('payrollWeekPicker'))el('payrollWeekPicker').value=currentIsoWeekValue();loadManagerPayroll()});
+el('expenseStatusFilter')?.addEventListener('change',loadManagerExpenseNotes);
+document.querySelectorAll('[data-admin-tab="payroll"]').forEach(btn=>btn.addEventListener('click',()=>{loadManagerPayroll();loadManagerExpenseNotes()}));
 
 function revealNow(){
  document.querySelectorAll('.section .card,.order-card,.stat-card,.staff-card,.news-card').forEach(node=>{
