@@ -2141,20 +2141,6 @@ el('employeeProfileModal')?.addEventListener('click',e=>{if(e.target===el('emplo
 el('notificationToggle')?.addEventListener('click',()=>el('notificationsPanel')?.classList.toggle('hidden'));
 el('closeNotifications')?.addEventListener('click',()=>el('notificationsPanel')?.classList.add('hidden'));
 el('markNotificationsRead')?.addEventListener('click',async()=>{if(!token)return;try{await rpc('ae_mark_notifications_read',{p_token:token});await loadNotifications()}catch(err){siteToast(err.message)}});
-
-
-document.querySelectorAll('.section .card,.order-card,.stat-card,.staff-card,.news-card').forEach(node=>{
- if(!node.classList.contains('reveal'))node.classList.add('reveal');
- observer.observe(node);
- });
-}
-const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target)}}),{threshold:.12});
-window.addEventListener('hashchange',()=>setTimeout(revealNow,80));
-setTimeout(revealNow,100);
-setInterval(()=>{if(account)loadNotifications()},60000);
-refresh();
-renderCart();
-})();;}
 function payrollWeekStart(){
  const input=el('payrollWeekPicker');
  if(!input)return null;
