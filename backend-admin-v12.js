@@ -118,6 +118,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!el('siteDialog')?.
 
 function updateConnectedSpace(){
  const connected=!!account;
+ el('managerAccessNotice')?.classList.toggle('hidden',!!(connected&&managerRoles.includes(account.role)));
  el('connectedSpaceCard')?.classList.toggle('hidden',!connected);
  el('disconnectedSpaceGrid')?.classList.toggle('hidden',connected);
  el('accountStatus')?.classList.toggle('hidden',connected);
@@ -2155,17 +2156,18 @@ async function loadStaffExpenseNotes(){
   const rows=await rpc('ae_staff_expense_notes',{p_token:token,p_limit:100});
   box.replaceChildren();
   if(!rows?.length){const p=document.createElement('p');p.className='muted';p.textContent='Aucune note de frais pour le moment.';box.append(p);return}
+  const labels={pending:'En attente',approved:'Acceptée',rejected:'Refusée'};
   for(const row of rows){
-   const item=document.createElement('article');item.className='internal-announcement';
-   const top=document.createElement('div');top.className='internal-announcement-top';
-   const title=document.createElement('strong');title.textContent=money(row.amount);
-   const status=document.createElement('span');status.className='tag';status.textContent=({pending:'En attente',approved:'Acceptée',rejected:'Refusée'})[row.status]||row.status;
+   const item=document.createElement('article');item.className='expense-note-card';
+   const top=document.createElement('div');top.className='expense-note-top';
+   const title=document.createElement('strong');title.className='expense-note-title expense-note-amount';title.textContent=money(row.amount);
+   const status=document.createElement('span');status.className='expense-note-status '+(row.status||'pending');status.textContent=labels[row.status]||row.status;
    top.append(title,status);
-   const reason=document.createElement('p');reason.textContent=row.reason;
-   const date=document.createElement('small');date.className='muted';date.textContent=new Date(row.created_at).toLocaleString('fr-FR');
-   item.append(top,reason,date);
-   if(row.receipt_url){const a=document.createElement('a');a.href=row.receipt_url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Voir le justificatif';item.append(a)}
-   box.append(item);
+   const reason=document.createElement('p');reason.className='expense-note-reason';reason.textContent=row.reason;
+   const meta=document.createElement('div');meta.className='expense-note-meta';
+   const date=document.createElement('span');date.textContent=new Date(row.created_at).toLocaleString('fr-FR');meta.append(date);
+   if(row.receipt_url){const a=document.createElement('a');a.href=row.receipt_url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Voir le justificatif';meta.append(a)}
+   item.append(top,reason,meta);box.append(item);
   }
  }catch(err){box.textContent='Impossible de charger les notes de frais : '+err.message}
 }
@@ -2215,21 +2217,23 @@ async function loadManagerExpenseNotes(){
   const rows=await rpc('ae_manager_expense_notes',{p_token:token,p_status:filter,p_limit:500});
   box.replaceChildren();
   if(!rows?.length){const p=document.createElement('p');p.className='muted';p.textContent='Aucune note de frais pour ce filtre.';box.append(p);return}
+  const labels={pending:'En attente',approved:'Acceptée',rejected:'Refusée'};
   for(const row of rows){
-   const item=document.createElement('article');item.className='internal-announcement';
-   const top=document.createElement('div');top.className='internal-announcement-top';
-   const title=document.createElement('strong');title.textContent=(row.employee_name||'Employé')+' · '+money(row.amount);
-   const status=document.createElement('span');status.className='tag';status.textContent=({pending:'En attente',approved:'Acceptée',rejected:'Refusée'})[row.status]||row.status;
+   const item=document.createElement('article');item.className='expense-note-card';
+   const top=document.createElement('div');top.className='expense-note-top';
+   const title=document.createElement('strong');title.className='expense-note-title';title.textContent=(row.employee_name||'Employé')+' · '+money(row.amount);
+   const status=document.createElement('span');status.className='expense-note-status '+(row.status||'pending');status.textContent=labels[row.status]||row.status;
    top.append(title,status);
-   const reason=document.createElement('p');reason.textContent=row.reason;
-   const date=document.createElement('small');date.className='muted';date.textContent=new Date(row.created_at).toLocaleString('fr-FR');
-   item.append(top,reason,date);
-   if(row.receipt_url){const a=document.createElement('a');a.href=row.receipt_url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Ouvrir le justificatif';item.append(a)}
+   const reason=document.createElement('p');reason.className='expense-note-reason';reason.textContent=row.reason;
+   const meta=document.createElement('div');meta.className='expense-note-meta';
+   const date=document.createElement('span');date.textContent=new Date(row.created_at).toLocaleString('fr-FR');meta.append(date);
+   if(row.receipt_url){const a=document.createElement('a');a.href=row.receipt_url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Ouvrir le justificatif';meta.append(a)}
+   item.append(top,reason,meta);
    if(row.status==='pending'){
-    const actions=document.createElement('div');actions.className='admin-toolbar';
+    const actions=document.createElement('div');actions.className='expense-note-actions';
     for(const [label,statusValue] of [['Accepter','approved'],['Refuser','rejected']]){
      const btn=document.createElement('button');btn.type='button';btn.className='btn'+(statusValue==='rejected'?' secondary':'');btn.textContent=label;
-     btn.addEventListener('click',async()=>{btn.disabled=true;try{await rpc('ae_manager_review_expense_note',{p_token:token,p_note_id:row.id,p_status:statusValue});siteToast(statusValue==='approved'?'Note de frais acceptée.':'Note de frais refusée.','success');await loadManagerExpenseNotes()}catch(err){siteToast(err.message,'error');btn.disabled=false}});
+     btn.addEventListener('click',async()=>{btn.disabled=true;try{await rpc('ae_manager_review_expense_note',{p_token:token,p_note_id:row.id,p_status:statusValue});siteToast(statusValue==='approved'?'Note de frais acceptée.':'Note de frais refusée.','success');await Promise.all([loadManagerExpenseNotes(),loadStaffExpenseNotes()])}catch(err){siteToast(err.message,'error');btn.disabled=false}});
      actions.append(btn)
     }
     item.append(actions)
@@ -2253,6 +2257,24 @@ const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entr
 window.addEventListener('hashchange',()=>setTimeout(revealNow,80));
 setTimeout(revealNow,100);
 setInterval(()=>{if(account)loadNotifications()},60000);
+/* Keep expense notes and the related weekly totals in sync without a manual page reload. */
+let expenseAutoRefreshBusy=false;
+setInterval(async()=>{
+ if(document.hidden||!token||!account||expenseAutoRefreshBusy)return;
+ const employeePage=document.querySelector('[data-view="espace-employe"]');
+ const directionPage=document.querySelector('[data-view="direction"]');
+ const payrollPanel=document.querySelector('[data-admin-panel="payroll"]');
+ const employeeViewOpen=!!employeePage?.classList.contains('active')&&account.role!=='client';
+ const managerPayrollOpen=!!directionPage?.classList.contains('active')&&!!payrollPanel&&!payrollPanel.classList.contains('hidden')&&managerRoles.includes(account.role);
+ if(!employeeViewOpen&&!managerPayrollOpen)return;
+ expenseAutoRefreshBusy=true;
+ try{
+  const tasks=[];
+  if(employeeViewOpen)tasks.push(loadStaffExpenseNotes());
+  if(managerPayrollOpen)tasks.push(loadManagerExpenseNotes(),loadManagerPayroll());
+  await Promise.all(tasks);
+ }finally{expenseAutoRefreshBusy=false}
+},10000);
 refresh();
 renderCart();
 })();
