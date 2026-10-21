@@ -2142,8 +2142,7 @@ el('closeNotifications')?.addEventListener('click',()=>el('notificationsPanel')?
 el('markNotificationsRead')?.addEventListener('click',async()=>{if(!token)return;try{await rpc('ae_mark_notifications_read',{p_token:token});await loadNotifications()}catch(err){siteToast(err.message)}});
 
 
-function money(value){return (Number(value)||0).toLocaleString('fr-FR')+' 
- document.querySelectorAll('.section .card,.order-card,.stat-card,.staff-card,.news-card').forEach(node=>{
+document.querySelectorAll('.section .card,.order-card,.stat-card,.staff-card,.news-card').forEach(node=>{
  if(!node.classList.contains('reveal'))node.classList.add('reveal');
  observer.observe(node);
  });
