@@ -2139,6 +2139,9 @@ body.light .expense-note-card{background:linear-gradient(145deg,#fff,#f6fafb);bo
 body.light .expense-note-card:hover{background:linear-gradient(145deg,#fff,#f0f8fa)}
 @media(max-width:650px){.expense-note-list{grid-template-columns:1fr}.expense-note-card{padding:15px}.expense-note-top{gap:8px}.expense-note-title{font-size:13px}}
 
+
+/* Justificatifs des notes de frais */
+.expense-paste-zone{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;margin:10px 0 16px;padding:20px 14px;border:1px dashed rgba(50,220,225,.42);border-radius:14px;background:linear-gradient(145deg,rgba(50,220,225,.06),rgba(12,34,43,.25));text-align:center;cursor:text;transition:border-color .18s,background .18s}.expense-paste-zone:focus,.expense-paste-zone.dragover{outline:none;border-color:var(--cyan);background:rgba(50,220,225,.1)}.expense-paste-zone strong{font-size:13px;color:var(--text)}.expense-paste-zone span{max-width:420px;color:var(--muted);font-size:11px;line-height:1.5}.expense-paste-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:11px;background:rgba(50,220,225,.12);color:var(--cyan);font-size:21px}.expense-receipt-preview{width:100%;max-width:260px;padding:7px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.12)}.expense-receipt-preview img{display:block;width:100%;max-height:180px;object-fit:contain;border-radius:7px}.expense-receipt-preview small{display:block;margin-top:5px;color:var(--muted);font-size:10px}.expense-receipt-open{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid rgba(50,220,225,.25);border-radius:9px;background:rgba(50,220,225,.07);color:var(--cyan);font:inherit;font-size:11px;font-weight:800;cursor:pointer}.expense-receipt-modal{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;padding:18px}.expense-receipt-modal.hidden{display:none}.expense-receipt-backdrop{position:absolute;inset:0;background:rgba(1,9,13,.82);backdrop-filter:blur(7px)}.expense-receipt-dialog{position:relative;z-index:1;width:min(900px,100%);max-height:90vh;overflow:auto;border:1px solid var(--line);border-radius:18px;background:var(--panel,#10242c);padding:16px;box-shadow:0 24px 90px #0007}.expense-receipt-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.expense-receipt-dialog-head strong{font-size:14px}.expense-receipt-close{width:34px;height:34px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--text);font-size:22px;cursor:pointer}.expense-receipt-image-wrap{display:grid;place-items:center;min-height:120px;border-radius:12px;background:rgba(0,0,0,.18);overflow:auto}.expense-receipt-image-wrap img{display:block;max-width:100%;max-height:72vh;object-fit:contain}.expense-receipt-open-link{display:inline-block;margin-top:12px;color:var(--cyan);font-size:12px;font-weight:800;overflow-wrap:anywhere}body.light .expense-paste-zone{background:linear-gradient(145deg,#f1fbfc,#fff)}body.light .expense-receipt-dialog{background:#fff}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend-admin-v12.js?v=202610241940" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
@@ -2254,7 +2257,15 @@ body.light .expense-note-card:hover{background:linear-gradient(145deg,#fff,#f0f8
  <form id="expenseNoteForm" class="form">
   <label>Montant ($)</label><input id="expenseAmount" type="number" min="1" max="100000000" step="1" required placeholder="Ex. 250"/>
   <label>Motif de la dépense</label><textarea id="expenseReason" rows="3" maxlength="500" required placeholder="Expliquez la dépense…"></textarea>
-  <label>Justificatif (lien facultatif)</label><input id="expenseReceipt" type="url" maxlength="1000" placeholder="https://…"/>
+  <label>Justificatif (facultatif)</label>
+  <input id="expenseReceipt" type="hidden"/>
+  <input id="expenseReceiptLink" type="url" maxlength="1000" placeholder="Colle ici le lien direct de l’image (https://…)"/>
+  <div id="expensePasteZone" class="expense-paste-zone" tabindex="0" role="button" aria-label="Zone de collage du justificatif">
+   <div class="expense-paste-icon">↧</div><strong>Ou colle directement ta capture d’écran</strong>
+   <span>Copie l’image, clique ici puis fais Ctrl + V (ou ⌘ + V sur Mac).</span>
+   <div id="expenseReceiptPreview" class="expense-receipt-preview hidden"></div>
+   <button id="expenseReceiptClear" class="btn secondary hidden" type="button">Retirer le justificatif</button>
+  </div>
   <button class="btn" type="submit">Envoyer la note de frais</button>
  </form>
  <div id="staffExpenseHistory" class="expense-note-list"><p class="muted">Chargement des notes de frais…</p></div>
@@ -2681,7 +2692,12 @@ showPage();
  </div>
  </div>
  </div>
-</div><div id="siteToastStack" class="site-toast-stack" aria-live="polite"></div>
+</div>
+<div id="expenseReceiptModal" class="expense-receipt-modal hidden" role="dialog" aria-modal="true" aria-label="Justificatif de note de frais">
+ <div class="expense-receipt-backdrop" data-close-expense-receipt></div>
+ <div class="expense-receipt-dialog"><div class="expense-receipt-dialog-head"><strong>Justificatif de dépense</strong><button class="expense-receipt-close" type="button" data-close-expense-receipt aria-label="Fermer">×</button></div><div id="expenseReceiptModalImage" class="expense-receipt-image-wrap"></div><a id="expenseReceiptModalLink" class="expense-receipt-open-link hidden" target="_blank" rel="noopener noreferrer">Ouvrir l’image dans un nouvel onglet</a></div>
+</div>
+<div id="siteToastStack" class="site-toast-stack" aria-live="polite"></div>
 <div id="siteDialog" class="site-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="siteDialogTitle">
  <div class="site-dialog-backdrop"></div>
  <div class="site-dialog-card">
