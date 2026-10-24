@@ -2200,7 +2200,7 @@ el('expenseReceiptLink')?.addEventListener('input',e=>{
  if(el('expenseReceipt'))el('expenseReceipt').value='';
  const preview=el('expenseReceiptPreview');if(preview){preview.replaceChildren();preview.classList.add('hidden')}
  el('expenseReceiptClear')?.classList.add('hidden');
- if(/^https?:\\/\\//i.test(value))showExpenseReceiptPreview(value,'Aperçu du lien (si l’image est accessible).');
+ if(value.startsWith('https://')||value.startsWith('http://'))showExpenseReceiptPreview(value,'Aperçu du lien (si l’image est accessible).');
 });
 el('expensePasteZone')?.addEventListener('click',e=>{if(e.target.closest('button'))return;e.currentTarget.focus()});
 el('expensePasteZone')?.addEventListener('paste',async e=>{
@@ -2229,7 +2229,7 @@ el('expenseNoteForm')?.addEventListener('submit',async e=>{
  const amount=Number(el('expenseAmount')?.value),reason=String(el('expenseReason')?.value||'').trim();
  const receipt=String(el('expenseReceipt')?.value||'').trim()||String(el('expenseReceiptLink')?.value||'').trim()||null;
  if(!Number.isInteger(amount)||amount<=0||reason.length<3){siteToast('Vérifie le montant et le motif.','error');return}
- if(receipt&&!receipt.startsWith('data:image/')&&!/^https?:\\/\\//i.test(receipt)){siteToast('Colle un lien d’image valide ou ajoute une capture avec Ctrl + V.','error');return}
+ if(receipt&&!receipt.startsWith('data:image/')&&!receipt.startsWith('https://')&&!receipt.startsWith('http://')){siteToast('Colle un lien d’image valide ou ajoute une capture avec Ctrl + V.','error');return}
  if(button)button.disabled=true;
  try{
   await rpc('ae_staff_create_expense_note',{p_token:token,p_amount:amount,p_reason:reason,p_receipt_url:receipt});
