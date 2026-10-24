@@ -16,17 +16,21 @@ const prices={"Boîte à outils":182,"Ensemble de tournevis":176,"Acier":50,"Fer
 const costs={total:391.667,moteur:160.5,nettoyage:27.5,pneu:3.667};const $=id=>document.getElementById(id);const fmt=n=>new Intl.NumberFormat('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:3}).format(n)+' $';const whole=n=>new Intl.NumberFormat('fr-FR').format(n);const qty=id=>Math.max(0,Math.floor(Number($(id).value)||0));
 function calculate(){
 const t=qty('total'),m=qty('moteur'),n=qty('nettoyage'),p=qty('pneu');
-const engines=t+m,cleans=t+n,tires=t+p;
+// Un kit total consomme un kit moteur, un kit nettoyage, un pneu et un acier compacté.
+// Les recettes moteur/nettoyage sortent par lots de 2 ; les pneus par lots de 3.
+// On regroupe les quantités demandées avant d'arrondir les lots, pour éviter les fractions et le double comptage.
+const engineBatches=Math.ceil((t+m)/2);
+const cleaningBatches=Math.ceil((t+n)/2);
+const tireBatches=Math.ceil((t+p)/3);
 const raw={};const add=(name,count)=>raw[name]=(raw[name]||0)+count;
-// Chaque kit total demande sa boîte à outils entière : aucune demi-boîte.
-add('Boîte à outils',t+Math.ceil(m/2));
-add('Acier',t+Math.ceil(m/2));
-add('Ensemble de tournevis',t+Math.ceil(m/2));
-add('Ferraille',Math.ceil(t*2.5)+Math.ceil(m/2)*5);
-add('Bouteille d’eau',Math.ceil(t*2)+Math.ceil(n/2)*4);
-add('Éponge pour voiture',Math.ceil(t*2.5)+Math.ceil(n/2)*5);
-add('Shampoing voiture',Math.ceil(t*2)+Math.ceil(n/2)*4);
-add('Caoutchouc',Math.ceil(t/3)+Math.ceil(p/3));
+add('Boîte à outils',engineBatches);
+add('Acier',engineBatches);
+add('Ensemble de tournevis',engineBatches);
+add('Ferraille',engineBatches*5);
+add('Bouteille d’eau',cleaningBatches*4);
+add('Éponge pour voiture',cleaningBatches*5);
+add('Shampoing voiture',cleaningBatches*4);
+add('Caoutchouc',tireBatches);
 add('Acier compacté',t);
 const purchase=Object.entries(raw).reduce((sum,[name,count])=>sum+count*prices[name],0);
 const finished=t*costs.total+m*costs.moteur+n*costs.nettoyage+p*costs.pneu;
