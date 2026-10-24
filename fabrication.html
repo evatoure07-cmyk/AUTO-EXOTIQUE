@@ -9,7 +9,7 @@
 <div class="product"><div class="ico">KT</div><div class="pname"><strong>Kit total</strong><small>391,667 $ / kit fini</small></div><div class="step"><button data-step="-1" data-id="total" aria-label="Diminuer">−</button><input id="total" type="number" min="0" step="1" value="0" inputmode="numeric" aria-label="Kit total"><button data-step="1" data-id="total" aria-label="Augmenter">+</button></div></div><div class="product"><div class="ico">KM</div><div class="pname"><strong>Kit moteur</strong><small>160,50 $ / kit fini</small></div><div class="step"><button data-step="-1" data-id="moteur" aria-label="Diminuer">−</button><input id="moteur" type="number" min="0" step="1" value="0" inputmode="numeric" aria-label="Kit moteur"><button data-step="1" data-id="moteur" aria-label="Augmenter">+</button></div></div><div class="product"><div class="ico">KN</div><div class="pname"><strong>Kit de nettoyage</strong><small>27,50 $ / kit fini</small></div><div class="step"><button data-step="-1" data-id="nettoyage" aria-label="Diminuer">−</button><input id="nettoyage" type="number" min="0" step="1" value="0" inputmode="numeric" aria-label="Kit de nettoyage"><button data-step="1" data-id="nettoyage" aria-label="Augmenter">+</button></div></div><div class="product"><div class="ico">PN</div><div class="pname"><strong>Pneu</strong><small>3,667 $ / pneu fini</small></div><div class="step"><button data-step="-1" data-id="pneu" aria-label="Diminuer">−</button><input id="pneu" type="number" min="0" step="1" value="0" inputmode="numeric" aria-label="Pneu"><button data-step="1" data-id="pneu" aria-label="Augmenter">+</button></div></div>
 </div><div class="actions"><button class="btn quiet" id="reset">Tout remettre à zéro</button><span style="font-size:10px;color:var(--teal);font-weight:800">CALCUL AUTOMATIQUE</span></div></section>
 <aside class="panel summary"><h2>Récapitulatif des achats</h2><p class="hint">Coût estimé des matières premières à acheter.</p><div class="total"><small>Budget des matériaux</small><strong id="purchaseTotal">0,00 $</strong></div><div class="metrics"><div class="metric"><small>Produits finis demandés</small><strong id="qtyFinished">0</strong></div><div class="metric"><small>Coût des produits finis</small><strong id="finishedCost">0,00 $</strong></div></div><div class="section"><div class="section-title">Matériaux à acheter <small id="count">0 article</small></div><div class="list" id="materials"><div class="empty">Ajoute une quantité pour afficher les matériaux.</div></div></div><p class="note">Les composants indivisibles sont arrondis à l’unité entière. Chaque kit total compte sa propre boîte à outils ; le budget d’achat est distinct du coût des produits finis.</p></aside></div>
-<section class="panel breakdown"><h2>Répartition par produit</h2><p class="hint">Cette vue indique les composants nécessaires à chaque type de produit ; les matériaux partagés sont additionnés dans la liste d’achats ci-dessus, sans être comptés deux fois.</p><div class="tablewrap"><table><thead><tr><th>Matériau</th><th>Kit total</th><th>Kit moteur</th><th>Nettoyage</th><th>Pneu</th><th>À acheter</th></tr></thead><tbody id="rows"><tr><td colspan="6">Aucune fabrication demandée.</td></tr></tbody><tfoot><tr><td>Total théorique</td><td id="bq">0</td><td id="be">0</td><td id="bc">0</td><td id="bt">0</td><td id="bs">0</td></tr></tfoot></table></div><p class="note">Les colonnes par produit affichent des quantités entières. Chaque kit total compte une boîte à outils entière. Les besoins sont additionnés par catégorie de fabrication ; le kit moteur standard est exclu.</p></section>
+<section class="panel breakdown"><h2>Répartition par produit</h2><p class="hint">Cette vue reprend les besoins calculés en lots complets, y compris les kits moteur, nettoyage et pneus nécessaires aux kits totaux. Les quantités correspondent à la liste d’achats.</p><div class="tablewrap"><table><thead><tr><th>Matériau</th><th>Kit total</th><th>Kit moteur</th><th>Nettoyage</th><th>Pneu</th><th>À acheter</th></tr></thead><tbody id="rows"><tr><td colspan="6">Aucune fabrication demandée.</td></tr></tbody><tfoot><tr><td>Total théorique</td><td id="bq">0</td><td id="be">0</td><td id="bc">0</td><td id="bt">0</td><td id="bs">0</td></tr></tfoot></table></div><p class="note">Les quantités tiennent compte des lots complets : chaque kit total déclenche aussi la fabrication de ses composants moteur, nettoyage et pneu. Le kit moteur standard est exclu.</p></section>
 <div class="footer">AUTO EXOTIC · Calculateur de fabrication</div></main>
 <script>
 const prices={"Boîte à outils":182,"Ensemble de tournevis":176,"Acier":50,"Ferraille":15,"Bouteille d’eau":2,"Éponge pour voiture":7,"Shampoing voiture":3,"Caoutchouc":11,"Acier compacté":200};
@@ -39,16 +39,16 @@ const list=Object.entries(raw).filter(([,v])=>v>0).sort((a,b)=>a[0].localeCompar
 $('count').textContent=list.length+' '+(list.length===1?'article':'articles');
 $('materials').innerHTML=list.length?list.map(([name,count])=>'<div class="item"><div>'+name+'<small>'+fmt(prices[name])+' / unité</small></div><b>'+whole(count)+'<small>'+fmt(count*prices[name])+'</small></b></div>').join(''):'<div class="empty">Ajoute une quantité pour afficher les matériaux.</div>';
 const materialRows=[
-['Boîte à outils',t,m,0,0,t+Math.ceil(m/2)],
-['Acier',t,m,0,0,t+Math.ceil(m/2)],
-['Ensemble de tournevis',t,m,0,0,t+Math.ceil(m/2)],
-['Ferraille',Math.ceil(t*2.5),Math.ceil(m/2)*5,0,0,Math.ceil(t*2.5)+Math.ceil(m/2)*5],
-['Bouteille d’eau',Math.ceil(t*2),0,Math.ceil(n/2)*4,0,Math.ceil(t*2)+Math.ceil(n/2)*4],
-['Éponge pour voiture',Math.ceil(t*2.5),0,Math.ceil(n/2)*5,0,Math.ceil(t*2.5)+Math.ceil(n/2)*5],
-['Shampoing voiture',Math.ceil(t*2),0,Math.ceil(n/2)*4,0,Math.ceil(t*2)+Math.ceil(n/2)*4],
-['Caoutchouc',Math.ceil(t/3),0,0,Math.ceil(p/3),Math.ceil(t/3)+Math.ceil(p/3)],
-['Acier compacté',t,0,0,0,t]
-].filter(r=>r.slice(1,5).some(v=>v>0));
+['Boîte à outils',engineBatches,0,0,0,raw['Boîte à outils']],
+['Acier',engineBatches,0,0,0,raw['Acier']],
+['Ensemble de tournevis',engineBatches,0,0,0,raw['Ensemble de tournevis']],
+['Ferraille',engineBatches*5,0,0,0,raw['Ferraille']],
+['Bouteille d’eau',0,cleaningBatches*4,0,0,raw['Bouteille d’eau']],
+['Éponge pour voiture',0,cleaningBatches*5,0,0,raw['Éponge pour voiture']],
+['Shampoing voiture',0,cleaningBatches*4,0,0,raw['Shampoing voiture']],
+['Caoutchouc',0,0,tireBatches,0,raw['Caoutchouc']],
+['Acier compacté',0,0,0,t,raw['Acier compacté']]
+].filter(r=>r.slice(1,5).some(v=>v>0))
 $('rows').innerHTML=materialRows.length?materialRows.map(r=>'<tr><td>'+r[0]+'</td>'+r.slice(1).map(v=>'<td>'+whole(v)+'</td>').join('')+'</tr>').join(''):'<tr><td colspan="6">Aucune fabrication demandée.</td></tr>';
 $('bq').textContent=whole(materialRows.reduce((a,r)=>a+r[1],0));
 $('be').textContent=whole(materialRows.reduce((a,r)=>a+r[2],0));
