@@ -2167,21 +2167,73 @@ async function loadStaffExpenseNotes(){
    const reason=document.createElement('p');reason.className='expense-note-reason';reason.textContent=row.reason;
    const meta=document.createElement('div');meta.className='expense-note-meta';
    const date=document.createElement('span');date.textContent=new Date(row.created_at).toLocaleString('fr-FR');meta.append(date);
-   if(row.receipt_url){const a=document.createElement('a');a.href=row.receipt_url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Voir le justificatif';meta.append(a)}
+   if(row.receipt_url){const a=document.createElement('button');a.type='button';a.className='expense-receipt-open';a.textContent='Voir le justificatif';a.addEventListener('click',()=>openExpenseReceipt(row.receipt_url));meta.append(a)}
    item.append(top,reason,meta);box.append(item);
   }
  }catch(err){box.textContent='Impossible de charger les notes de frais : '+err.message}
 }
+function openExpenseReceipt(src){
+ const modal=el('expenseReceiptModal'),wrap=el('expenseReceiptModalImage'),link=el('expenseReceiptModalLink');
+ if(!modal||!wrap)return;
+ wrap.replaceChildren();
+ const img=document.createElement('img');img.alt='Justificatif de dépense';img.src=src;
+ img.onerror=()=>{wrap.textContent='Impossible d’afficher cette image. Vérifie que le lien mène directement à une image accessible.'};
+ wrap.append(img);
+ if(link){link.href=src;link.classList.toggle('hidden',String(src).startsWith('data:'))}
+ modal.classList.remove('hidden');document.body.style.overflow='hidden';
+}
+function closeExpenseReceipt(){el('expenseReceiptModal')?.classList.add('hidden');document.body.style.overflow=''}
+el('expenseReceiptModal')?.querySelectorAll('[data-close-expense-receipt]').forEach(node=>node.addEventListener('click',closeExpenseReceipt));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeExpenseReceipt()});
+function resetExpenseReceipt(){
+ const hidden=el('expenseReceipt'),link=el('expenseReceiptLink'),preview=el('expenseReceiptPreview'),clear=el('expenseReceiptClear');
+ if(hidden)hidden.value='';if(link)link.value='';if(preview){preview.replaceChildren();preview.classList.add('hidden')}if(clear)clear.classList.add('hidden');
+}
+function showExpenseReceiptPreview(src,label){
+ const preview=el('expenseReceiptPreview'),clear=el('expenseReceiptClear');
+ if(!preview)return;preview.replaceChildren();
+ const img=document.createElement('img');img.alt='Aperçu du justificatif';img.src=src;preview.append(img);
+ const caption=document.createElement('small');caption.textContent=label;preview.append(caption);preview.classList.remove('hidden');if(clear)clear.classList.remove('hidden');
+}
+el('expenseReceiptLink')?.addEventListener('input',e=>{
+ const value=e.currentTarget.value.trim();
+ if(el('expenseReceipt'))el('expenseReceipt').value='';
+ const preview=el('expenseReceiptPreview');if(preview){preview.replaceChildren();preview.classList.add('hidden')}
+ el('expenseReceiptClear')?.classList.add('hidden');
+ if(/^https?:\\/\\//i.test(value))showExpenseReceiptPreview(value,'Aperçu du lien (si l’image est accessible).');
+});
+el('expensePasteZone')?.addEventListener('click',e=>{if(e.target.closest('button'))return;e.currentTarget.focus()});
+el('expensePasteZone')?.addEventListener('paste',async e=>{
+ const items=Array.from(e.clipboardData?.items||[]),item=items.find(x=>x.type.startsWith('image/'));
+ if(!item){siteToast('Aucune image détectée. Copie une capture ou colle un lien dans le champ au-dessus.','error');return}
+ e.preventDefault();
+ try{
+  const file=item.getAsFile();if(!file)throw new Error('Image indisponible');
+  const image=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=reader.result};reader.onerror=reject;reader.readAsDataURL(file)});
+  const scale=Math.min(1,1200/image.width,1200/image.height),canvas=document.createElement('canvas');
+  canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));
+  canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
+  let data=canvas.toDataURL('image/jpeg',.68);
+  if(data.length>450000)data=canvas.toDataURL('image/jpeg',.48);
+  if(data.length>600000)throw new Error('Capture trop lourde. Réduis sa taille puis réessaie.');
+  el('expenseReceipt').value=data;el('expenseReceiptLink').value='';
+  showExpenseReceiptPreview(data,'Capture prête à être envoyée avec la note de frais.');
+  siteToast('Capture ajoutée au justificatif.','success');
+ }catch(err){siteToast(err.message||'Impossible de lire cette image.','error')}
+});
+el('expenseReceiptClear')?.addEventListener('click',resetExpenseReceipt);
 el('expenseNoteForm')?.addEventListener('submit',async e=>{
  e.preventDefault();
  if(!account||account.role==='client'){siteToast('Connexion employé requise.','error');return}
  const form=e.currentTarget,button=form.querySelector('button[type=submit]');
- const amount=Number(el('expenseAmount')?.value),reason=String(el('expenseReason')?.value||'').trim(),receipt=String(el('expenseReceipt')?.value||'').trim()||null;
+ const amount=Number(el('expenseAmount')?.value),reason=String(el('expenseReason')?.value||'').trim();
+ const receipt=String(el('expenseReceipt')?.value||'').trim()||String(el('expenseReceiptLink')?.value||'').trim()||null;
  if(!Number.isInteger(amount)||amount<=0||reason.length<3){siteToast('Vérifie le montant et le motif.','error');return}
+ if(receipt&&!receipt.startsWith('data:image/')&&!/^https?:\\/\\//i.test(receipt)){siteToast('Colle un lien d’image valide ou ajoute une capture avec Ctrl + V.','error');return}
  if(button)button.disabled=true;
  try{
   await rpc('ae_staff_create_expense_note',{p_token:token,p_amount:amount,p_reason:reason,p_receipt_url:receipt});
-  form.reset();siteToast('Note de frais envoyée à la direction.','success');await loadStaffExpenseNotes();
+  form.reset();resetExpenseReceipt();siteToast('Note de frais envoyée à la direction.','success');await loadStaffExpenseNotes();
  }catch(err){siteToast('Envoi impossible : '+err.message,'error')}
  finally{if(button)button.disabled=false}
 });
@@ -2228,7 +2280,7 @@ async function loadManagerExpenseNotes(){
    const reason=document.createElement('p');reason.className='expense-note-reason';reason.textContent=row.reason;
    const meta=document.createElement('div');meta.className='expense-note-meta';
    const date=document.createElement('span');date.textContent=new Date(row.created_at).toLocaleString('fr-FR');meta.append(date);
-   if(row.receipt_url){const a=document.createElement('a');a.href=row.receipt_url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Ouvrir le justificatif';meta.append(a)}
+   if(row.receipt_url){const a=document.createElement('button');a.type='button';a.className='expense-receipt-open';a.textContent='Ouvrir le justificatif';a.addEventListener('click',()=>openExpenseReceipt(row.receipt_url));meta.append(a)}
    item.append(top,reason,meta);
    if(row.status==='pending'){
     const actions=document.createElement('div');actions.className='expense-note-actions';
