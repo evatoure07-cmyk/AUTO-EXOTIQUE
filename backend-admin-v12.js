@@ -119,6 +119,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!el('siteDialog')?.
 function updateConnectedSpace(){
  const connected=!!account;
  el('managerAccessNotice')?.classList.toggle('hidden',!!(connected&&managerRoles.includes(account.role)));
+ el('adminPurchaseTab')?.classList.toggle('hidden',!(connected&&['assistant_direction','copatron','patron'].includes(account.role)));
  el('connectedSpaceCard')?.classList.toggle('hidden',!connected);
  el('disconnectedSpaceGrid')?.classList.toggle('hidden',connected);
  el('accountStatus')?.classList.toggle('hidden',connected);
@@ -1714,7 +1715,7 @@ el('partnerServiceForm')?.addEventListener('submit',async e=>{
 });
 
 function activateAdminTab(name){
- const target=name||'dashboard';
+ const target=(name==='purchase'&&!['assistant_direction','copatron','patron'].includes(account?.role))?'dashboard':(name||'dashboard');
  document.querySelectorAll('[data-admin-tab]').forEach(btn=>btn.classList.toggle('active',btn.dataset.adminTab===target));
  document.querySelectorAll('[data-admin-panel]').forEach(panel=>panel.classList.toggle('hidden',panel.dataset.adminPanel!==target));
  localStorage.setItem('ae_admin_tab',target);
