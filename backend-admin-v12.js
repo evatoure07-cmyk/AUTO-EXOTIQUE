@@ -2161,15 +2161,35 @@ function expenseIsInCurrentWeek(row){
  const end=new Date(start);end.setDate(end.getDate()+7);
  return created>=start&&created<end;
 }
+function expenseRowsForSelectedPeriod(box,rows){
+ let controls=box.previousElementSibling;
+ if(!controls||controls.dataset.expensePeriodControls!=='true'){
+  controls=document.createElement('div');
+  controls.dataset.expensePeriodControls='true';
+  controls.className='admin-toolbar';
+  controls.style.marginTop='14px';
+  const label=document.createElement('label');
+  label.textContent='Période';
+  const select=document.createElement('select');
+  select.setAttribute('aria-label','Période des notes de frais');
+  select.innerHTML='<option value="current">Semaine en cours</option><option value="all">Tout l’historique</option>';
+  select.addEventListener('change',()=>{if(box.id==='staffExpenseHistory')loadStaffExpenseNotes();else loadManagerExpenseNotes()});
+  controls.append(label,select);
+  box.parentNode.insertBefore(controls,box);
+ }
+ const select=controls.querySelector('select');
+ const all=select?.value==='all';
+ return all?(rows||[]):(rows||[]).filter(expenseIsInCurrentWeek);
+}
 async function loadStaffExpenseNotes(){
  const box=el('staffExpenseHistory');
  if(!box)return;
  if(!account||account.role==='client'){box.replaceChildren();return}
  try{
   const rows=await rpc('ae_staff_expense_notes',{p_token:token,p_limit:100});
-  const currentWeekRows=(rows||[]).filter(expenseIsInCurrentWeek);
+  const currentWeekRows=expenseRowsForSelectedPeriod(box,rows);
   box.replaceChildren();
-  if(!currentWeekRows.length){const p=document.createElement('p');p.className='muted';p.textContent='Aucune note de frais cette semaine.';box.append(p);return}
+  if(!currentWeekRows.length){const p=document.createElement('p');p.className='muted';p.textContent=(box.previousElementSibling?.querySelector('select')?.value==='all')?'Aucune note de frais dans l’historique.':'Aucune note de frais cette semaine.';box.append(p);return}
   const labels={pending:'En attente',approved:'Acceptée',rejected:'Refusée'};
   for(const row of currentWeekRows){
    const item=document.createElement('article');item.className='expense-note-card';
@@ -2283,7 +2303,7 @@ async function loadManagerExpenseNotes(){
   const rows=await rpc('ae_manager_expense_notes',{p_token:token,p_status:filter,p_limit:500});
   const currentWeekRows=(rows||[]).filter(expenseIsInCurrentWeek);
   box.replaceChildren();
-  if(!currentWeekRows.length){const p=document.createElement('p');p.className='muted';p.textContent='Aucune note de frais cette semaine pour ce filtre.';box.append(p);return}
+  if(!currentWeekRows.length){const p=document.createElement('p');p.className='muted';p.textContent=(box.previousElementSibling?.querySelector('select')?.value==='all')?'Aucune note de frais dans l’historique pour ce filtre.':'Aucune note de frais cette semaine pour ce filtre.';box.append(p);return}
   const labels={pending:'En attente',approved:'Acceptée',rejected:'Refusée'};
   for(const row of currentWeekRows){
    const item=document.createElement('article');item.className='expense-note-card';
