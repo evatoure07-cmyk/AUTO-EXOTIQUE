@@ -2149,16 +2149,29 @@ function payrollWeekStart(){
  if(!input.value)input.value=currentIsoWeekValue();
  return isoWeekMonday(input.value);
 }
+function expenseIsInCurrentWeek(row){
+ const value=row?.created_at;
+ if(!value)return false;
+ const created=new Date(value);
+ if(Number.isNaN(created.getTime()))return false;
+ const now=new Date();
+ const start=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+ const day=(start.getDay()+6)%7;
+ start.setDate(start.getDate()-day);
+ const end=new Date(start);end.setDate(end.getDate()+7);
+ return created>=start&&created<end;
+}
 async function loadStaffExpenseNotes(){
  const box=el('staffExpenseHistory');
  if(!box)return;
  if(!account||account.role==='client'){box.replaceChildren();return}
  try{
   const rows=await rpc('ae_staff_expense_notes',{p_token:token,p_limit:100});
+  const currentWeekRows=(rows||[]).filter(expenseIsInCurrentWeek);
   box.replaceChildren();
-  if(!rows?.length){const p=document.createElement('p');p.className='muted';p.textContent='Aucune note de frais pour le moment.';box.append(p);return}
+  if(!currentWeekRows.length){const p=document.createElement('p');p.className='muted';p.textContent='Aucune note de frais cette semaine.';box.append(p);return}
   const labels={pending:'En attente',approved:'Acceptée',rejected:'Refusée'};
-  for(const row of rows){
+  for(const row of currentWeekRows){
    const item=document.createElement('article');item.className='expense-note-card';
    const top=document.createElement('div');top.className='expense-note-top';
    const title=document.createElement('strong');title.className='expense-note-title expense-note-amount';title.textContent=money(row.amount);
@@ -2268,10 +2281,11 @@ async function loadManagerExpenseNotes(){
  try{
   const filter=el('expenseStatusFilter')?.value||null;
   const rows=await rpc('ae_manager_expense_notes',{p_token:token,p_status:filter,p_limit:500});
+  const currentWeekRows=(rows||[]).filter(expenseIsInCurrentWeek);
   box.replaceChildren();
-  if(!rows?.length){const p=document.createElement('p');p.className='muted';p.textContent='Aucune note de frais pour ce filtre.';box.append(p);return}
+  if(!currentWeekRows.length){const p=document.createElement('p');p.className='muted';p.textContent='Aucune note de frais cette semaine pour ce filtre.';box.append(p);return}
   const labels={pending:'En attente',approved:'Acceptée',rejected:'Refusée'};
-  for(const row of rows){
+  for(const row of currentWeekRows){
    const item=document.createElement('article');item.className='expense-note-card';
    const top=document.createElement('div');top.className='expense-note-top';
    const title=document.createElement('strong');title.className='expense-note-title';title.textContent=(row.employee_name||'Employé')+' · '+money(row.amount);
