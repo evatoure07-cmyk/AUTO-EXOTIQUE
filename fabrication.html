@@ -13,7 +13,7 @@
 <section class="panel breakdown"><h2>Répartition par produit</h2><p class="hint">Voici les matériaux nécessaires selon les produits que tu fabriques.</p><div class="tablewrap"><table><thead><tr><th>Matériau</th><th>Kit total</th><th>Kit moteur</th><th>Nettoyage</th><th>Pneu</th><th>Total à acheter</th></tr></thead><tbody id="rows"><tr><td colspan="6">Aucune fabrication demandée.</td></tr></tbody></table></div></section></div><section class="panel prices-page" id="pricesView" hidden><h2>Gestion des prix unitaires</h2><p class="hint">Modifie ici les prix des matériaux. Ils seront utilisés automatiquement dans le calcul achat et conservés sur cet appareil.</p><div id="priceEditor" class="price-editor"></div><div class="actions"><button class="btn quiet" id="resetPrices" type="button">Rétablir les prix par défaut</button><span style="font-size:10px;color:var(--teal);font-weight:800">PRIX ENREGISTRÉS SUR CET APPAREIL</span></div></section></div>
 <div class="footer">AUTO EXOTIC · Calculateur de fabrication</div></main>
 <script>
-const defaultPrices={"Boîte à outils":182,"Ensemble de tournevis":176,"Acier":45,"Ferraille":12,"Bouteille d’eau":2,"Éponge pour voiture":7,"Shampoing voiture":3,"Caoutchouc":11,"Acier compacté":90};
+const defaultPrices={"Boîte à outils":182,"Ensemble de tournevis":76,"Acier":45,"Ferraille":12,"Bouteille d’eau":2,"Éponge pour voiture":7,"Shampoing voiture":3,"Caoutchouc":11,"Acier compacté":90};
 const priceStorageKey='autoExoticFabricationPrices';
 let prices={...defaultPrices};
 try{const saved=JSON.parse(localStorage.getItem(priceStorageKey)||'{}');for(const name of Object.keys(defaultPrices)){const value=Number(saved[name]);if(Number.isFinite(value)&&value>=0)prices[name]=value}}catch(e){}
