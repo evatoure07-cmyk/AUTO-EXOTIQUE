@@ -849,6 +849,7 @@ el('newsForm')?.addEventListener('submit',async e=>{
 
 let partnerCatalog=[];
 let partnerMemoCatalog=[];
+let managerPartnerCatalog=[];
 let selectedAdminPartnerId=null;
 
 const partnerGroupLabels={
@@ -1166,6 +1167,25 @@ function renderPartnerAdminCustomExample(){
  const discount=Math.min(100,Math.max(0,Math.trunc(Number(el('partnerServiceDiscountPercent')?.value||0))));
  out.textContent=money(calcCustomPartnerPrice(4000,discount).final);
 }
+function updateDirectionBillingModeUI(){
+ const mode=el('partnerServiceDirectionBillingMode');
+ const input=el('partnerServiceDirectionPrice');
+ const note=input?.closest('.partner-rate-box')?.querySelector('small');
+ if(!mode||!input)return;
+ const weekly=mode.value==='weekly_invoice';
+ if(weekly){
+   const type=document.querySelector('input[name="partnerServiceType"]:checked')?.value||'totale';
+   const partner=managerPartnerCatalog.find(p=>Number(p.id)===Number(selectedAdminPartnerId));
+   const companyService=(partner?.services||[]).find(s=>s.active&&s.service_type===type&&(s.access_groups||[]).includes('all_staff')&&s.billing_mode==='weekly_invoice');
+   input.readOnly=true;
+   input.value=companyService?String(companyService.partner_price):'';
+   if(note)note.textContent=companyService?'Déclaration : reprend le tarif véhicule entreprise ('+money(companyService.partner_price)+').':'Déclaration : configurez d’abord le tarif véhicule entreprise.';
+ }else{
+   input.readOnly=false;
+   if(note)note.textContent='Réparation véhicule personnel';
+ }
+}
+
 function updatePartnerServiceTypeUI(){
  const type=selectedPartnerServiceType();
  const custom=type==='custom';
@@ -1195,11 +1215,14 @@ function updatePartnerServiceTypeUI(){
  if(help)help.textContent=custom
    ?'Customisation : paiement immédiat obligatoire. La réduction s’applique uniquement sur la marge (prix usine × 2,5, marge plafonnée à 10 000 $).'
    :personal
-     ?'Véhicule personnel : définissez le tarif et choisissez séparément paiement immédiat ou déclaration pour les Employés et la Direction.'
+     ?'Véhicule personnel : paiement immédiat pour les Employés. Pour la Direction, une déclaration reprend automatiquement le tarif véhicule entreprise.'
      :'Véhicule entreprise : la réparation est déclarée puis réglée en fin de semaine.';
 
  renderPartnerAdminCustomExample();
 }
+
+el('partnerServiceDirectionBillingMode')?.addEventListener('change',updateDirectionBillingModeUI);
+document.querySelectorAll('input[name="partnerServiceType"]').forEach(input=>input.addEventListener('change',updateDirectionBillingModeUI));
 
 document.querySelectorAll('#partnerAccessGroups input[type=checkbox]').forEach(input=>{
  input.addEventListener('change',()=>{
@@ -1261,6 +1284,7 @@ async function loadManagerPartners(){
    ]);
 
    const allPartners=catalog||[];
+   managerPartnerCatalog=allPartners;
    const activePartners=allPartners.filter(partner=>partner.active);
    if(selectedAdminPartnerId&&!allPartners.some(partner=>Number(partner.id)===Number(selectedAdminPartnerId))){
      selectedAdminPartnerId=null;
@@ -1485,7 +1509,7 @@ async function loadManagerPartners(){
        const makeCell=(service,audienceLabel)=>{
          const cell=document.createElement('div');cell.className='partner-config-cell';
          const value=document.createElement('div');value.className='partner-config-value'+(service?'':' muted');
-         value.textContent=service?(isCustom?'−'+Number(service.discount_percent||0)+' % marge':service.billing_mode==='weekly_invoice'?'Déclaration':money(service.partner_price)):'—';
+         value.textContent=service?(isCustom?'−'+Number(service.discount_percent||0)+' % marge':service.billing_mode==='weekly_invoice'?'Déclaration · tarif entreprise':money(service.partner_price)):'—';
          const meta=document.createElement('small');meta.className='muted';meta.textContent=audienceLabel;
          const valueWrap=document.createElement('div');valueWrap.append(value,meta);
          cell.append(valueWrap);
@@ -1655,12 +1679,19 @@ el('partnerServiceForm')?.addEventListener('submit',async e=>{
        if(employeeRaw){
          const value=Math.trunc(Number(employeeRaw));
          if(!Number.isFinite(value)||value<0)throw new Error('Le tarif Employés est invalide.');
-         payloads.push({price:value,discount:0,groups:['mecanos','chef_equipe','gestion'],billing_mode:el('partnerServiceEmployeeBillingMode')?.value||'direct_discount'});
+         payloads.push({price:value,discount:0,groups:['mecanos','chef_equipe','gestion'],billing_mode:'direct_discount'});
        }
        if(directionRaw){
-         const value=Math.trunc(Number(directionRaw));
+         let value=Math.trunc(Number(directionRaw));
+         const directionBillingMode=el('partnerServiceDirectionBillingMode')?.value||'direct_discount';
+         if(directionBillingMode==='weekly_invoice'){
+           const managerPartner=managerPartnerCatalog.find(p=>Number(p.id)===Number(selectedAdminPartnerId));
+           const companyService=(managerPartner?.services||[]).find(s=>s.active&&s.service_type===type&&(s.access_groups||[]).includes('all_staff')&&s.billing_mode==='weekly_invoice');
+           if(!companyService)throw new Error('Configurez d’abord le tarif véhicule entreprise pour cette prestation.');
+           value=Math.trunc(Number(companyService.partner_price));
+         }
          if(!Number.isFinite(value)||value<0)throw new Error('Le tarif Direction est invalide.');
-         payloads.push({price:value,discount:0,groups:['direction'],billing_mode:el('partnerServiceDirectionBillingMode')?.value||'direct_discount'});
+         payloads.push({price:value,discount:0,groups:['direction'],billing_mode:directionBillingMode});
        }
      }
 
@@ -1696,8 +1727,8 @@ el('partnerServiceForm')?.addEventListener('submit',async e=>{
    safeReset(form);
    document.querySelector('input[name="partnerServiceType"][value="totale"]')?.click();
    const mode=el('partnerServiceBillingMode');if(mode)mode.value='weekly_invoice';
-   if(el('partnerServiceEmployeeBillingMode'))el('partnerServiceEmployeeBillingMode').value='direct_discount';
    if(el('partnerServiceDirectionBillingMode'))el('partnerServiceDirectionBillingMode').value='direct_discount';
+   updateDirectionBillingModeUI();
 
    for(const id of [
      'partnerServiceEmployeePrice',
