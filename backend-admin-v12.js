@@ -959,7 +959,7 @@ function appendMoRepairRates(td,services){
  for(const service of sorted){
    const line=document.createElement('div');line.className='mo-rate-line';
    const label=document.createElement('small');label.textContent=moRepairLabel(service.service_type);
-   const value=document.createElement('strong');value.textContent=money(service.partner_price);
+   const value=document.createElement('strong');value.textContent=service.billing_mode==='weekly_invoice'?'Déclaration':money(service.partner_price);
    line.append(label,value);stack.append(line);
  }
  td.append(stack);
