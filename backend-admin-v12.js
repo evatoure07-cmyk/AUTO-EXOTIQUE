@@ -1195,7 +1195,7 @@ function updatePartnerServiceTypeUI(){
  if(help)help.textContent=custom
    ?'Customisation : paiement immédiat obligatoire. La réduction s’applique uniquement sur la marge (prix usine × 2,5, marge plafonnée à 10 000 $).'
    :personal
-     ?'Véhicule personnel : indiquez séparément le tarif Employés et le tarif Direction. Ces prix apparaissent dans Tarifs MO.'
+     ?'Véhicule personnel : définissez le tarif et choisissez séparément paiement immédiat ou déclaration pour les Employés et la Direction.'
      :'Véhicule entreprise : la réparation est déclarée puis réglée en fin de semaine.';
 
  renderPartnerAdminCustomExample();
@@ -1479,13 +1479,13 @@ async function loadManagerPartners(){
        const row=document.createElement('div');row.className='partner-config-row';
        const copy=document.createElement('div');copy.className='partner-config-label';
        const st=document.createElement('strong');st.textContent=label;
-       const sm=document.createElement('small');sm.textContent=isCustom?'Paiement immédiat · remise sur la marge':'Véhicule personnel · paiement direct';
+       const sm=document.createElement('small');sm.textContent=isCustom?'Paiement immédiat · remise sur la marge':'Véhicule personnel · règlement configurable par groupe';
        copy.append(st,sm);
 
        const makeCell=(service,audienceLabel)=>{
          const cell=document.createElement('div');cell.className='partner-config-cell';
          const value=document.createElement('div');value.className='partner-config-value'+(service?'':' muted');
-         value.textContent=service?(isCustom?'−'+Number(service.discount_percent||0)+' % marge':money(service.partner_price)):'—';
+         value.textContent=service?(isCustom?'−'+Number(service.discount_percent||0)+' % marge':service.billing_mode==='weekly_invoice'?'Déclaration':money(service.partner_price)):'—';
          const meta=document.createElement('small');meta.className='muted';meta.textContent=audienceLabel;
          const valueWrap=document.createElement('div');valueWrap.append(value,meta);
          cell.append(valueWrap);
@@ -1497,8 +1497,8 @@ async function loadManagerPartners(){
        return row;
      };
 
-     const personal=(selectedPartner.services||[]).filter(s=>s.billing_mode==='direct_discount');
-     const company=(selectedPartner.services||[]).filter(s=>s.billing_mode==='weekly_invoice'&&s.service_type!=='custom');
+     const personal=(selectedPartner.services||[]).filter(s=>s.service_type==='custom'?s.billing_mode==='direct_discount':!(s.access_groups||[]).includes('all_staff'));
+     const company=(selectedPartner.services||[]).filter(s=>s.billing_mode==='weekly_invoice'&&s.service_type!=='custom'&&(s.access_groups||[]).includes('all_staff'));
 
      const customServices=personal.filter(s=>s.service_type==='custom');
      addSection(
@@ -1655,12 +1655,12 @@ el('partnerServiceForm')?.addEventListener('submit',async e=>{
        if(employeeRaw){
          const value=Math.trunc(Number(employeeRaw));
          if(!Number.isFinite(value)||value<0)throw new Error('Le tarif Employés est invalide.');
-         payloads.push({price:value,discount:0,groups:['mecanos','chef_equipe','gestion']});
+         payloads.push({price:value,discount:0,groups:['mecanos','chef_equipe','gestion'],billing_mode:el('partnerServiceEmployeeBillingMode')?.value||'direct_discount'});
        }
        if(directionRaw){
          const value=Math.trunc(Number(directionRaw));
          if(!Number.isFinite(value)||value<0)throw new Error('Le tarif Direction est invalide.');
-         payloads.push({price:value,discount:0,groups:['direction']});
+         payloads.push({price:value,discount:0,groups:['direction'],billing_mode:el('partnerServiceDirectionBillingMode')?.value||'direct_discount'});
        }
      }
 
@@ -1671,7 +1671,7 @@ el('partnerServiceForm')?.addEventListener('submit',async e=>{
          p_service_type:type,
          p_partner_price:payload.price,
          p_discount_percent:payload.discount,
-         p_billing_mode:'direct_discount',
+         p_billing_mode:payload.billing_mode||'direct_discount',
          p_access_groups:payload.groups
        });
      }
@@ -1696,6 +1696,8 @@ el('partnerServiceForm')?.addEventListener('submit',async e=>{
    safeReset(form);
    document.querySelector('input[name="partnerServiceType"][value="totale"]')?.click();
    const mode=el('partnerServiceBillingMode');if(mode)mode.value='weekly_invoice';
+   if(el('partnerServiceEmployeeBillingMode'))el('partnerServiceEmployeeBillingMode').value='direct_discount';
+   if(el('partnerServiceDirectionBillingMode'))el('partnerServiceDirectionBillingMode').value='direct_discount';
 
    for(const id of [
      'partnerServiceEmployeePrice',
