@@ -2493,11 +2493,15 @@ body.light .expense-note-card:hover{background:linear-gradient(145deg,#fff,#f0f8
         <div class="partner-rate-box">
           <label>Employés</label>
           <div class="partner-money-input"><input id="partnerServiceEmployeePrice" type="number" min="0" step="1" inputmode="numeric" placeholder="Ex. 500"/><span>$</span></div>
+          <label for="partnerServiceEmployeeBillingMode">Mode de règlement</label>
+          <select id="partnerServiceEmployeeBillingMode"><option value="direct_discount">Paiement immédiat</option><option value="weekly_invoice">Déclaration fin de semaine</option></select>
           <small>Réparation véhicule personnel</small>
         </div>
         <div class="partner-rate-box">
           <label>Direction</label>
           <div class="partner-money-input"><input id="partnerServiceDirectionPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="Ex. 1"/><span>$</span></div>
+          <label for="partnerServiceDirectionBillingMode">Mode de règlement</label>
+          <select id="partnerServiceDirectionBillingMode"><option value="direct_discount">Paiement immédiat</option><option value="weekly_invoice">Déclaration fin de semaine</option></select>
           <small>Réparation véhicule personnel</small>
         </div>
       </div>
