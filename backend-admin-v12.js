@@ -504,7 +504,18 @@ async function loadStaffProduction(){
  const small=document.createElement('small');small.textContent=new Date(row.created_at).toLocaleString('fr-FR');
  copy.append(strong,small);
  const qty=document.createElement('div');qty.className='production-qty';qty.textContent='× '+Number(row.quantity||0).toLocaleString('fr-FR');
- item.append(copy,qty);history.append(item);
+ const remove=document.createElement('button');remove.type='button';remove.className='btn secondary declaration-delete-btn';remove.textContent='Supprimer';
+ remove.addEventListener('click',async()=>{
+  const ok=await siteConfirm('Supprimer cette déclaration de fabrication ?', {title:'Supprimer la déclaration',confirmText:'Supprimer'});
+  if(!ok)return;
+  remove.disabled=true;
+  try{
+   await rpc('ae_staff_delete_production_declaration',{p_token:token,p_declaration_id:row.id});
+   siteToast('Déclaration de fabrication supprimée.','success');
+   await Promise.all([loadStaffProduction(),loadManagerProductionDeclarations()]);
+  }catch(err){siteToast('Suppression impossible : '+err.message,'error');remove.disabled=false}
+ });
+ item.append(copy,qty,remove);history.append(item);
  }
  }catch(err){
  history.textContent='Historique des fabrications indisponible : '+err.message;
@@ -1072,7 +1083,19 @@ async function loadPartnerDeclarations(){
        const amount=document.createElement('div');amount.className='partner-declaration-money';
        const total=document.createElement('strong');total.textContent=money(row.weekly_due_total);
        const small=document.createElement('small');small.textContent='à facturer au partenaire';
-       amount.append(total,small);item.append(main,amount);history.append(item);
+       const remove=document.createElement('button');remove.type='button';remove.className='btn secondary declaration-delete-btn';remove.textContent='Supprimer';
+       remove.addEventListener('click',async()=>{
+        const ok=await siteConfirm('Supprimer cette déclaration partenaire ?', {title:'Supprimer la déclaration',confirmText:'Supprimer'});
+        if(!ok)return;
+        remove.disabled=true;
+        try{
+         await rpc('ae_staff_delete_partner_declaration',{p_token:token,p_declaration_id:row.id});
+         siteToast('Déclaration partenaire supprimée.','success');
+         await loadPartnerDeclarations();
+         await loadManagerPartners();
+        }catch(err){siteToast('Suppression impossible : '+err.message,'error');remove.disabled=false}
+       });
+       amount.append(total,small,remove);item.append(main,amount);history.append(item);
      }
    }
  }catch(err){
@@ -1752,7 +1775,18 @@ function activateAdminTab(name){
  document.querySelectorAll('[data-admin-tab]').forEach(btn=>btn.classList.toggle('active',btn.dataset.adminTab===target));
  document.querySelectorAll('[data-admin-panel]').forEach(panel=>panel.classList.toggle('hidden',panel.dataset.adminPanel!==target));
  localStorage.setItem('ae_admin_tab',target);
+ /* Les cartes d’un panneau précédemment masqué peuvent rester transparentes. */
+ setTimeout(()=>document.querySelectorAll('[data-admin-panel="'+target+'"] .reveal').forEach(node=>node.classList.add('visible')),80);
 }
+function activatePayrollSubtab(name){
+ const target=name==='expenses'?'expenses':'ca';
+ document.querySelectorAll('[data-payroll-tab]').forEach(btn=>btn.classList.toggle('active',btn.dataset.payrollTab===target));
+ document.querySelectorAll('[data-payroll-panel]').forEach(panel=>panel.classList.toggle('hidden',panel.dataset.payrollPanel!==target));
+ localStorage.setItem('ae_payroll_subtab',target);
+ setTimeout(()=>document.querySelectorAll('[data-payroll-panel="'+target+'"] .reveal').forEach(node=>node.classList.add('visible')),80);
+}
+document.querySelectorAll('[data-payroll-tab]').forEach(btn=>btn.addEventListener('click',()=>activatePayrollSubtab(btn.dataset.payrollTab)));
+activatePayrollSubtab(localStorage.getItem('ae_payroll_subtab')||'ca');
 document.querySelectorAll('[data-admin-tab]').forEach(btn=>btn.addEventListener('click',()=>activateAdminTab(btn.dataset.adminTab)));
 {
  const savedAdminTab=localStorage.getItem('ae_admin_tab');
@@ -2332,34 +2366,67 @@ async function loadManagerExpenseNotes(){
  const box=el('managerExpenseNotes');if(!box)return;
  if(!account||!managerRoles.includes(account.role)){box.replaceChildren();return}
  try{
-  const filter=el('expenseStatusFilter')?.value||null;
-  const rows=await rpc('ae_manager_expense_notes',{p_token:token,p_status:filter,p_limit:500});
-  const currentWeekRows=(rows||[]).filter(expenseIsInCurrentWeek);
-  box.replaceChildren();
-  if(!currentWeekRows.length){const p=document.createElement('p');p.className='muted';p.textContent=(box.previousElementSibling?.querySelector('select')?.value==='all')?'Aucune note de frais dans l’historique pour ce filtre.':'Aucune note de frais cette semaine pour ce filtre.';box.append(p);return}
-  const labels={pending:'En attente',approved:'Acceptée',rejected:'Refusée'};
-  for(const row of currentWeekRows){
-   const item=document.createElement('article');item.className='expense-note-card';
-   const top=document.createElement('div');top.className='expense-note-top';
-   const title=document.createElement('strong');title.className='expense-note-title';title.textContent=(row.employee_name||'Employé')+' · '+money(row.amount);
-   const status=document.createElement('span');status.className='expense-note-status '+(row.status||'pending');status.textContent=labels[row.status]||row.status;
-   top.append(title,status);
-   const reason=document.createElement('p');reason.className='expense-note-reason';reason.textContent=row.reason;
-   const meta=document.createElement('div');meta.className='expense-note-meta';
-   const date=document.createElement('span');date.textContent=new Date(row.created_at).toLocaleString('fr-FR');meta.append(date);
-   if(row.receipt_url){const a=document.createElement('button');a.type='button';a.className='expense-receipt-open';a.textContent='Ouvrir le justificatif';a.addEventListener('click',()=>openExpenseReceipt(row.receipt_url));meta.append(a)}
-   item.append(top,reason,meta);
-   if(row.status==='pending'){
-    const actions=document.createElement('div');actions.className='expense-note-actions';
-    for(const [label,statusValue] of [['Accepter','approved'],['Refuser','rejected']]){
-     const btn=document.createElement('button');btn.type='button';btn.className='btn'+(statusValue==='rejected'?' secondary':'');btn.textContent=label;
-     btn.addEventListener('click',async()=>{btn.disabled=true;try{await rpc('ae_manager_review_expense_note',{p_token:token,p_note_id:row.id,p_status:statusValue});siteToast(statusValue==='approved'?'Note de frais acceptée.':'Note de frais refusée.','success');await Promise.all([loadManagerExpenseNotes(),loadStaffExpenseNotes()])}catch(err){siteToast(err.message,'error');btn.disabled=false}});
-     actions.append(btn)
-    }
-    item.append(actions)
-   }
-   box.append(item)
+  /* On charge toutes les notes pour calculer un vrai total par employé, même si un filtre est actif. */
+  const rows=await rpc('ae_manager_expense_notes',{p_token:token,p_status:null,p_limit:1000});
+  const selectedStatus=el('expenseStatusFilter')?.value||'';
+  const grouped=new Map();
+  for(const row of rows||[]){
+   const key=String(row.employee_account_id||row.employee_name||'unknown');
+   if(!grouped.has(key))grouped.set(key,{name:row.employee_name||'Employé',rows:[]});
+   grouped.get(key).rows.push(row);
   }
+  box.replaceChildren();
+  let rendered=0;
+  const labels={pending:'En attente',approved:'Acceptée',rejected:'Refusée'};
+  const sortedGroups=[...grouped.values()].sort((a,b)=>a.name.localeCompare(b.name,'fr'));
+  for(const group of sortedGroups){
+   const visibleRows=group.rows.filter(row=>!selectedStatus||row.status===selectedStatus);
+   if(!visibleRows.length)continue;
+   rendered++;
+   const card=document.createElement('section');card.className='expense-employee-group';
+   const head=document.createElement('div');head.className='expense-employee-head';
+   const heading=document.createElement('h4');heading.textContent=group.name;
+   const totals=document.createElement('div');totals.className='expense-employee-totals';
+   const approvedTotal=group.rows.filter(row=>row.status==='approved').reduce((sum,row)=>sum+Number(row.amount||0),0);
+   const pendingTotal=group.rows.filter(row=>row.status==='pending').reduce((sum,row)=>sum+Number(row.amount||0),0);
+   const rejectedTotal=group.rows.filter(row=>row.status==='rejected').reduce((sum,row)=>sum+Number(row.amount||0),0);
+   for(const [label,value] of [['À rembourser accepté',approvedTotal],['En attente',pendingTotal],['Refusé',rejectedTotal]]){
+    const stat=document.createElement('div');stat.className='expense-employee-total';stat.textContent=label;
+    const strong=document.createElement('strong');strong.textContent=money(value);stat.append(strong);totals.append(stat);
+   }
+   head.append(heading,totals);card.append(head);
+   for(const row of visibleRows){
+    const item=document.createElement('article');item.className='expense-note-card';
+    const top=document.createElement('div');top.className='expense-note-top';
+    const title=document.createElement('strong');title.className='expense-note-title';title.textContent=money(row.amount);
+    const status=document.createElement('span');status.className='expense-note-status '+(row.status||'pending');status.textContent=labels[row.status]||row.status;
+    top.append(title,status);
+    const reason=document.createElement('p');reason.className='expense-note-reason';reason.textContent=row.reason;
+    const meta=document.createElement('div');meta.className='expense-note-meta';
+    const date=document.createElement('span');date.textContent=new Date(row.created_at).toLocaleString('fr-FR');meta.append(date);
+    if(row.receipt_url){const a=document.createElement('button');a.type='button';a.className='expense-receipt-open';a.textContent='Ouvrir le justificatif';a.addEventListener('click',()=>openExpenseReceipt(row.receipt_url));meta.append(a)}
+    item.append(top,reason,meta);
+    if(row.status==='pending'){
+     const actions=document.createElement('div');actions.className='expense-note-actions';
+     for(const [label,statusValue] of [['Accepter','approved'],['Refuser','rejected']]){
+      const btn=document.createElement('button');btn.type='button';btn.className='btn'+(statusValue==='rejected'?' secondary':'');btn.textContent=label;
+      btn.addEventListener('click',async()=>{
+       btn.disabled=true;
+       try{
+        await rpc('ae_manager_review_expense_note',{p_token:token,p_note_id:row.id,p_status:statusValue});
+        siteToast(statusValue==='approved'?'Note de frais acceptée et ajoutée au total de '+group.name+'.':'Note de frais refusée.','success');
+        await Promise.all([loadManagerExpenseNotes(),loadStaffExpenseNotes()]);
+       }catch(err){siteToast(err.message,'error');btn.disabled=false}
+      });
+      actions.append(btn);
+     }
+     item.append(actions);
+    }
+    card.append(item);
+   }
+   box.append(card);
+  }
+  if(!rendered){const p=document.createElement('p');p.className='muted';p.textContent=selectedStatus?'Aucune note de frais pour ce statut.':'Aucune note de frais enregistrée.';box.append(p)}
  }catch(err){box.textContent='Impossible de charger les notes de frais : '+err.message}
 }
 el('payrollWeekPicker')?.addEventListener('change',loadManagerPayroll);
