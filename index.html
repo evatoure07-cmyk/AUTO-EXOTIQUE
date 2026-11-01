@@ -2156,7 +2156,15 @@ body.light .expense-note-card:hover{background:linear-gradient(145deg,#fff,#f0f8
 .expense-employee-group .expense-note-card{margin-top:9px;background:rgba(5,14,19,.22)}
 .declaration-delete-btn{padding:8px 11px!important;font-size:11px!important;white-space:nowrap}
 @media(max-width:600px){.payroll-subtabs{width:100%}.payroll-subtabs .admin-tab{flex:1;min-width:0}.expense-employee-head{display:grid}}
-</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend-admin-v12.js?v=202611011805" defer></script></head><body>
+
+.employee-declaration-history-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line)}
+.employee-declaration-history-row:last-child{border-bottom:0}
+.employee-declaration-history-row strong{display:block;font-size:13px}
+.employee-declaration-history-row small{display:block;color:var(--muted);font-size:11px;margin-top:4px;line-height:1.45}
+.employee-declaration-history-actions{display:flex;align-items:center;gap:8px}
+.employee-declaration-history-type{display:inline-flex;color:var(--cyan);font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+@media(max-width:600px){.employee-declaration-history-row{grid-template-columns:1fr}.employee-declaration-history-actions{justify-content:flex-start}}
+</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend-admin-v12.js?v=202611011830" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
  <button id="theme" class="theme-toggle sidebar-theme-top" type="button" data-label="Changer de thème" aria-label="Passer en mode clair" aria-pressed="false"><span class="theme-icon sun">☀</span><span class="theme-track"><span class="theme-knob"></span></span><span class="theme-icon moon">◐</span></button>
@@ -2246,8 +2254,14 @@ body.light .expense-note-card:hover{background:linear-gradient(145deg,#fff,#f0f8
  <div class="employee-quick-grid">
  <button id="quickDeclareProduction" class="employee-quick-card" type="button"><span class="employee-quick-icon">◇</span><strong>Déclarer ma fabrication</strong></button>
  <button id="quickProductionHistory" class="employee-quick-card" type="button"><span class="employee-quick-icon">≡</span><strong>Mes fabrications</strong></button>
+ <button id="quickAllDeclarationHistory" class="employee-quick-card" type="button"><span class="employee-quick-icon">↻</span><strong>Historique des déclarations</strong></button>
  <button id="quickInternalNews" class="employee-quick-card" type="button"><span class="employee-quick-icon">⌁</span><strong>Annonces</strong></button>
  <a id="staffSpaceAdminLink" class="employee-quick-card hidden" href="#/direction"><span class="employee-quick-icon">▦</span><strong>Administration</strong></a>
+ </div>
+
+ <div id="staffAllDeclarationsCard" class="employee-dashboard-card">
+  <div class="employee-card-title"><div><span class="employee-kicker">MON HISTORIQUE</span><h3>Historique de mes déclarations</h3></div><span class="employee-card-icon">↻</span></div>
+  <div id="staffAllDeclarationsHistory"><p class="muted">Chargement de votre historique…</p></div>
  </div>
 
  <div id="productionDeclareCard" class="employee-dashboard-card production-declare-card">
