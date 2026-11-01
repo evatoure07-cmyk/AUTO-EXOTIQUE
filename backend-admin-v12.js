@@ -161,7 +161,7 @@ async function refresh(){
  updateCheckoutState();
  renderCart();
  if(!connected&&el('authFeedback'))el('authFeedback').textContent='';
- await Promise.all([loadOrders(),loadNotifications(),loadStaff(),loadNews(),loadMyProfile(),loadStaffSpace(),loadStaffProduction(),loadPartnerDeclarations(),managerRefresh(),loadManagerPartners(),loadStaffExpenseNotes(),loadManagerPayroll(),loadManagerExpenseNotes()]);
+ await Promise.all([loadOrders(),loadNotifications(),loadStaff(),loadNews(),loadMyProfile(),loadStaffSpace(),loadStaffProduction(),loadPartnerDeclarations(),loadStaffAllDeclarationsHistory(),managerRefresh(),loadManagerPartners(),loadStaffExpenseNotes(),loadManagerPayroll(),loadManagerExpenseNotes()]);
 }
 
 function initials(name){
@@ -461,6 +461,7 @@ async function loadStaffSpace(){
 
 el('quickDeclareProduction')?.addEventListener('click',()=>el('productionDeclareCard')?.scrollIntoView({behavior:'smooth',block:'start'}));
 el('quickProductionHistory')?.addEventListener('click',()=>el('productionHistoryCard')?.scrollIntoView({behavior:'smooth',block:'start'}));
+el('quickAllDeclarationHistory')?.addEventListener('click',()=>el('staffAllDeclarationsCard')?.scrollIntoView({behavior:'smooth',block:'start'}));
 el('quickInternalNews')?.addEventListener('click',()=>el('internalNewsCard')?.scrollIntoView({behavior:'smooth',block:'start'}));
 
 let productionProducts=[];
@@ -553,6 +554,54 @@ el('productionDeclarationForm')?.addEventListener('submit',async e=>{
  if(button)button.disabled=false;
  }
 });
+
+async function loadStaffAllDeclarationsHistory(){
+ const box=el('staffAllDeclarationsHistory');
+ if(!box)return;
+ if(!account||account.role==='client'){box.replaceChildren();return}
+ try{
+  const [productions,partners]=await Promise.all([
+   rpc('ae_staff_my_production_declarations',{p_token:token,p_limit:200}),
+   rpc('ae_staff_my_partner_declarations',{p_token:token,p_limit:500})
+  ]);
+  const entries=[
+   ...(productions||[]).map(row=>({...row,kind:'production',sortDate:new Date(row.created_at).getTime()})),
+   ...(partners||[]).map(row=>({...row,kind:'partner',sortDate:new Date(row.created_at).getTime()}))
+  ].sort((a,b)=>b.sortDate-a.sortDate);
+  box.replaceChildren();
+  if(!entries.length){const p=document.createElement('p');p.className='muted';p.textContent='Aucune déclaration effectuée pour le moment.';box.append(p);return}
+  for(const row of entries){
+   const item=document.createElement('article');item.className='employee-declaration-history-row';
+   const details=document.createElement('div');
+   const type=document.createElement('span');type.className='employee-declaration-history-type';type.textContent=row.kind==='production'?'Fabrication':'Partenaire';
+   const title=document.createElement('strong');
+   const meta=document.createElement('small');
+   if(row.kind==='production'){
+    title.textContent=row.product_name||'Objet fabriqué';
+    meta.textContent='Quantité : × '+Number(row.quantity||0).toLocaleString('fr-FR')+' · '+new Date(row.created_at).toLocaleString('fr-FR');
+   }else{
+    title.textContent=(row.partner_name||'Partenaire')+' — '+(row.service_name||row.service_type||'Prestation');
+    meta.textContent='Quantité : × '+Number(row.quantity||0).toLocaleString('fr-FR')+' · '+money(row.weekly_due_total)+' · '+new Date(row.created_at).toLocaleString('fr-FR');
+   }
+   details.append(type,title,meta);
+   const actions=document.createElement('div');actions.className='employee-declaration-history-actions';
+   const remove=document.createElement('button');remove.type='button';remove.className='btn secondary declaration-delete-btn';remove.textContent='Supprimer';
+   remove.addEventListener('click',async()=>{
+    const label=row.kind==='production'?'cette déclaration de fabrication':'cette déclaration partenaire';
+    const ok=await siteConfirm('Supprimer '+label+' ?',{title:'Supprimer la déclaration',confirmText:'Supprimer'});
+    if(!ok)return;
+    remove.disabled=true;
+    try{
+     if(row.kind==='production')await rpc('ae_staff_delete_production_declaration',{p_token:token,p_declaration_id:row.id});
+     else await rpc('ae_staff_delete_partner_declaration',{p_token:token,p_declaration_id:row.id});
+     siteToast('Déclaration supprimée.','success');
+     await Promise.all([loadStaffAllDeclarationsHistory(),loadStaffProduction(),loadPartnerDeclarations(),loadManagerProductionDeclarations(),loadManagerPartners()]);
+    }catch(err){siteToast('Suppression impossible : '+err.message,'error');remove.disabled=false}
+   });
+   actions.append(remove);item.append(details,actions);box.append(item);
+  }
+ }catch(err){box.textContent='Historique des déclarations indisponible : '+err.message}
+}
 
 async function loadNotifications(){
  const list=el('notificationsList'),badge=el('notificationBadge');if(!list||!badge)return;
