@@ -2412,6 +2412,7 @@ async function loadManagerPayroll(){
  }catch(err){stats.replaceChildren();table.textContent='Impossible de charger le bilan : '+err.message}
 }
 async function loadManagerExpenseNotes(){
+ const selectedFilter=el('expenseStatusFilter')?.value||'pending';
  const box=el('managerExpenseNotes');if(!box)return;
  if(!account||!managerRoles.includes(account.role)){box.replaceChildren();return}
  try{
@@ -2459,7 +2460,7 @@ async function loadManagerExpenseNotes(){
   const controls=document.createElement('div');controls.className='expense-filter-control';
   const filter=document.createElement('select');filter.id='expenseStatusFilter';filter.setAttribute('aria-label','Filtrer les demandes');
   [['pending','En attente'],['rejected','Refusées'],['all','Toutes les demandes']].forEach(([value,label])=>{const option=document.createElement('option');option.value=value;option.textContent=label;filter.append(option)});
-  filter.value=el('expenseStatusFilter')?.value||'pending';controls.append(filter);requestsHead.append(requestsTitle,controls);requestsSection.append(requestsHead);
+  filter.value=selectedFilter;controls.append(filter);requestsHead.append(requestsTitle,controls);requestsSection.append(requestsHead);
   const requestRows=all.filter(r=>r.status!=='approved').filter(r=>filter.value==='all'||r.status===filter.value).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   const requestWrap=document.createElement('div');requestWrap.className='table-wrap expense-table-wrap';
   const requestTable=document.createElement('table');requestTable.className='admin-table expense-table expense-request-table';
