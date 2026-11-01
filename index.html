@@ -2146,6 +2146,22 @@ body.light .expense-note-card:hover{background:linear-gradient(145deg,#fff,#f0f8
 /* Déclarations : sous-rubriques CA / notes de frais et totaux par employé */
 
 /* Tableau de bord notes de frais — présentation compacte et cohérente avec le CA */
+
+/* Conteneur notes de frais : pleine largeur, pas de grille héritée des cartes employé */
+.expense-manager-dashboard{display:block!important;width:100%;max-width:none;min-width:0;margin-top:16px}
+.expense-manager-dashboard>.expense-overview,.expense-manager-dashboard>.expense-section{width:100%;max-width:none;grid-column:1/-1}
+.expense-manager-dashboard .expense-table-wrap{width:100%;max-width:none;overflow-x:auto}
+.expense-manager-dashboard .expense-table{width:100%;min-width:0;table-layout:auto}
+.expense-manager-dashboard .expense-table th,.expense-manager-dashboard .expense-table td{padding:15px 18px;font-size:13px}
+.expense-manager-dashboard .expense-table th{font-size:10px}
+.expense-manager-dashboard .expense-request-identity{width:34%;min-width:220px}
+.expense-manager-dashboard .expense-money-cell{min-width:130px}
+.expense-manager-dashboard .expense-decision-cell{min-width:170px}
+.expense-manager-dashboard .expense-overview{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.expense-manager-dashboard .expense-metric{min-height:112px;justify-content:center;padding:20px 22px}
+.expense-manager-dashboard .expense-metric>strong{font-size:28px}
+@media(max-width:700px){.expense-manager-dashboard .expense-overview{grid-template-columns:1fr 1fr}.expense-manager-dashboard .expense-table{min-width:650px}}
+
 .expense-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:4px 0 24px}
 .expense-metric{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0;padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}
 .expense-metric:before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--cyan);opacity:.9}
@@ -2207,7 +2223,7 @@ body.light .expense-table th{background:#f4f8f9}
 .employee-declaration-history-actions{display:flex;align-items:center;gap:8px}
 .employee-declaration-history-type{display:inline-flex;color:var(--cyan);font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
 @media(max-width:600px){.employee-declaration-history-row{grid-template-columns:1fr}.employee-declaration-history-actions{justify-content:flex-start}}
-</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend-admin-v12.js?v=202611011703" defer></script></head><body>
+</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend-admin-v12.js?v=202611011706" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
  <button id="theme" class="theme-toggle sidebar-theme-top" type="button" data-label="Changer de thème" aria-label="Passer en mode clair" aria-pressed="false"><span class="theme-icon sun">☀</span><span class="theme-track"><span class="theme-knob"></span></span><span class="theme-icon moon">◐</span></button>
@@ -2633,7 +2649,7 @@ body.light .expense-table th{background:#f4f8f9}
   <div class="card">
    <div class="panel-heading"><div><span class="tag">REMBOURSEMENTS</span><h3>Notes de frais des employés</h3></div><small class="muted">Les montants acceptés sont totalisés par employé.</small></div>
    <div class="admin-toolbar"><label for="expenseStatusFilter">Demandes</label><select id="expenseStatusFilter"><option value="pending" selected>En attente</option><option value="rejected">Refusées</option><option value="all">Toutes les demandes restantes</option></select></div>
-   <div id="managerExpenseNotes" class="expense-note-list"><p class="muted">Chargement…</p></div>
+   <div id="managerExpenseNotes" class="expense-manager-dashboard"><p class="muted">Chargement…</p></div>
   </div>
  </div>
  </div>
