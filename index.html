@@ -2223,6 +2223,65 @@ body.light .expense-table th{background:#f4f8f9}
 .employee-declaration-history-actions{display:flex;align-items:center;gap:8px}
 .employee-declaration-history-type{display:inline-flex;color:var(--cyan);font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
 @media(max-width:600px){.employee-declaration-history-row{grid-template-columns:1fr}.employee-declaration-history-actions{justify-content:flex-start}}
+
+/* Mobile polish — accueil Auto Exotic */
+@media (max-width: 700px) {
+  body { padding-bottom: calc(94px + env(safe-area-inset-bottom, 0px)); }
+  .home-section { padding: 34px 0 !important; }
+  .home-section .shell { padding-left: 18px !important; padding-right: 18px !important; }
+  .home-section .grid2 {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 14px !important;
+  }
+  .home-section .card {
+    width: 100%;
+    min-width: 0;
+    padding: 21px !important;
+    border-radius: 19px !important;
+  }
+  .home-section .card h2 {
+    font-size: clamp(30px, 8.6vw, 40px) !important;
+    line-height: .98 !important;
+    letter-spacing: -.04em !important;
+    margin: 12px 0 14px !important;
+    overflow-wrap: break-word;
+  }
+  .home-section > .shell > h2 {
+    font-size: clamp(36px, 10vw, 46px) !important;
+    line-height: .98 !important;
+    margin: 12px 0 18px !important;
+    max-width: 100%;
+    overflow-wrap: break-word;
+  }
+  .home-section .muted {
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+    margin: 0 0 16px !important;
+  }
+  .home-section .btn {
+    min-height: 44px;
+    padding: 11px 16px !important;
+    font-size: 13px !important;
+    border-radius: 12px !important;
+  }
+  .home-section.home-alt > .shell {
+    display: block;
+  }
+  .home-section.home-alt > .shell > .eyebrow { margin-bottom: 8px; }
+  .home-section.home-alt > .shell > h2 { margin-bottom: 16px !important; }
+  .home-section + .home-section { border-top: 1px solid rgba(116,190,205,.12); }
+  .mobile-nav {
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+    box-shadow: 0 12px 34px rgba(0,0,0,.38);
+  }
+}
+@media (max-width: 390px) {
+  .home-section .shell { padding-left: 15px !important; padding-right: 15px !important; }
+  .home-section .card { padding: 18px !important; }
+  .home-section .card h2 { font-size: clamp(28px, 8.4vw, 35px) !important; }
+  .home-section > .shell > h2 { font-size: clamp(33px, 9.6vw, 40px) !important; }
+}
+
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend-admin-v12.js?v=202611011706" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
