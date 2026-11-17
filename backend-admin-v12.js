@@ -2411,66 +2411,122 @@ async function loadManagerPayroll(){
   t.append(body);wrap.append(t);table.replaceChildren(wrap);
  }catch(err){stats.replaceChildren();table.textContent='Impossible de charger le bilan : '+err.message}
 }
+function expenseWeekBounds(value){
+ const match=/^(\d{4})-W(\d{2})$/.exec(value||'');
+ if(!match)return null;
+ const year=Number(match[1]),week=Number(match[2]);
+ const jan4=new Date(year,0,4);
+ const monday=new Date(year,0,4-((jan4.getDay()+6)%7)+(week-1)*7);
+ const next=new Date(monday);next.setDate(next.getDate()+7);
+ return {start:monday,end:next};
+}
+function expenseIsoWeek(date){
+ const d=new Date(date);d.setHours(0,0,0,0);
+ d.setDate(d.getDate()+3-((d.getDay()+6)%7));
+ const year=d.getFullYear(),first=new Date(year,0,4);
+ const monday=new Date(first);monday.setDate(first.getDate()-((first.getDay()+6)%7));
+ const week=1+Math.round((d-monday)/604800000);
+ return year+'-W'+String(week).padStart(2,'0');
+}
+function ensureExpenseStyles(){
+ if(document.getElementById('expenseWeeklyStyles'))return;
+ const style=document.createElement('style');style.id='expenseWeeklyStyles';
+ style.textContent='.expense-week-toolbar{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin:18px 0 22px;padding:16px;border:1px solid var(--line);border-radius:18px;background:var(--soft)}.expense-week-field{display:grid;gap:6px;min-width:180px;flex:1}.expense-week-field label{font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.expense-week-field input,.expense-week-field select{width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);color:var(--text)}.expense-history{margin-top:22px;padding:18px;border:1px solid var(--line);border-radius:18px;background:var(--panel)}.expense-history-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.expense-history-head h4{margin:0}.expense-history-head p{margin:5px 0 0;color:var(--muted);font-size:12px}.expense-history .table-wrap{margin-top:14px}.expense-history-empty{padding:16px;color:var(--muted)}.expense-employee-filter{min-width:230px}.expense-period-label{font-size:12px;color:var(--muted);margin:0 0 12px}.expense-request-identity{min-width:180px}';
+ document.head.append(style);
+}
 async function loadManagerExpenseNotes(){
  const selectedFilter=el('expenseStatusFilter')?.value||'pending';
+ const selectedWeek=el('expenseWeekPicker')?.value||currentIsoWeekValue();
+ const selectedEmployee=el('expenseEmployeeFilter')?.value||'all';
  const box=el('managerExpenseNotes');if(!box)return;
  if(!account||!managerRoles.includes(account.role)){box.replaceChildren();return}
  try{
   const rows=await rpc('ae_manager_expense_notes',{p_token:token,p_status:null,p_limit:1000});
-  const groups=new Map();
-  for(const row of rows||[]){
-   const key=String(row.employee_account_id||row.employee_name||'unknown');
-   if(!groups.has(key))groups.set(key,{name:row.employee_name||'Employé',approved:0,approvedCount:0,requests:[]});
-   const group=groups.get(key);
-   if(row.status==='approved'){group.approved+=Number(row.amount||0);group.approvedCount++}
-   else group.requests.push(row);
-  }
   const all=rows||[];
   const pending=all.filter(r=>r.status==='pending');
   const accepted=all.filter(r=>r.status==='approved');
   const rejected=all.filter(r=>r.status==='rejected');
   const sum=list=>list.reduce((n,r)=>n+Number(r.amount||0),0);
+  const bounds=expenseWeekBounds(selectedWeek);
+  const inWeek=row=>{const d=new Date(row.created_at);return bounds&&d>=bounds.start&&d<bounds.end};
+  const weeklyAccepted=accepted.filter(inWeek);
+  const historyCutoff=new Date(Date.now()-14*24*60*60*1000);
+  const recentAccepted=accepted.filter(r=>new Date(r.created_at)>=historyCutoff).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  const employees=[...new Map(all.map(r=>[String(r.employee_account_id||r.employee_name||'unknown'),{id:String(r.employee_account_id||r.employee_name||'unknown'),name:r.employee_name||'Employé'}])).values()].sort((a,b)=>a.name.localeCompare(b.name,'fr'));
+  ensureExpenseStyles();
   box.replaceChildren();
 
+  const toolbar=document.createElement('div');toolbar.className='expense-week-toolbar';
+  const weekField=document.createElement('div');weekField.className='expense-week-field';
+  const weekLabel=document.createElement('label');weekLabel.htmlFor='expenseWeekPicker';weekLabel.textContent='Semaine à consulter';
+  const weekInput=document.createElement('input');weekInput.type='week';weekInput.id='expenseWeekPicker';weekInput.value=selectedWeek;
+  weekField.append(weekLabel,weekInput);
+  const employeeField=document.createElement('div');employeeField.className='expense-week-field expense-employee-filter';
+  const employeeLabel=document.createElement('label');employeeLabel.htmlFor='expenseEmployeeFilter';employeeLabel.textContent='Filtrer par employé';
+  const employeeSelect=document.createElement('select');employeeSelect.id='expenseEmployeeFilter';
+  const everyone=document.createElement('option');everyone.value='all';everyone.textContent='Tous les employés';employeeSelect.append(everyone);
+  for(const employee of employees){const option=document.createElement('option');option.value=employee.id;option.textContent=employee.name;employeeSelect.append(option)}
+  employeeSelect.value=employees.some(e=>e.id===selectedEmployee)?selectedEmployee:'all';
+  employeeField.append(employeeLabel,employeeSelect);
+  const currentButton=document.createElement('button');currentButton.type='button';currentButton.className='btn secondary';currentButton.textContent='Cette semaine';
+  currentButton.addEventListener('click',()=>{weekInput.value=currentIsoWeekValue();loadManagerExpenseNotes()});
+  toolbar.append(weekField,employeeField,currentButton);box.append(toolbar);
+  const filtered=list=>employeeSelect.value==='all'?list:list.filter(r=>String(r.employee_account_id||r.employee_name||'unknown')===employeeSelect.value);
+  const shownWeekly=filtered(weeklyAccepted);
+  const shownPending=filtered(pending),shownRejected=filtered(rejected);
   const overview=document.createElement('div');overview.className='expense-overview';
   const metric=(label,value,detail,kind)=>{const card=document.createElement('article');card.className='expense-metric '+(kind||'');const cap=document.createElement('span');cap.textContent=label;const strong=document.createElement('strong');strong.textContent=value;const small=document.createElement('small');small.textContent=detail;card.append(cap,strong,small);overview.append(card)};
-  metric('À valider',String(pending.length),money(sum(pending))+' en attente','pending');
-  metric('Validées',String(accepted.length),money(sum(accepted))+' à rembourser','approved');
-  metric('Refusées',String(rejected.length),money(sum(rejected))+' au total','rejected');
+  metric('Notes acceptées cette semaine',String(shownWeekly.length),money(sum(shownWeekly))+' à rembourser','approved');
+  metric('À valider',String(shownPending.length),money(sum(shownPending))+' en attente','pending');
+  metric('Refusées',String(shownRejected.length),money(sum(shownRejected))+' au total','rejected');
   box.append(overview);
+  const weekLabelText=bounds?bounds.start.toLocaleDateString('fr-FR')+' au '+new Date(bounds.end.getTime()-86400000).toLocaleDateString('fr-FR'):'Semaine sélectionnée';
+  const period=document.createElement('p');period.className='expense-period-label';period.textContent='Période : '+weekLabelText+' · Les notes sont classées selon leur date de dépôt.';box.append(period);
 
   const acceptedSection=document.createElement('section');acceptedSection.className='expense-section';
   const acceptedHead=document.createElement('div');acceptedHead.className='expense-section-head';
-  const acceptedTitle=document.createElement('div');const at=document.createElement('h4');at.textContent='Récapitulatif des employés';const as=document.createElement('p');as.textContent='Seuls les employés ayant au moins un remboursement accepté apparaissent ici.';acceptedTitle.append(at,as);
-  const acceptedTotal=document.createElement('strong');acceptedTotal.className='expense-section-total';acceptedTotal.textContent=money(sum(accepted));
+  const acceptedTitle=document.createElement('div');const at=document.createElement('h4');at.textContent='Récapitulatif des remboursements';const as=document.createElement('p');as.textContent='Uniquement les notes acceptées pendant la semaine sélectionnée.';acceptedTitle.append(at,as);
+  const acceptedTotal=document.createElement('strong');acceptedTotal.className='expense-section-total';acceptedTotal.textContent=money(sum(shownWeekly));
   acceptedHead.append(acceptedTitle,acceptedTotal);acceptedSection.append(acceptedHead);
   const acceptedWrap=document.createElement('div');acceptedWrap.className='table-wrap expense-table-wrap';
   const acceptedTable=document.createElement('table');acceptedTable.className='admin-table expense-table';
-  const acceptedHeadRow=document.createElement('tr');['Employé','Notes validées','Total remboursable'].forEach(label=>{const th=document.createElement('th');th.textContent=label;acceptedHeadRow.append(th)});
+  const acceptedHeadRow=document.createElement('tr');['Employé','Notes acceptées','Total à rembourser'].forEach(label=>{const th=document.createElement('th');th.textContent=label;acceptedHeadRow.append(th)});
   const acceptedThead=document.createElement('thead');acceptedThead.append(acceptedHeadRow);acceptedTable.append(acceptedThead);
-  const acceptedBody=document.createElement('tbody');
-  const employeeRows=[...groups.values()].filter(g=>g.approvedCount>0).sort((a,b)=>a.name.localeCompare(b.name,'fr'));
-  for(const g of employeeRows){const tr=document.createElement('tr');const name=document.createElement('td');name.textContent=g.name;const count=document.createElement('td');count.textContent=String(g.approvedCount);const amount=document.createElement('td');amount.className='expense-money-cell';amount.textContent=money(g.approved);tr.append(name,count,amount);acceptedBody.append(tr)}
-  if(!employeeRows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=3;td.className='expense-empty-cell';td.textContent='Aucun remboursement validé pour le moment.';tr.append(td);acceptedBody.append(tr)}
+  const acceptedBody=document.createElement('tbody');const groups=new Map();
+  for(const row of shownWeekly){const key=String(row.employee_account_id||row.employee_name||'unknown');if(!groups.has(key))groups.set(key,{name:row.employee_name||'Employé',count:0,total:0});const g=groups.get(key);g.count++;g.total+=Number(row.amount||0)}
+  for(const g of [...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,'fr'))){const tr=document.createElement('tr');[g.name,String(g.count),money(g.total)].forEach((value,index)=>{const td=document.createElement('td');td.textContent=value;if(index===2)td.className='expense-money-cell';tr.append(td)});acceptedBody.append(tr)}
+  if(!groups.size){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=3;td.className='expense-empty-cell';td.textContent='Aucun remboursement accepté pour cette semaine.';tr.append(td);acceptedBody.append(tr)}
   acceptedTable.append(acceptedBody);acceptedWrap.append(acceptedTable);acceptedSection.append(acceptedWrap);box.append(acceptedSection);
+
+  const history=document.createElement('section');history.className='expense-history';
+  const historyHead=document.createElement('div');historyHead.className='expense-history-head';const historyTitle=document.createElement('div');
+  const ht=document.createElement('h4');ht.textContent='Historique récent';const hs=document.createElement('p');hs.textContent='Notes acceptées au cours des 14 derniers jours. Elles disparaissent ensuite de cet aperçu, mais restent archivées avec leurs justificatifs.';historyTitle.append(ht,hs);
+  const historyTotal=document.createElement('strong');historyTotal.textContent=money(sum(filtered(recentAccepted)));historyHead.append(historyTitle,historyTotal);history.append(historyHead);
+  const historyRows=filtered(recentAccepted);const historyWrap=document.createElement('div');historyWrap.className='table-wrap';
+  const historyTable=document.createElement('table');historyTable.className='admin-table expense-table';
+  const historyHeader=document.createElement('tr');['Employé','Motif','Montant','Date','Justificatif'].forEach(label=>{const th=document.createElement('th');th.textContent=label;historyHeader.append(th)});
+  const historyThead=document.createElement('thead');historyThead.append(historyHeader);historyTable.append(historyThead);
+  const historyBody=document.createElement('tbody');
+  for(const row of historyRows){const tr=document.createElement('tr');const values=[row.employee_name||'Employé',row.reason||'Sans motif',money(row.amount),row.created_at?new Date(row.created_at).toLocaleDateString('fr-FR'):'—'];values.forEach((value,index)=>{const td=document.createElement('td');td.textContent=value;if(index===2)td.className='expense-money-cell';tr.append(td)});const receipt=document.createElement('td');if(row.receipt_url){const view=document.createElement('button');view.type='button';view.className='expense-table-link';view.textContent='Voir le justificatif';view.addEventListener('click',()=>openExpenseReceipt(row.receipt_url));receipt.append(view)}else{receipt.textContent='—';receipt.className='muted'}tr.append(receipt);historyBody.append(tr)}
+  if(!historyRows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=5;td.className='expense-empty-cell';td.textContent='Aucune note acceptée au cours des 14 derniers jours.';tr.append(td);historyBody.append(tr)}
+  historyTable.append(historyBody);historyWrap.append(historyTable);history.append(historyWrap);box.append(history);
 
   const requestsSection=document.createElement('section');requestsSection.className='expense-section expense-requests-section';
   const requestsHead=document.createElement('div');requestsHead.className='expense-section-head';
   const requestsTitle=document.createElement('div');const rt=document.createElement('h4');rt.textContent='Suivi des demandes';const rs=document.createElement('p');rs.textContent='Consulte les justificatifs et traite les demandes en attente.';requestsTitle.append(rt,rs);
   const controls=document.createElement('div');controls.className='expense-filter-control';
   const filter=document.createElement('select');filter.id='expenseStatusFilter';filter.setAttribute('aria-label','Filtrer les demandes');
-  [['pending','En attente'],['rejected','Refusées'],['all','Toutes les demandes']].forEach(([value,label])=>{const option=document.createElement('option');option.value=value;option.textContent=label;filter.append(option)});
+  [['pending','En attente'],['rejected','Refusées'],['approved','Acceptées'],['all','Toutes les demandes']].forEach(([value,label])=>{const option=document.createElement('option');option.value=value;option.textContent=label;filter.append(option)});
   filter.value=selectedFilter;controls.append(filter);requestsHead.append(requestsTitle,controls);requestsSection.append(requestsHead);
-  const requestRows=all.filter(r=>r.status!=='approved').filter(r=>filter.value==='all'||r.status===filter.value).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  const requestRows=filtered(all.filter(r=>filter.value==='all'||r.status===filter.value)).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   const requestWrap=document.createElement('div');requestWrap.className='table-wrap expense-table-wrap';
   const requestTable=document.createElement('table');requestTable.className='admin-table expense-table expense-request-table';
-  const requestHeader=document.createElement('tr');['Employé / motif','Montant','Date','Justificatif','Décision'].forEach(label=>{const th=document.createElement('th');th.textContent=label;requestHeader.append(th)});
+  const requestHeader=document.createElement('tr');['Employé / motif','Montant','Date','Justificatif','Statut / décision'].forEach(label=>{const th=document.createElement('th');th.textContent=label;requestHeader.append(th)});
   const requestThead=document.createElement('thead');requestThead.append(requestHeader);requestTable.append(requestThead);
-  const requestBody=document.createElement('tbody');
-  const labels={pending:'En attente',rejected:'Refusée'};
+  const requestBody=document.createElement('tbody');const labels={pending:'En attente',approved:'Acceptée',rejected:'Refusée'};
   for(const row of requestRows){
-   const tr=document.createElement('tr');
-   const detail=document.createElement('td');detail.className='expense-request-identity';const who=document.createElement('strong');who.textContent=row.employee_name||'Employé';const reason=document.createElement('span');reason.textContent=row.reason||'Sans motif';const status=document.createElement('small');status.className='expense-status-text '+(row.status||'');status.textContent=labels[row.status]||row.status;detail.append(who,reason,status);
+   const tr=document.createElement('tr');const detail=document.createElement('td');detail.className='expense-request-identity';
+   const who=document.createElement('strong');who.textContent=row.employee_name||'Employé';const reason=document.createElement('span');reason.textContent=row.reason||'Sans motif';const status=document.createElement('small');status.className='expense-status-text '+(row.status||'');status.textContent=labels[row.status]||row.status;detail.append(who,reason,status);
    const amount=document.createElement('td');amount.className='expense-money-cell';amount.textContent=money(row.amount);
    const date=document.createElement('td');date.className='expense-date-cell';date.textContent=row.created_at?new Date(row.created_at).toLocaleDateString('fr-FR'):'—';
    const receipt=document.createElement('td');if(row.receipt_url){const view=document.createElement('button');view.type='button';view.className='expense-table-link';view.textContent='Voir';view.addEventListener('click',()=>openExpenseReceipt(row.receipt_url));receipt.append(view)}else{receipt.textContent='—';receipt.className='muted'}
@@ -2478,14 +2534,16 @@ async function loadManagerExpenseNotes(){
    if(row.status==='pending'){
     const accept=document.createElement('button');accept.type='button';accept.className='btn expense-accept-btn';accept.textContent='Accepter';
     const refuse=document.createElement('button');refuse.type='button';refuse.className='btn secondary expense-refuse-btn';refuse.textContent='Refuser';
-    const decide=async statusValue=>{accept.disabled=true;refuse.disabled=true;try{await rpc('ae_manager_review_expense_note',{p_token:token,p_note_id:row.id,p_status:statusValue});siteToast(statusValue==='approved'?'Note acceptée et ajoutée au total de '+(row.employee_name||'l’employé')+'.':'Note de frais refusée.', 'success');await Promise.all([loadManagerExpenseNotes(),loadStaffExpenseNotes()])}catch(err){siteToast(err.message,'error');accept.disabled=false;refuse.disabled=false}};
+    const decide=async statusValue=>{accept.disabled=true;refuse.disabled=true;try{await rpc('ae_manager_review_expense_note',{p_token:token,p_note_id:row.id,p_status:statusValue});siteToast(statusValue==='approved'?'Note acceptée et ajoutée au total de '+(row.employee_name||'l’employé')+'.':'Note de frais refusée.','success');await Promise.all([loadManagerExpenseNotes(),loadStaffExpenseNotes()])}catch(err){siteToast(err.message,'error');accept.disabled=false;refuse.disabled=false}};
     accept.addEventListener('click',()=>decide('approved'));refuse.addEventListener('click',()=>decide('rejected'));decision.append(accept,refuse);
-   }else{const tag=document.createElement('span');tag.className='expense-status-pill rejected';tag.textContent='Refusée';decision.append(tag)}
+   }else{const tag=document.createElement('span');tag.className='expense-status-pill '+row.status;tag.textContent=labels[row.status]||row.status;decision.append(tag)}
    tr.append(detail,amount,date,receipt,decision);requestBody.append(tr);
   }
-  if(!requestRows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=5;td.className='expense-empty-cell';td.textContent=filter.value==='pending'?'Aucune demande en attente.':filter.value==='rejected'?'Aucune demande refusée.':'Aucune demande à afficher.';tr.append(td);requestBody.append(tr)}
+  if(!requestRows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=5;td.className='expense-empty-cell';td.textContent='Aucune demande à afficher pour ce filtre.';tr.append(td);requestBody.append(tr)}
   requestTable.append(requestBody);requestWrap.append(requestTable);requestsSection.append(requestWrap);box.append(requestsSection);
-  filter.addEventListener('change',()=>{const current=filter.value;const old=el('expenseStatusFilter');if(old)old.value=current;loadManagerExpenseNotes()});
+  weekInput.addEventListener('change',loadManagerExpenseNotes);
+  employeeSelect.addEventListener('change',loadManagerExpenseNotes);
+  filter.addEventListener('change',loadManagerExpenseNotes);
  }catch(err){box.textContent='Impossible de charger les notes de frais : '+err.message}
 }
 el('payrollWeekPicker')?.addEventListener('change',loadManagerPayroll);
