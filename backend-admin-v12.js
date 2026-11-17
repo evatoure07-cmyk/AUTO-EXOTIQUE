@@ -2514,11 +2514,9 @@ async function loadManagerExpenseNotes(){
   const requestsSection=document.createElement('section');requestsSection.className='expense-section expense-requests-section';
   const requestsHead=document.createElement('div');requestsHead.className='expense-section-head';
   const requestsTitle=document.createElement('div');const rt=document.createElement('h4');rt.textContent='Suivi des demandes';const rs=document.createElement('p');rs.textContent='Consulte les justificatifs et traite les demandes en attente.';requestsTitle.append(rt,rs);
-  const controls=document.createElement('div');controls.className='expense-filter-control';
-  const filter=document.createElement('select');filter.id='expenseStatusFilter';filter.setAttribute('aria-label','Filtrer les demandes');
-  [['pending','En attente'],['rejected','Refusées'],['approved','Acceptées'],['all','Toutes les demandes']].forEach(([value,label])=>{const option=document.createElement('option');option.value=value;option.textContent=label;filter.append(option)});
-  filter.value=selectedFilter;controls.append(filter);requestsHead.append(requestsTitle,controls);requestsSection.append(requestsHead);
-  const requestRows=filtered(all.filter(r=>filter.value==='all'||r.status===filter.value)).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  const filter=el('expenseStatusFilter');if(filter)filter.value=selectedFilter;
+  requestsHead.append(requestsTitle);requestsSection.append(requestsHead);
+  const requestRows=filtered(all.filter(r=>(filter?.value||selectedFilter)==='all'||r.status===(filter?.value||selectedFilter))).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   const requestWrap=document.createElement('div');requestWrap.className='table-wrap expense-table-wrap';
   const requestTable=document.createElement('table');requestTable.className='admin-table expense-table expense-request-table';
   const requestHeader=document.createElement('tr');['Employé / motif','Montant','Date','Justificatif','Statut / décision'].forEach(label=>{const th=document.createElement('th');th.textContent=label;requestHeader.append(th)});
@@ -2543,7 +2541,6 @@ async function loadManagerExpenseNotes(){
   requestTable.append(requestBody);requestWrap.append(requestTable);requestsSection.append(requestWrap);box.append(requestsSection);
   weekInput.addEventListener('change',loadManagerExpenseNotes);
   employeeSelect.addEventListener('change',loadManagerExpenseNotes);
-  filter.addEventListener('change',loadManagerExpenseNotes);
  }catch(err){box.textContent='Impossible de charger les notes de frais : '+err.message}
 }
 el('payrollWeekPicker')?.addEventListener('change',loadManagerPayroll);
