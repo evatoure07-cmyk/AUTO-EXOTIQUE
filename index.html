@@ -2282,7 +2282,29 @@ body.light .expense-table th{background:#f4f8f9}
   .home-section > .shell > h2 { font-size: clamp(33px, 9.6vw, 40px) !important; }
 }
 
-</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend-admin-v12.js?v=202611011706" defer></script></head><body>
+
+/* Harmonisation des panneaux internes et du fond Partenaires */
+#direction{overflow-x:clip}
+#direction .admin-panel[data-admin-panel="partners"]{width:100%;max-width:100%;min-width:0;padding-bottom:28px;background:transparent!important;isolation:isolate}
+#direction .admin-panel[data-admin-panel="partners"] .partner-tab-panel{width:100%;max-width:100%;min-width:0;overflow:visible;background:transparent!important}
+#direction .admin-panel[data-admin-panel="partners"] .partner-admin-workspace,
+#direction .admin-panel[data-admin-panel="partners"] .partner-admin-main,
+#direction .admin-panel[data-admin-panel="partners"] .partner-config-editor{min-width:0;max-width:100%;background:transparent}
+#direction .admin-panel[data-admin-panel="partners"] .card,
+#direction .admin-panel[data-admin-panel="partners"] .partner-directory-card{background:linear-gradient(145deg,var(--panel),var(--panel2))}
+#direction .admin-panel[data-admin-panel="partners"] .partner-config-section{background:var(--panel)}
+.production-top-card{display:grid;gap:8px;align-content:start;min-width:0}
+.production-top-name{font-size:17px!important;line-height:1.25;overflow-wrap:anywhere}
+.production-top-card>strong:not(.production-top-name){font:800 25px Rajdhani,sans-serif;color:var(--cyan)}
+.production-top-card>span:last-child{font-size:10px;color:var(--muted)}
+.production-history-details{margin-top:18px;padding:15px 17px;border:1px solid var(--line);border-radius:15px;background:var(--soft)}
+.production-history-details>summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:850}
+.production-history-details>summary span{color:var(--cyan);font-variant-numeric:tabular-nums}
+.production-history-details[open]>div{margin-top:14px}
+#managerProductionHistory .production-admin-row{border-top:1px solid var(--line)}
+#employeeGeneratedLogin{opacity:.9;letter-spacing:.02em}
+@media(max-width:700px){#direction .admin-panel[data-admin-panel="partners"]{padding-bottom:18px}.production-top-card{padding:16px}.production-history-details{padding:13px}}
+</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script><script src="backend-admin-v12.js?v=202611182355" defer></script></head><body>
 <header class="nav"><div class="shell bar">
  <div class="brand-row"><a class="brand" href="#/accueil">AUTO <span>EXOTIC</span></a><button id="sidebarCollapse" class="sidebar-collapse" type="button" aria-label="Réduire la barre" data-label="Réduire la barre">‹</button></div>
  <button id="theme" class="theme-toggle sidebar-theme-top" type="button" data-label="Changer de thème" aria-label="Passer en mode clair" aria-pressed="false"><span class="theme-icon sun">☀</span><span class="theme-track"><span class="theme-knob"></span></span><span class="theme-icon moon">◐</span></button>
@@ -2493,7 +2515,7 @@ body.light .expense-table th{background:#f4f8f9}
  <button class="admin-tab active" type="button" data-admin-tab="dashboard">Tableau de bord</button>
  <button class="admin-tab" type="button" data-admin-tab="orders">Commandes</button>
  <button class="admin-tab" type="button" data-admin-tab="clients">Clients</button>
- <button class="admin-tab" type="button" data-admin-tab="rh">RH</button><button class="admin-tab" type="button" data-admin-tab="production">Fabrications</button>
+ <button class="admin-tab" type="button" data-admin-tab="rh">RH</button><button class="admin-tab" type="button" data-admin-tab="announcements">Annonces employés</button><button class="admin-tab" type="button" data-admin-tab="production">Fabrications</button>
  <button class="admin-tab hidden" type="button" data-admin-tab="purchase" id="adminPurchaseTab">Calcul achat</button>
  <button class="admin-tab" type="button" data-admin-tab="partners">Partenaires</button>
  <button class="admin-tab" type="button" data-admin-tab="payroll">CA & Notes de frais</button>
@@ -2520,7 +2542,7 @@ body.light .expense-table th{background:#f4f8f9}
  </div>
  </div>
 
- <div class="admin-panel hidden" data-admin-panel="rh">
+  <div class="admin-panel hidden" data-admin-panel="announcements">
  <div class="card internal-announcement-admin">
  <div class="panel-heading"><div><span class="tag">INTERNE</span><h3>Annonces employés</h3></div></div>
  <form id="internalAnnouncementForm" class="form">
@@ -2531,15 +2553,18 @@ body.light .expense-table th{background:#f4f8f9}
  </form>
  <div id="managerInternalAnnouncements" class="internal-announcement-admin-list"></div>
  </div>
+ </div>
+
+<div class="admin-panel hidden" data-admin-panel="rh">
  <div class="admin-team-heading"><span class="tag">RH</span><h2>Espace RH</h2><p class="muted">Créez les comptes employés, attribuez les grades et gérez les profils internes.</p></div>
  <div class="card account-management">
  <div class="panel-heading"><div><span class="tag">NOUVEL EMPLOYÉ</span><h3>Créer un compte</h3></div></div>
  <p class="muted">Le mot de passe temporaire est affiché une seule fois puis l'employé doit le remplacer à sa première connexion.</p>
  <form id="employeeAccountForm" class="form employee-account-form">
- <div class="grid2"><input required placeholder="Prénom"/><input required placeholder="Nom"/></div>
- <input required pattern="[a-zA-Z0-9._-]{3,40}" placeholder="Identifiant (ex. prenom.nom)"/>
+ <div class="grid2"><input id="employeeFirstName" required placeholder="Prénom"/><input id="employeeLastName" required placeholder="Nom"/></div>
+ <input id="employeeGeneratedLogin" type="text" readonly required pattern="[a-zA-Z0-9._-]{3,40}" placeholder="Identifiant généré automatiquement" aria-label="Identifiant employé généré automatiquement"/>
  <select required id="employeeRoleSelect">
- <option value="mecano_novice">Mécano novice</option><option value="mecano_intermediaire">Mécano intermédiaire</option><option value="mecano_experimente">Mécano expérimenté</option><option value="chef_equipe">Chef d’équipe</option><option value="rh">RH</option><option value="drh">DRH</option><option value="assistant_direction">Assistante de direction</option><option value="copatron">Co-patron</option><option value="patron">Patron</option>
+ <option value="mecano_novice">Mécano novice</option><option value="mecano_intermediaire">Mécano intermédiaire</option><option value="mecano_experimente">Mécano expérimenté</option><option value="chef_equipe">Chef d’équipe</option><option value="manager">Manager</option><option value="rh">RH</option><option value="drh">DRH</option><option value="assistant_direction">Assistante de direction</option><option value="copatron">Co-patron</option><option value="patron">Patron</option>
  </select>
  <button class="btn" type="submit">Créer le compte</button>
  </form>
@@ -2549,7 +2574,7 @@ body.light .expense-table th{background:#f4f8f9}
  <div class="panel-heading"><div><span class="tag">MEMBRES</span><h3>Comptes & profils</h3></div></div>
  <div class="admin-toolbar admin-toolbar-grid">
  <input id="managerEmployeeSearch" type="search" placeholder="Rechercher un employé"/>
- <select id="managerEmployeeRole"><option value="">Tous les grades</option><option value="mecano_novice">Mécano novice</option><option value="mecano_intermediaire">Mécano intermédiaire</option><option value="mecano_experimente">Mécano expérimenté</option><option value="chef_equipe">Chef d'équipe</option><option value="rh">RH</option><option value="drh">DRH</option><option value="assistant_direction">Assistante de direction</option><option value="copatron">Co-patron</option><option value="patron">Patron</option></select>
+ <select id="managerEmployeeRole"><option value="">Tous les grades</option><option value="mecano_novice">Mécano novice</option><option value="mecano_intermediaire">Mécano intermédiaire</option><option value="mecano_experimente">Mécano expérimenté</option><option value="chef_equipe">Chef d'équipe</option><option value="manager">Manager</option><option value="rh">RH</option><option value="drh">DRH</option><option value="assistant_direction">Assistante de direction</option><option value="copatron">Co-patron</option><option value="patron">Patron</option></select>
  </div>
  <div id="managerEmployees">Chargement...</div>
  </div>
@@ -2557,9 +2582,19 @@ body.light .expense-table th{background:#f4f8f9}
 
  <div class="admin-panel hidden" data-admin-panel="production">
  <div class="card">
- <div class="panel-heading"><div><span class="tag">FABRICATIONS</span><h3>Déclarations des employés</h3></div></div>
- <div class="admin-toolbar"><input id="managerProductionSearch" type="search" placeholder="Rechercher un employé ou un objet"/></div>
- <div id="managerProductionDeclarations">Chargement...</div>
+  <div class="panel-heading"><div><span class="tag">FABRICATIONS</span><h3>Top 3 — production totale</h3></div><small class="muted">Classement depuis le début des déclarations.</small></div>
+  <div id="managerProductionTop" class="stats-grid compact-stats"></div>
+ </div>
+ <div class="card" style="margin-top:18px">
+  <div class="panel-heading"><div><span class="tag">SUIVI HEBDOMADAIRE</span><h3>Déclarations des employés</h3></div></div>
+  <div class="admin-toolbar"><label for="managerProductionWeekPicker">Semaine</label><input id="managerProductionWeekPicker" type="week"/><button id="managerProductionCurrentWeek" class="btn secondary" type="button">Cette semaine</button><span id="managerProductionWeekLabel" class="muted"></span></div>
+  <div class="admin-toolbar"><input id="managerProductionSearch" type="search" placeholder="Rechercher un employé ou un objet"/></div>
+  <div class="panel-heading"><div><h3>Les 10 dernières déclarations</h3><small class="muted">Pour la semaine sélectionnée.</small></div></div>
+  <div id="managerProductionDeclarations">Chargement...</div>
+  <details id="managerProductionHistoryDetails" class="production-history-details">
+   <summary>Historique de la semaine <span id="managerProductionHistoryCount">0</span></summary>
+   <div id="managerProductionHistory"></div>
+  </details>
  </div>
  </div>
 
