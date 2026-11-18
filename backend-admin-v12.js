@@ -855,7 +855,7 @@ function canAssignRoleUI(role){
  return false;
 }
 
-function normalizeEmployeeLoginPart(value){return String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'.').replace(/^\\.+|\\.+$/g,'')}
+function normalizeEmployeeLoginPart(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'.').replace(/^\.+|\.+$/g,'')}
 function syncEmployeeGeneratedLogin(){const first=el('employeeFirstName'),last=el('employeeLastName'),login=el('employeeGeneratedLogin');if(!first||!last||!login)return;const a=normalizeEmployeeLoginPart(first.value),b=normalizeEmployeeLoginPart(last.value);login.value=a&&b?(a+'.'+b).slice(0,40):''}
 el('employeeFirstName')?.addEventListener('input',syncEmployeeGeneratedLogin);el('employeeLastName')?.addEventListener('input',syncEmployeeGeneratedLogin);syncEmployeeGeneratedLogin();
 el('employeeAccountForm')?.addEventListener('submit',async e=>{
