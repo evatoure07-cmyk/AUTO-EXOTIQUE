@@ -149,3 +149,42 @@ $function$;
 
 revoke all on function public.ae_manager_production_top_three(text) from public;
 grant execute on function public.ae_manager_production_top_three(text) to anon, authenticated;
+
+
+create or replace function public.ae_manager_update_employee_role(
+ p_token text,p_account_id uuid,p_new_role text,p_reason text default null
+)
+returns boolean language plpgsql security definer
+set search_path to 'public','private'
+as $function$
+declare actor uuid; old text;
+begin
+ actor:=private.ae_require_direction(p_token);
+ if actor=p_account_id then raise exception 'Vous ne pouvez pas modifier votre propre rôle'; end if;
+ select role into old from public.ae_accounts where id=p_account_id and active=true;
+ if old is null or old='client' then raise exception 'Compte employé introuvable'; end if;
+ if not private.ae_can_assign_role(actor,old) or not private.ae_can_assign_role(actor,p_new_role) then
+  raise exception 'Vous ne pouvez pas effectuer cette modification';
+ end if;
+ if old=p_new_role then return true; end if;
+ update public.ae_accounts set role=p_new_role,updated_at=now() where id=p_account_id;
+ insert into public.ae_role_history(account_id,changed_by,old_role,new_role,reason)
+ values(p_account_id,actor,old,p_new_role,nullif(trim(coalesce(p_reason,'')), ''));
+ perform private.ae_notify_account(
+  p_account_id,
+  case when
+   (case p_new_role when 'patron' then 10 when 'copatron' then 9 when 'assistant_direction' then 8
+    when 'drh' then 7 when 'rh' then 6 when 'manager' then 5 when 'chef_equipe' then 4
+    when 'mecano_experimente' then 3 when 'mecano_intermediaire' then 2 else 1 end)
+   >
+   (case old when 'patron' then 10 when 'copatron' then 9 when 'assistant_direction' then 8
+    when 'drh' then 7 when 'rh' then 6 when 'manager' then 5 when 'chef_equipe' then 4
+    when 'mecano_experimente' then 3 when 'mecano_intermediaire' then 2 else 1 end)
+   then 'Promotion' else 'Changement de grade' end,
+  'Votre grade Auto Exotic est passé de '||old||' à '||p_new_role||'.','team'
+ );
+ perform private.ae_admin_log(actor,p_account_id,'role_changed',
+  jsonb_build_object('old_role',old,'new_role',p_new_role,'reason',nullif(trim(coalesce(p_reason,'')), '')));
+ return true;
+end
+$function$;
