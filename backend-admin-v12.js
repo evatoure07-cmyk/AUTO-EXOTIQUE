@@ -43,9 +43,9 @@ function updateCheckoutState(){
  if(el('checkoutIban'))el('checkoutIban').value=myProfile?.iban_rp||'';
  }
 }
-const managerRoles=['rh','drh','assistant_direction','copatron','patron'];
-const roleLabels={client:'Client',mecano_novice:'Mécano novice',mecano_intermediaire:'Mécano intermédiaire',mecano_experimente:'Mécano expérimenté',chef_equipe:"Chef d'équipe",rh:'RH',drh:'DRH',assistant_direction:'Assistante de direction',copatron:'Co-patron',patron:'Patron'};
-const employeeRoles=['mecano_novice','mecano_intermediaire','mecano_experimente','chef_equipe','rh','drh','assistant_direction','copatron','patron'];
+const managerRoles=['manager','rh','drh','assistant_direction','copatron','patron'];
+const roleLabels={client:'Client',mecano_novice:'Mécano novice',mecano_intermediaire:'Mécano intermédiaire',mecano_experimente:'Mécano expérimenté',chef_equipe:"Chef d'équipe",manager:'Manager',rh:'RH',drh:'DRH',assistant_direction:'Assistante de direction',copatron:'Co-patron',patron:'Patron'};
+const employeeRoles=['mecano_novice','mecano_intermediaire','mecano_experimente','chef_equipe','manager','rh','drh','assistant_direction','copatron','patron'];
 
 async function rpc(name,args={}){
   const {data,error}=await db.rpc(name,args);
@@ -849,11 +849,15 @@ function showTemporaryCredential(login,password,label='Mot de passe temporaire')
 function canAssignRoleUI(role){
  if(!account)return false;
  if(['assistant_direction','copatron','patron'].includes(account.role))return employeeRoles.includes(role);
+ if(account.role==='manager')return ['mecano_novice','mecano_intermediaire','mecano_experimente','chef_equipe'].includes(role);
  if(account.role==='drh')return ['mecano_novice','mecano_intermediaire','mecano_experimente','chef_equipe','rh'].includes(role);
  if(account.role==='rh')return ['mecano_novice','mecano_intermediaire','mecano_experimente','chef_equipe'].includes(role);
  return false;
 }
 
+function normalizeEmployeeLoginPart(value){return String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'.').replace(/^\\.+|\\.+$/g,'')}
+function syncEmployeeGeneratedLogin(){const first=el('employeeFirstName'),last=el('employeeLastName'),login=el('employeeGeneratedLogin');if(!first||!last||!login)return;const a=normalizeEmployeeLoginPart(first.value),b=normalizeEmployeeLoginPart(last.value);login.value=a&&b?(a+'.'+b).slice(0,40):''}
+el('employeeFirstName')?.addEventListener('input',syncEmployeeGeneratedLogin);el('employeeLastName')?.addEventListener('input',syncEmployeeGeneratedLogin);syncEmployeeGeneratedLogin();
 el('employeeAccountForm')?.addEventListener('submit',async e=>{
  e.preventDefault();
  const form=e.currentTarget;
@@ -869,6 +873,7 @@ el('employeeAccountForm')?.addEventListener('submit',async e=>{
  p_role:fields[3].value
  });
  safeReset(form);
+ syncEmployeeGeneratedLogin();
  showTemporaryCredential(result.login,result.temporary_password);
  await Promise.all([managerRefresh(),loadStaff(),loadNotifications()]);
  }catch(err){siteToast('Création impossible : '+err.message)}
@@ -1861,37 +1866,27 @@ el('managerEmployeeSearch')?.addEventListener('input',filterManagerEmployees);
 el('managerEmployeeRole')?.addEventListener('change',filterManagerEmployees);
 
 function filterManagerProduction(){
- const q=(el('managerProductionSearch')?.value||'').trim().toLowerCase();
- document.querySelectorAll('#managerProductionDeclarations .production-admin-row').forEach(row=>{
- row.classList.toggle('is-filtered',q&&!String(row.dataset.search||'').includes(q));
- });
+ const q=(el('managerProductionSearch')?.value||'').trim().toLocaleLowerCase('fr');
+ document.querySelectorAll('#managerProductionDeclarations .production-admin-row,#managerProductionHistory .production-admin-row').forEach(row=>row.classList.toggle('is-filtered',!!q&&!String(row.dataset.search||'').includes(q)));
+ const history=el('managerProductionHistoryDetails');if(q&&history&&el('managerProductionHistory')?.querySelector('.production-admin-row:not(.is-filtered)'))history.open=true;
 }
 el('managerProductionSearch')?.addEventListener('input',filterManagerProduction);
-
-async function loadManagerProductionDeclarations(){
- const box=el('managerProductionDeclarations');
- if(!box||!account||!managerRoles.includes(account.role))return;
- try{
- const rows=await rpc('ae_manager_production_declarations',{p_token:token,p_limit:250});
- box.replaceChildren();
- if(!rows?.length){
- const p=document.createElement('p');p.className='muted';p.textContent='Aucune fabrication déclarée.';box.append(p);return;
- }
- for(const row of rows){
- const item=document.createElement('div');item.className='production-admin-row';
- item.dataset.search=((row.employee||'')+' '+(row.product_name||'')+' '+(roleLabels[row.role]||row.role)).toLowerCase();
- const top=document.createElement('div');top.className='production-admin-top';
- const left=document.createElement('div');
- const strong=document.createElement('strong');strong.textContent=row.employee;
- const meta=document.createElement('div');meta.className='production-admin-meta';meta.textContent=(roleLabels[row.role]||row.role)+' · '+row.product_name+' · '+new Date(row.created_at).toLocaleString('fr-FR');
- left.append(strong,meta);
- const qty=document.createElement('div');qty.className='production-qty';qty.textContent='× '+Number(row.quantity||0).toLocaleString('fr-FR');
- top.append(left,qty);item.append(top);box.append(item);
- }
- filterManagerProduction();
- }catch(err){box.textContent='Fabrications indisponibles : '+err.message}
+el('managerProductionWeekPicker')?.addEventListener('change',loadManagerProductionDeclarations);
+el('managerProductionCurrentWeek')?.addEventListener('click',()=>{if(el('managerProductionWeekPicker'))el('managerProductionWeekPicker').value=currentIsoWeekValue();loadManagerProductionDeclarations()});
+function renderProductionRows(target,rows){
+ if(!target)return;target.replaceChildren();
+ if(!rows.length){const p=document.createElement('p');p.className='muted';p.textContent='Aucune fabrication pour cette période.';target.append(p);return}
+ for(const row of rows){const item=document.createElement('div');item.className='production-admin-row';item.dataset.search=((row.employee||'')+' '+(row.product_name||'')+' '+(roleLabels[row.role]||row.role)).toLocaleLowerCase('fr');const top=document.createElement('div');top.className='production-admin-top';const left=document.createElement('div');const strong=document.createElement('strong');strong.textContent=row.employee||'Employé';const date=new Date(row.created_at);const meta=document.createElement('div');meta.className='production-admin-meta';meta.textContent=(roleLabels[row.role]||row.role)+' · '+(row.product_name||'Fabrication')+' · '+(Number.isNaN(date.getTime())?'Date inconnue':date.toLocaleString('fr-FR'));left.append(strong,meta);const qty=document.createElement('div');qty.className='production-qty';qty.textContent='× '+Number(row.quantity||0).toLocaleString('fr-FR');top.append(left,qty);item.append(top);target.append(item)}
 }
-
+async function loadManagerProductionDeclarations(){
+ const box=el('managerProductionDeclarations'),history=el('managerProductionHistory'),topBox=el('managerProductionTop');if(!box||!account||!managerRoles.includes(account.role))return;
+ try{
+  const weekInput=el('managerProductionWeekPicker');if(weekInput&&!weekInput.value)weekInput.value=currentIsoWeekValue();const weekValue=weekInput?.value||currentIsoWeekValue(),weekStart=isoWeekMonday(weekValue);
+  const [rows,topRows]=await Promise.all([rpc('ae_manager_production_declarations',{p_token:token,p_limit:10000}),rpc('ae_manager_production_top_three',{p_token:token})]);
+  if(topBox){topBox.replaceChildren();if(!(topRows||[]).length){const empty=document.createElement('p');empty.className='muted';empty.textContent='Le classement apparaîtra dès les premières fabrications.';topBox.append(empty)}else (topRows||[]).forEach((row,index)=>{const card=document.createElement('article');card.className='stat-card production-top-card';const rank=document.createElement('span');rank.className='tag';rank.textContent='TOP '+(index+1);const name=document.createElement('strong');name.className='production-top-name';name.textContent=row.employee||'Employé';const qty=document.createElement('strong');qty.textContent='× '+Number(row.total_quantity||0).toLocaleString('fr-FR');const count=document.createElement('span');count.textContent=Number(row.declaration_count||0).toLocaleString('fr-FR')+' déclaration(s)';card.append(rank,name,qty,count);topBox.append(card)})}
+  const start=weekStart?new Date(weekStart+'T00:00:00'):null,end=start?new Date(start.getTime()+7*86400000):null;const weekly=(rows||[]).filter(row=>{const d=new Date(row.created_at);return start&&end&&!Number.isNaN(d.getTime())&&d>=start&&d<end});weekly.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));renderProductionRows(box,weekly.slice(0,10));renderProductionRows(history,weekly.slice(10));const details=el('managerProductionHistoryDetails');if(details)details.open=false;const count=el('managerProductionHistoryCount');if(count)count.textContent=String(Math.max(0,weekly.length-10));const label=el('managerProductionWeekLabel');if(label)label.textContent='Semaine '+weekValue.replace(/^\\d{4}-W/,'');filterManagerProduction();
+ }catch(err){box.textContent='Fabrications indisponibles : '+err.message;if(history)history.replaceChildren();if(topBox)topBox.textContent='Classement indisponible : '+err.message}
+}
 const discordFunctionUrl='https://gkljzpwfmthzjgfzzeoy.supabase.co/functions/v1/auto-exotic-discord';
 async function triggerDiscordSync(retryFailed=false){
  if(!token)return null;
@@ -2435,112 +2430,42 @@ function ensureExpenseStyles(){
  document.head.append(style);
 }
 async function loadManagerExpenseNotes(){
- const selectedFilter=el('expenseStatusFilter')?.value||'pending';
- const selectedWeek=el('expenseWeekPicker')?.value||currentIsoWeekValue();
- const selectedEmployee=el('expenseEmployeeFilter')?.value||'all';
- const box=el('managerExpenseNotes');if(!box)return;
- if(!account||!managerRoles.includes(account.role)){box.replaceChildren();return}
+ const selectedFilter=el('expenseStatusFilter')?.value||'pending',selectedWeek=el('expenseWeekPicker')?.value||currentIsoWeekValue(),selectedEmployee=el('expenseEmployeeFilter')?.value||'all',selectedRange=el('expenseHistoryRange')?.value||'7d',selectedSearch=el('expenseHistorySearch')?.value||'',box=el('managerExpenseNotes');
+ if(!box)return;if(!account||!managerRoles.includes(account.role)){box.replaceChildren();return}
  try{
-  const rows=await rpc('ae_manager_expense_notes',{p_token:token,p_status:null,p_limit:1000});
-  const all=rows||[];
-  const pending=all.filter(r=>r.status==='pending');
-  const accepted=all.filter(r=>r.status==='approved');
-  const rejected=all.filter(r=>r.status==='rejected');
-  const sum=list=>list.reduce((n,r)=>n+Number(r.amount||0),0);
-  const bounds=expenseWeekBounds(selectedWeek);
-  const inWeek=row=>{const d=new Date(row.created_at);return bounds&&d>=bounds.start&&d<bounds.end};
-  const weeklyAccepted=accepted.filter(inWeek);
-  const historyCutoff=new Date(Date.now()-14*24*60*60*1000);
-  const recentAccepted=accepted.filter(r=>new Date(r.created_at)>=historyCutoff).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  const rows=await rpc('ae_manager_expense_notes',{p_token:token,p_status:null,p_limit:1000}),all=rows||[],sum=list=>list.reduce((n,r)=>n+Number(r.amount||0),0),bounds=expenseWeekBounds(selectedWeek);
+  const inWeek=row=>{const d=new Date(row.created_at);return !!bounds&&!Number.isNaN(d.getTime())&&d>=bounds.start&&d<bounds.end},weekly=all.filter(inWeek),weekAccepted=weekly.filter(r=>r.status==='approved'),weekPending=weekly.filter(r=>r.status==='pending'),weekRejected=weekly.filter(r=>r.status==='rejected');
   const employees=[...new Map(all.map(r=>[String(r.employee_account_id||r.employee_name||'unknown'),{id:String(r.employee_account_id||r.employee_name||'unknown'),name:r.employee_name||'Employé'}])).values()].sort((a,b)=>a.name.localeCompare(b.name,'fr'));
-  ensureExpenseStyles();
-  box.replaceChildren();
-
-  const toolbar=document.createElement('div');toolbar.className='expense-week-toolbar';
-  const weekField=document.createElement('div');weekField.className='expense-week-field';
-  const weekLabel=document.createElement('label');weekLabel.htmlFor='expenseWeekPicker';weekLabel.textContent='Semaine à consulter';
-  const weekInput=document.createElement('input');weekInput.type='week';weekInput.id='expenseWeekPicker';weekInput.value=selectedWeek;
-  weekField.append(weekLabel,weekInput);
-  const employeeField=document.createElement('div');employeeField.className='expense-week-field expense-employee-filter';
-  const employeeLabel=document.createElement('label');employeeLabel.htmlFor='expenseEmployeeFilter';employeeLabel.textContent='Filtrer par employé';
-  const employeeSelect=document.createElement('select');employeeSelect.id='expenseEmployeeFilter';
-  const everyone=document.createElement('option');everyone.value='all';everyone.textContent='Tous les employés';employeeSelect.append(everyone);
-  for(const employee of employees){const option=document.createElement('option');option.value=employee.id;option.textContent=employee.name;employeeSelect.append(option)}
-  employeeSelect.value=employees.some(e=>e.id===selectedEmployee)?selectedEmployee:'all';
-  employeeField.append(employeeLabel,employeeSelect);
-  const currentButton=document.createElement('button');currentButton.type='button';currentButton.className='btn secondary';currentButton.textContent='Cette semaine';
-  currentButton.addEventListener('click',()=>{weekInput.value=currentIsoWeekValue();loadManagerExpenseNotes()});
-  toolbar.append(weekField,employeeField,currentButton);box.append(toolbar);
-  const filtered=list=>employeeSelect.value==='all'?list:list.filter(r=>String(r.employee_account_id||r.employee_name||'unknown')===employeeSelect.value);
-  const shownWeekly=filtered(weeklyAccepted);
-  const shownPending=filtered(pending),shownRejected=filtered(rejected);
-  const overview=document.createElement('div');overview.className='expense-overview';
+  ensureExpenseStyles();box.replaceChildren();const toolbar=document.createElement('div');toolbar.className='expense-week-toolbar';
+  const addField=(labelText,node,extra='')=>{const field=document.createElement('div');field.className='expense-week-field '+extra;const label=document.createElement('label');label.textContent=labelText;label.htmlFor=node.id;field.append(label,node);toolbar.append(field)};
+  const weekInput=document.createElement('input');weekInput.type='week';weekInput.id='expenseWeekPicker';weekInput.value=selectedWeek;addField('Semaine à consulter',weekInput);
+  const employeeSelect=document.createElement('select');employeeSelect.id='expenseEmployeeFilter';const everyone=document.createElement('option');everyone.value='all';everyone.textContent='Tous les employés';employeeSelect.append(everyone);for(const employee of employees){const option=document.createElement('option');option.value=employee.id;option.textContent=employee.name;employeeSelect.append(option)}employeeSelect.value=employees.some(e=>e.id===selectedEmployee)?selectedEmployee:'all';addField('Filtrer par employé',employeeSelect,'expense-employee-filter');
+  const rangeSelect=document.createElement('select');rangeSelect.id='expenseHistoryRange';[['30m','30 dernières minutes'],['1h','Dernière heure'],['24h','Dernières 24 heures'],['3d','3 derniers jours'],['7d','7 derniers jours'],['all','Tout l’historique']].forEach(([value,label])=>{const option=document.createElement('option');option.value=value;option.textContent=label;rangeSelect.append(option)});rangeSelect.value=selectedRange;addField('Période de l’historique',rangeSelect);
+  const search=document.createElement('input');search.type='search';search.id='expenseHistorySearch';search.placeholder='Rechercher un employé, un motif ou un valideur';search.value=selectedSearch;addField('Recherche historique',search,'expense-employee-filter');
+  const currentButton=document.createElement('button');currentButton.type='button';currentButton.className='btn secondary';currentButton.textContent='Cette semaine';currentButton.addEventListener('click',()=>{weekInput.value=currentIsoWeekValue();loadManagerExpenseNotes()});toolbar.append(currentButton);box.append(toolbar);
+  const selectedByEmployee=list=>employeeSelect.value==='all'?list:list.filter(r=>String(r.employee_account_id||r.employee_name||'unknown')===employeeSelect.value),overview=document.createElement('div');overview.className='expense-overview';
   const metric=(label,value,detail,kind)=>{const card=document.createElement('article');card.className='expense-metric '+(kind||'');const cap=document.createElement('span');cap.textContent=label;const strong=document.createElement('strong');strong.textContent=value;const small=document.createElement('small');small.textContent=detail;card.append(cap,strong,small);overview.append(card)};
-  metric('Notes acceptées cette semaine',String(shownWeekly.length),money(sum(shownWeekly))+' à rembourser','approved');
-  metric('À valider',String(shownPending.length),money(sum(shownPending))+' en attente','pending');
-  metric('Refusées',String(shownRejected.length),money(sum(shownRejected))+' au total','rejected');
-  box.append(overview);
-  const weekLabelText=bounds?bounds.start.toLocaleDateString('fr-FR')+' au '+new Date(bounds.end.getTime()-86400000).toLocaleDateString('fr-FR'):'Semaine sélectionnée';
-  const period=document.createElement('p');period.className='expense-period-label';period.textContent='Période : '+weekLabelText+' · Les notes sont classées selon leur date de dépôt.';box.append(period);
-
-  const acceptedSection=document.createElement('section');acceptedSection.className='expense-section';
-  const acceptedHead=document.createElement('div');acceptedHead.className='expense-section-head';
-  const acceptedTitle=document.createElement('div');const at=document.createElement('h4');at.textContent='Récapitulatif des remboursements';const as=document.createElement('p');as.textContent='Uniquement les notes acceptées pendant la semaine sélectionnée.';acceptedTitle.append(at,as);
-  const acceptedTotal=document.createElement('strong');acceptedTotal.className='expense-section-total';acceptedTotal.textContent=money(sum(shownWeekly));
-  acceptedHead.append(acceptedTitle,acceptedTotal);acceptedSection.append(acceptedHead);
-  const acceptedWrap=document.createElement('div');acceptedWrap.className='table-wrap expense-table-wrap';
-  const acceptedTable=document.createElement('table');acceptedTable.className='admin-table expense-table';
-  const acceptedHeadRow=document.createElement('tr');['Employé','Notes acceptées','Total à rembourser'].forEach(label=>{const th=document.createElement('th');th.textContent=label;acceptedHeadRow.append(th)});
-  const acceptedThead=document.createElement('thead');acceptedThead.append(acceptedHeadRow);acceptedTable.append(acceptedThead);
-  const acceptedBody=document.createElement('tbody');const groups=new Map();
-  for(const row of shownWeekly){const key=String(row.employee_account_id||row.employee_name||'unknown');if(!groups.has(key))groups.set(key,{name:row.employee_name||'Employé',count:0,total:0});const g=groups.get(key);g.count++;g.total+=Number(row.amount||0)}
+  metric('Acceptées — semaine '+selectedWeek.split('-W')[1],String(weekAccepted.length),money(sum(weekAccepted))+' à rembourser','approved');metric('En attente — semaine '+selectedWeek.split('-W')[1],String(weekPending.length),money(sum(weekPending))+' à valider','pending');metric('Refusées — semaine '+selectedWeek.split('-W')[1],String(weekRejected.length),money(sum(weekRejected))+' refusés','rejected');box.append(overview);
+  const period=document.createElement('p');period.className='expense-period-label';period.textContent='Période sélectionnée : '+(bounds?bounds.start.toLocaleDateString('fr-FR')+' au '+new Date(bounds.end.getTime()-86400000).toLocaleDateString('fr-FR'):'Semaine sélectionnée')+'. Les trois statuts sont rattachés à cette semaine.';box.append(period);
+  const acceptedSection=document.createElement('section');acceptedSection.className='expense-section';const acceptedHead=document.createElement('div');acceptedHead.className='expense-section-head';const acceptedTitle=document.createElement('div'),at=document.createElement('h4'),as=document.createElement('p');at.textContent='Récapitulatif des remboursements';as.textContent='Notes acceptées pendant la semaine choisie.';acceptedTitle.append(at,as);const acceptedTotal=document.createElement('strong');acceptedTotal.className='expense-section-total';acceptedTotal.textContent=money(sum(selectedByEmployee(weekAccepted)));acceptedHead.append(acceptedTitle,acceptedTotal);acceptedSection.append(acceptedHead);
+  const acceptedWrap=document.createElement('div');acceptedWrap.className='table-wrap expense-table-wrap';const acceptedTable=document.createElement('table');acceptedTable.className='admin-table expense-table';const acceptedHeader=document.createElement('tr');['Employé','Notes acceptées','Total à rembourser'].forEach(label=>{const th=document.createElement('th');th.textContent=label;acceptedHeader.append(th)});const acceptedThead=document.createElement('thead');acceptedThead.append(acceptedHeader);acceptedTable.append(acceptedThead);const acceptedBody=document.createElement('tbody'),groups=new Map();
+  for(const row of selectedByEmployee(weekAccepted)){const key=String(row.employee_account_id||row.employee_name||'unknown');if(!groups.has(key))groups.set(key,{name:row.employee_name||'Employé',count:0,total:0});const g=groups.get(key);g.count++;g.total+=Number(row.amount||0)}
   for(const g of [...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,'fr'))){const tr=document.createElement('tr');[g.name,String(g.count),money(g.total)].forEach((value,index)=>{const td=document.createElement('td');td.textContent=value;if(index===2)td.className='expense-money-cell';tr.append(td)});acceptedBody.append(tr)}
-  if(!groups.size){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=3;td.className='expense-empty-cell';td.textContent='Aucun remboursement accepté pour cette semaine.';tr.append(td);acceptedBody.append(tr)}
-  acceptedTable.append(acceptedBody);acceptedWrap.append(acceptedTable);acceptedSection.append(acceptedWrap);box.append(acceptedSection);
-
-  const history=document.createElement('section');history.className='expense-history';
-  const historyHead=document.createElement('div');historyHead.className='expense-history-head';const historyTitle=document.createElement('div');
-  const ht=document.createElement('h4');ht.textContent='Historique récent';const hs=document.createElement('p');hs.textContent='Notes acceptées au cours des 14 derniers jours. Elles disparaissent ensuite de cet aperçu, mais restent archivées avec leurs justificatifs.';historyTitle.append(ht,hs);
-  const historyTotal=document.createElement('strong');historyTotal.textContent=money(sum(filtered(recentAccepted)));historyHead.append(historyTitle,historyTotal);history.append(historyHead);
-  const historyRows=filtered(recentAccepted);const historyWrap=document.createElement('div');historyWrap.className='table-wrap';
-  const historyTable=document.createElement('table');historyTable.className='admin-table expense-table';
-  const historyHeader=document.createElement('tr');['Employé','Motif','Montant','Date','Justificatif'].forEach(label=>{const th=document.createElement('th');th.textContent=label;historyHeader.append(th)});
-  const historyThead=document.createElement('thead');historyThead.append(historyHeader);historyTable.append(historyThead);
-  const historyBody=document.createElement('tbody');
-  for(const row of historyRows){const tr=document.createElement('tr');const values=[row.employee_name||'Employé',row.reason||'Sans motif',money(row.amount),row.created_at?new Date(row.created_at).toLocaleDateString('fr-FR'):'—'];values.forEach((value,index)=>{const td=document.createElement('td');td.textContent=value;if(index===2)td.className='expense-money-cell';tr.append(td)});const receipt=document.createElement('td');if(row.receipt_url){const view=document.createElement('button');view.type='button';view.className='expense-table-link';view.textContent='Voir le justificatif';view.addEventListener('click',()=>openExpenseReceipt(row.receipt_url));receipt.append(view)}else{receipt.textContent='—';receipt.className='muted'}tr.append(receipt);historyBody.append(tr)}
-  if(!historyRows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=5;td.className='expense-empty-cell';td.textContent='Aucune note acceptée au cours des 14 derniers jours.';tr.append(td);historyBody.append(tr)}
-  historyTable.append(historyBody);historyWrap.append(historyTable);history.append(historyWrap);box.append(history);
-
-  const requestsSection=document.createElement('section');requestsSection.className='expense-section expense-requests-section';
-  const requestsHead=document.createElement('div');requestsHead.className='expense-section-head';
-  const requestsTitle=document.createElement('div');const rt=document.createElement('h4');rt.textContent='Suivi des demandes';const rs=document.createElement('p');rs.textContent='Consulte les justificatifs et traite les demandes en attente.';requestsTitle.append(rt,rs);
-  const filter=el('expenseStatusFilter');if(filter)filter.value=selectedFilter;
-  requestsHead.append(requestsTitle);requestsSection.append(requestsHead);
-  const requestRows=filtered(all.filter(r=>(filter?.value||selectedFilter)==='all'||r.status===(filter?.value||selectedFilter))).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-  const requestWrap=document.createElement('div');requestWrap.className='table-wrap expense-table-wrap';
-  const requestTable=document.createElement('table');requestTable.className='admin-table expense-table expense-request-table';
-  const requestHeader=document.createElement('tr');['Employé / motif','Montant','Date','Justificatif','Statut / décision'].forEach(label=>{const th=document.createElement('th');th.textContent=label;requestHeader.append(th)});
-  const requestThead=document.createElement('thead');requestThead.append(requestHeader);requestTable.append(requestThead);
-  const requestBody=document.createElement('tbody');const labels={pending:'En attente',approved:'Acceptée',rejected:'Refusée'};
-  for(const row of requestRows){
-   const tr=document.createElement('tr');const detail=document.createElement('td');detail.className='expense-request-identity';
-   const who=document.createElement('strong');who.textContent=row.employee_name||'Employé';const reason=document.createElement('span');reason.textContent=row.reason||'Sans motif';const status=document.createElement('small');status.className='expense-status-text '+(row.status||'');status.textContent=labels[row.status]||row.status;detail.append(who,reason,status);
-   const amount=document.createElement('td');amount.className='expense-money-cell';amount.textContent=money(row.amount);
-   const date=document.createElement('td');date.className='expense-date-cell';date.textContent=row.created_at?new Date(row.created_at).toLocaleDateString('fr-FR'):'—';
-   const receipt=document.createElement('td');if(row.receipt_url){const view=document.createElement('button');view.type='button';view.className='expense-table-link';view.textContent='Voir';view.addEventListener('click',()=>openExpenseReceipt(row.receipt_url));receipt.append(view)}else{receipt.textContent='—';receipt.className='muted'}
-   const decision=document.createElement('td');decision.className='expense-decision-cell';
-   if(row.status==='pending'){
-    const accept=document.createElement('button');accept.type='button';accept.className='btn expense-accept-btn';accept.textContent='Accepter';
-    const refuse=document.createElement('button');refuse.type='button';refuse.className='btn secondary expense-refuse-btn';refuse.textContent='Refuser';
-    const decide=async statusValue=>{accept.disabled=true;refuse.disabled=true;try{await rpc('ae_manager_review_expense_note',{p_token:token,p_note_id:row.id,p_status:statusValue});siteToast(statusValue==='approved'?'Note acceptée et ajoutée au total de '+(row.employee_name||'l’employé')+'.':'Note de frais refusée.','success');await Promise.all([loadManagerExpenseNotes(),loadStaffExpenseNotes()])}catch(err){siteToast(err.message,'error');accept.disabled=false;refuse.disabled=false}};
-    accept.addEventListener('click',()=>decide('approved'));refuse.addEventListener('click',()=>decide('rejected'));decision.append(accept,refuse);
-   }else{const tag=document.createElement('span');tag.className='expense-status-pill '+row.status;tag.textContent=labels[row.status]||row.status;decision.append(tag)}
-   tr.append(detail,amount,date,receipt,decision);requestBody.append(tr);
-  }
-  if(!requestRows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=5;td.className='expense-empty-cell';td.textContent='Aucune demande à afficher pour ce filtre.';tr.append(td);requestBody.append(tr)}
-  requestTable.append(requestBody);requestWrap.append(requestTable);requestsSection.append(requestWrap);box.append(requestsSection);
-  weekInput.addEventListener('change',loadManagerExpenseNotes);
-  employeeSelect.addEventListener('change',loadManagerExpenseNotes);
+  if(!groups.size){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=3;td.className='expense-empty-cell';td.textContent='Aucun remboursement accepté pour cette semaine.';tr.append(td);acceptedBody.append(tr)}acceptedTable.append(acceptedBody);acceptedWrap.append(acceptedTable);acceptedSection.append(acceptedWrap);box.append(acceptedSection);
+  const now=Date.now(),cutoffs={'30m':now-1800000,'1h':now-3600000,'24h':now-86400000,'3d':now-3*86400000,'7d':now-7*86400000},term=selectedSearch.trim().toLocaleLowerCase('fr');
+  const historyRows=selectedByEmployee(all).filter(row=>{const d=new Date(row.created_at),inRange=selectedRange==='all'||(!Number.isNaN(d.getTime())&&d.getTime()>=cutoffs[selectedRange]),haystack=[row.employee_name,row.reason,row.reviewed_by,row.status].join(' ').toLocaleLowerCase('fr');return inRange&&(!term||haystack.includes(term))}).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  const history=document.createElement('section');history.className='expense-history';const historyHead=document.createElement('div');historyHead.className='expense-history-head';const historyTitle=document.createElement('div'),ht=document.createElement('h4'),hs=document.createElement('p');ht.textContent='Historique des notes de frais';hs.textContent='Tous les statuts sont conservés. Recherche par employé, motif ou personne ayant traité la demande.';historyTitle.append(ht,hs);const historyTotal=document.createElement('strong');historyTotal.textContent=historyRows.length+' résultat(s)';historyHead.append(historyTitle,historyTotal);history.append(historyHead);
+  const historyWrap=document.createElement('div');historyWrap.className='table-wrap';const historyTable=document.createElement('table');historyTable.className='admin-table expense-table';const historyHeader=document.createElement('tr');['Employé','Motif','Montant','Date','Traité par','Statut','Justificatif'].forEach(label=>{const th=document.createElement('th');th.textContent=label;historyHeader.append(th)});const historyThead=document.createElement('thead');historyThead.append(historyHeader);historyTable.append(historyThead);const historyBody=document.createElement('tbody'),statusLabels={pending:'En attente',approved:'Acceptée',rejected:'Refusée'};
+  for(const row of historyRows){const tr=document.createElement('tr');[row.employee_name||'Employé',row.reason||'Sans motif',money(row.amount),row.created_at?new Date(row.created_at).toLocaleString('fr-FR'):'—',row.reviewed_by||'—',statusLabels[row.status]||row.status||'—'].forEach((value,index)=>{const td=document.createElement('td');td.textContent=value;if(index===2)td.className='expense-money-cell';tr.append(td)});const receipt=document.createElement('td');if(row.receipt_url){const view=document.createElement('button');view.type='button';view.className='expense-table-link';view.textContent='Voir';view.addEventListener('click',()=>openExpenseReceipt(row.receipt_url));receipt.append(view)}else{receipt.textContent='—';receipt.className='muted'}tr.append(receipt);historyBody.append(tr)}
+  if(!historyRows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.className='expense-empty-cell';td.textContent='Aucune note dans cette période pour cette recherche.';tr.append(td);historyBody.append(tr)}historyTable.append(historyBody);historyWrap.append(historyTable);history.append(historyWrap);box.append(history);
+  const requestsSection=document.createElement('section');requestsSection.className='expense-section expense-requests-section';const requestsHead=document.createElement('div');requestsHead.className='expense-section-head';const requestsTitle=document.createElement('div'),rt=document.createElement('h4'),rs=document.createElement('p');rt.textContent='Suivi des demandes de la semaine';rs.textContent='Les demandes à traiter sont affichées pour la semaine sélectionnée.';requestsTitle.append(rt,rs);const filter=el('expenseStatusFilter');if(filter)filter.value=selectedFilter;requestsHead.append(requestsTitle);requestsSection.append(requestsHead);
+  const requestRows=selectedByEmployee(weekly.filter(r=>(filter?.value||selectedFilter)==='all'||r.status===(filter?.value||selectedFilter))).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));const requestWrap=document.createElement('div');requestWrap.className='table-wrap expense-table-wrap';const requestTable=document.createElement('table');requestTable.className='admin-table expense-table expense-request-table';const requestHeader=document.createElement('tr');['Employé / motif','Montant','Date','Justificatif','Statut / décision'].forEach(label=>{const th=document.createElement('th');th.textContent=label;requestHeader.append(th)});const requestThead=document.createElement('thead');requestThead.append(requestHeader);requestTable.append(requestThead);const requestBody=document.createElement('tbody'),labels={pending:'En attente',approved:'Acceptée',rejected:'Refusée'};
+  for(const row of requestRows){const tr=document.createElement('tr'),detail=document.createElement('td');detail.className='expense-request-identity';const who=document.createElement('strong');who.textContent=row.employee_name||'Employé';const reason=document.createElement('span');reason.textContent=row.reason||'Sans motif';const status=document.createElement('small');status.className='expense-status-text '+(row.status||'');status.textContent=labels[row.status]||row.status;detail.append(who,reason,status);const amount=document.createElement('td');amount.className='expense-money-cell';amount.textContent=money(row.amount);const date=document.createElement('td');date.className='expense-date-cell';date.textContent=row.created_at?new Date(row.created_at).toLocaleDateString('fr-FR'):'—';const receipt=document.createElement('td');if(row.receipt_url){const view=document.createElement('button');view.type='button';view.className='expense-table-link';view.textContent='Voir';view.addEventListener('click',()=>openExpenseReceipt(row.receipt_url));receipt.append(view)}else{receipt.textContent='—';receipt.className='muted'}const decision=document.createElement('td');decision.className='expense-decision-cell';
+   if(row.status==='pending'){const accept=document.createElement('button');accept.type='button';accept.className='btn expense-accept-btn';accept.textContent='Accepter';const refuse=document.createElement('button');refuse.type='button';refuse.className='btn secondary expense-refuse-btn';refuse.textContent='Refuser';const decide=async statusValue=>{accept.disabled=true;refuse.disabled=true;try{await rpc('ae_manager_review_expense_note',{p_token:token,p_note_id:row.id,p_status:statusValue});siteToast(statusValue==='approved'?'Note acceptée et ajoutée au total de '+(row.employee_name||'l’employé')+'.':'Note de frais refusée.','success');await Promise.all([loadManagerExpenseNotes(),loadStaffExpenseNotes()])}catch(err){siteToast(err.message,'error');accept.disabled=false;refuse.disabled=false}};accept.addEventListener('click',()=>decide('approved'));refuse.addEventListener('click',()=>decide('rejected'));decision.append(accept,refuse)}else{const tag=document.createElement('span');tag.className='expense-status-pill '+row.status;tag.textContent=labels[row.status]||row.status;decision.append(tag)}
+   tr.append(detail,amount,date,receipt,decision);requestBody.append(tr)}
+  if(!requestRows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=5;td.className='expense-empty-cell';td.textContent='Aucune demande à afficher pour cette semaine et ce filtre.';tr.append(td);requestBody.append(tr)}requestTable.append(requestBody);requestWrap.append(requestTable);requestsSection.append(requestWrap);box.append(requestsSection);
+  weekInput.addEventListener('change',loadManagerExpenseNotes);employeeSelect.addEventListener('change',loadManagerExpenseNotes);rangeSelect.addEventListener('change',loadManagerExpenseNotes);
+  search.addEventListener('input',()=>{const cursor=search.selectionStart;loadManagerExpenseNotes().then(()=>{const next=el('expenseHistorySearch');if(next){next.focus();try{next.setSelectionRange(cursor,cursor)}catch(_){}}})});
  }catch(err){box.textContent='Impossible de charger les notes de frais : '+err.message}
 }
 el('payrollWeekPicker')?.addEventListener('change',loadManagerPayroll);
