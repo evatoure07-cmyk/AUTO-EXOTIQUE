@@ -2227,14 +2227,14 @@ async function managerRefresh(){
  try{
  const rows=await rpc('ae_manager_audit_log',{p_token:token,p_limit:100});const box=el('managerAuditLog');box.replaceChildren();
  if(!rows?.length)box.textContent='Aucune action enregistrée.';
- const actionLabels={employee_created:'Compte employé créé',employee_deleted:'Compte employé supprimé',password_reset:'Mot de passe réinitialisé',role_changed:'Grade modifié',profile_updated:'Profil employé modifié',order_status_changed:'Statut de commande modifié',discord_order_delivered:'Commande livrée depuis Discord',discord_order_cancelled:'Commande annulée depuis Discord',internal_announcement_created:'Annonce interne publiée',internal_announcement_deleted:'Annonce interne supprimée'};
+ const actionLabels={employee_created:'Compte employé créé',employee_deleted:'Compte employé supprimé',password_reset:'Mot de passe réinitialisé',role_changed:'Grade modifié',profile_updated:'Profil employé modifié',order_status_changed:'Statut de commande modifié',discord_order_delivered:'Commande livrée depuis Discord',discord_order_cancelled:'Commande annulée depuis Discord',internal_announcement_created:'Annonce interne publiée',internal_announcement_deleted:'Annonce interne supprimée',expense_note_updated:'Note de frais modifiée'};
  for(const row of rows||[]){
  const item=document.createElement('div');item.className='audit-item';
  const strong=document.createElement('strong');strong.textContent=actionLabels[row.action]||row.action;
  const meta=document.createElement('small');meta.textContent=new Date(row.created_at).toLocaleString('fr-FR')+' · '+row.actor+(row.target?' → '+row.target:'');
  const details=document.createElement('p');details.className='small muted';
  const d=row.details||{};
- details.textContent=[d.old_role&&d.new_role?(roleLabels[d.old_role]||d.old_role)+' → '+(roleLabels[d.new_role]||d.new_role):'',d.order_id?'AE-'+String(d.order_id).padStart(4,'0'):'',d.reason||''].filter(Boolean).join(' · ');
+ details.textContent=[d.old_role&&d.new_role?(roleLabels[d.old_role]||d.old_role)+' → '+(roleLabels[d.new_role]||d.new_role):'',d.order_id?'AE-'+String(d.order_id).padStart(4,'0'):'',d.old_amount!=null&&d.new_amount!=null?money(d.old_amount)+' → '+money(d.new_amount):'',d.change_reason?'Motif : '+d.change_reason:(d.reason||'')].filter(Boolean).join(' · ');
  item.append(strong,meta);if(details.textContent)item.append(details);box.append(item);
  }
  }catch(err){if(el('managerAuditLog'))el('managerAuditLog').textContent='Historique indisponible : '+err.message}
@@ -2337,7 +2337,9 @@ function showExpenseReceiptPreview(src,label){
  const preview=el('expenseReceiptPreview'),clear=el('expenseReceiptClear');
  if(!preview)return;preview.replaceChildren();
  const img=document.createElement('img');img.alt='Aperçu du justificatif';img.src=src;preview.append(img);
- const caption=document.createElement('small');caption.textContent=label;preview.append(caption);preview.classList.remove('hidden');if(clear)clear.classList.remove('hidden');
+ const caption=document.createElement('small');caption.textContent=label+' · Clique sur l’aperçu pour agrandir';preview.append(caption);
+ preview.onclick=e=>{e.stopPropagation();openExpenseReceipt(src)};preview.title='Ouvrir le justificatif en grand';
+ preview.classList.remove('hidden');if(clear)clear.classList.remove('hidden');
 }
 el('expenseReceiptLink')?.addEventListener('input',e=>{
  const value=e.currentTarget.value.trim();
@@ -2354,12 +2356,17 @@ el('expensePasteZone')?.addEventListener('paste',async e=>{
  try{
   const file=item.getAsFile();if(!file)throw new Error('Image indisponible');
   const image=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=reader.result};reader.onerror=reject;reader.readAsDataURL(file)});
-  const scale=Math.min(1,1200/image.width,1200/image.height),canvas=document.createElement('canvas');
-  canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));
-  canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
-  let data=canvas.toDataURL('image/jpeg',.68);
-  if(data.length>450000)data=canvas.toDataURL('image/jpeg',.48);
-  if(data.length>600000)throw new Error('Capture trop lourde. Réduis sa taille puis réessaie.');
+  const canvas=document.createElement('canvas');let data=null;
+  for(const maxSide of [2200,1800,1600,1400,1200]){
+   const scale=Math.min(1,maxSide/Math.max(image.width,image.height));
+   canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));
+   const context=canvas.getContext('2d');context.clearRect(0,0,canvas.width,canvas.height);context.drawImage(image,0,0,canvas.width,canvas.height);
+   const png=canvas.toDataURL('image/png');
+   if(png.length<=600000){data=png;break}
+   for(const quality of [.94,.91,.88,.85,.82]){const webp=canvas.toDataURL('image/webp',quality);if(webp.length<=600000){data=webp;break}}
+   if(data)break;
+  }
+  if(!data)throw new Error('Capture trop volumineuse. Essaie une capture plus légère ou un lien direct vers l’image.');
   el('expenseReceipt').value=data;el('expenseReceiptLink').value='';
   showExpenseReceiptPreview(data,'Capture prête à être envoyée avec la note de frais.');
   siteToast('Capture ajoutée au justificatif.','success');
@@ -2429,6 +2436,50 @@ function ensureExpenseStyles(){
  style.textContent='.expense-week-toolbar{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin:18px 0 22px;padding:16px;border:1px solid var(--line);border-radius:18px;background:var(--soft)}.expense-week-field{display:grid;gap:6px;min-width:180px;flex:1}.expense-week-field label{font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.expense-week-field input,.expense-week-field select{width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);color:var(--text)}.expense-history{margin-top:22px;padding:18px;border:1px solid var(--line);border-radius:18px;background:var(--panel)}.expense-history-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.expense-history-head h4{margin:0}.expense-history-head p{margin:5px 0 0;color:var(--muted);font-size:12px}.expense-history .table-wrap{margin-top:14px}.expense-history-empty{padding:16px;color:var(--muted)}.expense-employee-filter{min-width:230px}.expense-period-label{font-size:12px;color:var(--muted);margin:0 0 12px}.expense-request-identity{min-width:180px}';
  document.head.append(style);
 }
+let editingExpenseNote=null;
+function openExpenseEdit(row){
+ const modal=el('expenseEditModal');if(!modal)return;
+ editingExpenseNote=row;
+ el('expenseEditAmount').value=String(row.amount??'');
+ el('expenseEditReason').value=String(row.reason||'');
+ const receipt=String(row.receipt_url||'');
+ el('expenseEditReceiptLink').value=/^https?:\\/\\//i.test(receipt)?receipt:'';
+ el('expenseEditReceiptHelp').textContent=receipt.startsWith('data:image/')
+  ? 'Le justificatif actuel sera conservé. Ajoute un nouveau lien ou coche « Retirer le justificatif ».'
+  : receipt?'Le justificatif actuel est prérempli. Tu peux le remplacer ou le retirer.':'Aucun justificatif enregistré.';
+ el('expenseEditRemoveReceipt').checked=false;
+ el('expenseEditChangeReason').value='';
+ modal.classList.remove('hidden');document.body.style.overflow='hidden';
+}
+function closeExpenseEdit(){
+ el('expenseEditModal')?.classList.add('hidden');editingExpenseNote=null;document.body.style.overflow='';
+}
+el('expenseEditModal')?.querySelectorAll('[data-close-expense-edit]').forEach(node=>node.addEventListener('click',closeExpenseEdit));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!el('expenseEditModal')?.classList.contains('hidden'))closeExpenseEdit()});
+el('expenseEditForm')?.addEventListener('submit',async e=>{
+ e.preventDefault();if(!editingExpenseNote)return;
+ const amount=Number(el('expenseEditAmount')?.value);
+ const reason=String(el('expenseEditReason')?.value||'').trim();
+ const changeReason=String(el('expenseEditChangeReason')?.value||'').trim();
+ const link=String(el('expenseEditReceiptLink')?.value||'').trim();
+ if(!Number.isInteger(amount)||amount<=0||amount>100000000){siteToast('Montant invalide.','error');return}
+ if(reason.length<3||reason.length>500){siteToast('Le motif doit contenir entre 3 et 500 caractères.','error');return}
+ if(changeReason.length<3||changeReason.length>500){siteToast('Explique la raison de la modification (3 à 500 caractères).','error');return}
+ if(link&&!/^https?:\\/\\//i.test(link)){siteToast('Le lien du justificatif doit commencer par http:// ou https://.','error');return}
+ const receipt=el('expenseEditRemoveReceipt')?.checked?null:(link||editingExpenseNote.receipt_url||null);
+ if(receipt&&String(receipt).length>650000){siteToast('Justificatif trop volumineux.','error');return}
+ const confirmed=await siteConfirm('Montant : '+money(editingExpenseNote.amount)+' → '+money(amount)+'.\\nMotif : '+changeReason+'\\n\\nLa note restera acceptée et conservera sa semaine d’origine. Continuer ?',{title:'Confirmer la modification',confirmText:'Enregistrer',cancelText:'Annuler'});
+ if(!confirmed)return;
+ const save=el('expenseEditSave');if(save)save.disabled=true;
+ try{
+  await rpc('ae_manager_update_expense_note',{p_token:token,p_note_id:editingExpenseNote.id,p_amount:amount,p_reason:reason,p_receipt_url:receipt,p_change_reason:changeReason});
+  closeExpenseEdit();
+  siteToast('Note de frais mise à jour immédiatement. Aucun délai de blocage.','success');
+  await Promise.all([loadManagerExpenseNotes(),loadStaffExpenseNotes(),managerRefresh()]);
+ }catch(err){siteToast('Modification impossible : '+err.message,'error')}
+ finally{if(save)save.disabled=false}
+});
+
 async function loadManagerExpenseNotes(){
  const selectedFilter=el('expenseStatusFilter')?.value||'pending',selectedWeek=el('expenseWeekPicker')?.value||currentIsoWeekValue(),selectedEmployee=el('expenseEmployeeFilter')?.value||'all',selectedRange=el('expenseHistoryRange')?.value||'7d',selectedSearch=el('expenseHistorySearch')?.value||'',box=el('managerExpenseNotes');
  if(!box)return;if(!account||!managerRoles.includes(account.role)){box.replaceChildren();return}
@@ -2456,9 +2507,9 @@ async function loadManagerExpenseNotes(){
   const now=Date.now(),cutoffs={'30m':now-1800000,'1h':now-3600000,'24h':now-86400000,'3d':now-3*86400000,'7d':now-7*86400000},term=selectedSearch.trim().toLocaleLowerCase('fr');
   const historyRows=selectedByEmployee(all).filter(row=>{const d=new Date(row.created_at),inRange=selectedRange==='all'||(!Number.isNaN(d.getTime())&&d.getTime()>=cutoffs[selectedRange]),haystack=[row.employee_name,row.reason,row.reviewed_by,row.status].join(' ').toLocaleLowerCase('fr');return inRange&&(!term||haystack.includes(term))}).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   const history=document.createElement('section');history.className='expense-history';const historyHead=document.createElement('div');historyHead.className='expense-history-head';const historyTitle=document.createElement('div'),ht=document.createElement('h4'),hs=document.createElement('p');ht.textContent='Historique des notes de frais';hs.textContent='Tous les statuts sont conservés. Recherche par employé, motif ou personne ayant traité la demande.';historyTitle.append(ht,hs);const historyTotal=document.createElement('strong');historyTotal.textContent=historyRows.length+' résultat(s)';historyHead.append(historyTitle,historyTotal);history.append(historyHead);
-  const historyWrap=document.createElement('div');historyWrap.className='table-wrap';const historyTable=document.createElement('table');historyTable.className='admin-table expense-table';const historyHeader=document.createElement('tr');['Employé','Motif','Montant','Date','Traité par','Statut','Justificatif'].forEach(label=>{const th=document.createElement('th');th.textContent=label;historyHeader.append(th)});const historyThead=document.createElement('thead');historyThead.append(historyHeader);historyTable.append(historyThead);const historyBody=document.createElement('tbody'),statusLabels={pending:'En attente',approved:'Acceptée',rejected:'Refusée'};
-  for(const row of historyRows){const tr=document.createElement('tr');[row.employee_name||'Employé',row.reason||'Sans motif',money(row.amount),row.created_at?new Date(row.created_at).toLocaleString('fr-FR'):'—',row.reviewed_by||'—',statusLabels[row.status]||row.status||'—'].forEach((value,index)=>{const td=document.createElement('td');td.textContent=value;if(index===2)td.className='expense-money-cell';tr.append(td)});const receipt=document.createElement('td');if(row.receipt_url){const view=document.createElement('button');view.type='button';view.className='expense-table-link';view.textContent='Voir';view.addEventListener('click',()=>openExpenseReceipt(row.receipt_url));receipt.append(view)}else{receipt.textContent='—';receipt.className='muted'}tr.append(receipt);historyBody.append(tr)}
-  if(!historyRows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.className='expense-empty-cell';td.textContent='Aucune note dans cette période pour cette recherche.';tr.append(td);historyBody.append(tr)}historyTable.append(historyBody);historyWrap.append(historyTable);history.append(historyWrap);box.append(history);
+  const historyWrap=document.createElement('div');historyWrap.className='table-wrap';const historyTable=document.createElement('table');historyTable.className='admin-table expense-table';const historyHeader=document.createElement('tr');['Employé','Motif','Montant','Date','Traité par','Statut','Justificatif','Actions'].forEach(label=>{const th=document.createElement('th');th.textContent=label;historyHeader.append(th)});const historyThead=document.createElement('thead');historyThead.append(historyHeader);historyTable.append(historyThead);const historyBody=document.createElement('tbody'),statusLabels={pending:'En attente',approved:'Acceptée',rejected:'Refusée'};
+  for(const row of historyRows){const tr=document.createElement('tr');[row.employee_name||'Employé',row.reason||'Sans motif',money(row.amount),row.created_at?new Date(row.created_at).toLocaleString('fr-FR'):'—',row.reviewed_by||'—',statusLabels[row.status]||row.status||'—'].forEach((value,index)=>{const td=document.createElement('td');td.textContent=value;if(index===2)td.className='expense-money-cell';tr.append(td)});const receipt=document.createElement('td');if(row.receipt_url){const view=document.createElement('button');view.type='button';view.className='expense-table-link';view.textContent='Voir';view.addEventListener('click',()=>openExpenseReceipt(row.receipt_url));receipt.append(view)}else{receipt.textContent='—';receipt.className='muted'}const actions=document.createElement('td');actions.className='expense-edit-cell';if(row.status==='approved'&&['copatron','patron'].includes(account?.role)){const edit=document.createElement('button');edit.type='button';edit.className='expense-edit-btn';edit.textContent='⚙';edit.title='Modifier cette note acceptée';edit.setAttribute('aria-label','Modifier la note acceptée de '+(row.employee_name||'cet employé'));edit.addEventListener('click',()=>openExpenseEdit(row));actions.append(edit)}else{actions.textContent='—';actions.className+=' muted'}tr.append(receipt,actions);historyBody.append(tr)}
+  if(!historyRows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=8;td.className='expense-empty-cell';td.textContent='Aucune note dans cette période pour cette recherche.';tr.append(td);historyBody.append(tr)}historyTable.append(historyBody);historyWrap.append(historyTable);history.append(historyWrap);box.append(history);
   const requestsSection=document.createElement('section');requestsSection.className='expense-section expense-requests-section';const requestsHead=document.createElement('div');requestsHead.className='expense-section-head';const requestsTitle=document.createElement('div'),rt=document.createElement('h4'),rs=document.createElement('p');rt.textContent='Suivi des demandes de la semaine';rs.textContent='Les demandes à traiter sont affichées pour la semaine sélectionnée.';requestsTitle.append(rt,rs);const filter=el('expenseStatusFilter');if(filter)filter.value=selectedFilter;requestsHead.append(requestsTitle);requestsSection.append(requestsHead);
   const requestRows=selectedByEmployee(weekly.filter(r=>(filter?.value||selectedFilter)==='all'||r.status===(filter?.value||selectedFilter))).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));const requestWrap=document.createElement('div');requestWrap.className='table-wrap expense-table-wrap';const requestTable=document.createElement('table');requestTable.className='admin-table expense-table expense-request-table';const requestHeader=document.createElement('tr');['Employé / motif','Montant','Date','Justificatif','Statut / décision'].forEach(label=>{const th=document.createElement('th');th.textContent=label;requestHeader.append(th)});const requestThead=document.createElement('thead');requestThead.append(requestHeader);requestTable.append(requestThead);const requestBody=document.createElement('tbody'),labels={pending:'En attente',approved:'Acceptée',rejected:'Refusée'};
   for(const row of requestRows){const tr=document.createElement('tr'),detail=document.createElement('td');detail.className='expense-request-identity';const who=document.createElement('strong');who.textContent=row.employee_name||'Employé';const reason=document.createElement('span');reason.textContent=row.reason||'Sans motif';const status=document.createElement('small');status.className='expense-status-text '+(row.status||'');status.textContent=labels[row.status]||row.status;detail.append(who,reason,status);const amount=document.createElement('td');amount.className='expense-money-cell';amount.textContent=money(row.amount);const date=document.createElement('td');date.className='expense-date-cell';date.textContent=row.created_at?new Date(row.created_at).toLocaleDateString('fr-FR'):'—';const receipt=document.createElement('td');if(row.receipt_url){const view=document.createElement('button');view.type='button';view.className='expense-table-link';view.textContent='Voir';view.addEventListener('click',()=>openExpenseReceipt(row.receipt_url));receipt.append(view)}else{receipt.textContent='—';receipt.className='muted'}const decision=document.createElement('td');decision.className='expense-decision-cell';
