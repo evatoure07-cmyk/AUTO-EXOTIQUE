@@ -2443,7 +2443,7 @@ function openExpenseEdit(row){
  el('expenseEditAmount').value=String(row.amount??'');
  el('expenseEditReason').value=String(row.reason||'');
  const receipt=String(row.receipt_url||'');
- el('expenseEditReceiptLink').value=/^https?:\\/\\//i.test(receipt)?receipt:'';
+ el('expenseEditReceiptLink').value=(receipt.startsWith('https://')||receipt.startsWith('http://'))?receipt:'';
  el('expenseEditReceiptHelp').textContent=receipt.startsWith('data:image/')
   ? 'Le justificatif actuel sera conservé. Ajoute un nouveau lien ou coche « Retirer le justificatif ».'
   : receipt?'Le justificatif actuel est prérempli. Tu peux le remplacer ou le retirer.':'Aucun justificatif enregistré.';
@@ -2465,7 +2465,7 @@ el('expenseEditForm')?.addEventListener('submit',async e=>{
  if(!Number.isInteger(amount)||amount<=0||amount>100000000){siteToast('Montant invalide.','error');return}
  if(reason.length<3||reason.length>500){siteToast('Le motif doit contenir entre 3 et 500 caractères.','error');return}
  if(changeReason.length<3||changeReason.length>500){siteToast('Explique la raison de la modification (3 à 500 caractères).','error');return}
- if(link&&!/^https?:\\/\\//i.test(link)){siteToast('Le lien du justificatif doit commencer par http:// ou https://.','error');return}
+ if(link&&!(link.startsWith('https://')||link.startsWith('http://'))){siteToast('Le lien du justificatif doit commencer par http:// ou https://.','error');return}
  const receipt=el('expenseEditRemoveReceipt')?.checked?null:(link||editingExpenseNote.receipt_url||null);
  if(receipt&&String(receipt).length>650000){siteToast('Justificatif trop volumineux.','error');return}
  const confirmed=await siteConfirm('Montant : '+money(editingExpenseNote.amount)+' → '+money(amount)+'.\\nMotif : '+changeReason+'\\n\\nLa note restera acceptée et conservera sa semaine d’origine. Continuer ?',{title:'Confirmer la modification',confirmText:'Enregistrer',cancelText:'Annuler'});
