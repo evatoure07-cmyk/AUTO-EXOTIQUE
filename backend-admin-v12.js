@@ -2234,7 +2234,7 @@ async function managerRefresh(){
  const meta=document.createElement('small');meta.textContent=new Date(row.created_at).toLocaleString('fr-FR')+' · '+row.actor+(row.target?' → '+row.target:'');
  const details=document.createElement('p');details.className='small muted';
  const d=row.details||{};
- details.textContent=[d.old_role&&d.new_role?(roleLabels[d.old_role]||d.old_role)+' → '+(roleLabels[d.new_role]||d.new_role):'',d.order_id?'AE-'+String(d.order_id).padStart(4,'0'):'',d.old_amount!=null&&d.new_amount!=null?money(d.old_amount)+' → '+money(d.new_amount):'',d.change_reason?'Motif : '+d.change_reason:(d.reason||'')].filter(Boolean).join(' · ');
+ details.textContent=[d.old_role&&d.new_role?(roleLabels[d.old_role]||d.old_role)+' → '+(roleLabels[d.new_role]||d.new_role):'',d.order_id?'AE-'+String(d.order_id).padStart(4,'0'):'',d.note_id?'Note #'+d.note_id:'',d.old_amount!=null&&d.new_amount!=null?money(d.old_amount)+' → '+money(d.new_amount):'',d.old_reason?'Ancien motif : '+d.old_reason:'',d.new_reason?'Nouveau motif : '+d.new_reason:'',d.change_reason?'Justification : '+d.change_reason:(d.reason||''),d.receipt_changed?'Justificatif modifié':''].filter(Boolean).join(' · ');
  item.append(strong,meta);if(details.textContent)item.append(details);box.append(item);
  }
  }catch(err){if(el('managerAuditLog'))el('managerAuditLog').textContent='Historique indisponible : '+err.message}
